@@ -1,0 +1,31 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main ]
+  pull_requests:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install package with 'dev' dependencies
+        run: uv pip install -e ".[dev]"
+
+      - name: Check formatting with Black
+        run: uv run black --check .
+
+      - name: Check linting with pylint
+        run: uv run pylint src/
+
+      # - name: Run pytest
+      #   run: uv run pytest
