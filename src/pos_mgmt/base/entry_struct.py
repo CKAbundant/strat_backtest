@@ -165,7 +165,8 @@ class EntryStruct(ABC):
     def _validate_entry_datetime(
         self, open_trades: deque[StockTrade], entry_datetime: datetime | str
     ) -> datetime:
-        """Validate entry datetime is the same for all StockTrade objects in 'open_trades.
+        """Validate entry datetime is the same for all StockTrade objects
+        in 'open_trades.
 
         Args:
             open_trades (deque[StockTrade]):

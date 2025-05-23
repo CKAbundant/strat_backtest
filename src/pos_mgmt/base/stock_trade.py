@@ -111,7 +111,8 @@ class StockTrade(BaseModel):
                 )
             if entry_action != "wait" and entry_action == exit_action:
                 raise ValueError(
-                    "Entry action cannot be the same as exit action except when both are 'wait'."
+                    "Entry action cannot be the same as exit action except "
+                    "when both are 'wait'."
                 )
             if entry_action != "wait" and exit_action == "wait":
                 raise ValueError(

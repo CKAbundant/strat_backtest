@@ -32,13 +32,13 @@ disable = [
     "len-as-condition",
     "fixme",
     "too-few-public-methods",
-    "too-many-arguments",
     "unnecessary-ellipsis",
 ]
 
 [tool.pylint.DESIGN]
 max-attributes = 20
 max-args = 8
+max-positional-arguments = 8
 
 [tool.pylint.FORMAT]
 max-line-length = 88  # Match Black's default

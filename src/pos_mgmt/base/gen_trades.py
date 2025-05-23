@@ -719,6 +719,6 @@ class GenTrades(ABC):
         file_list = ["entry_struct.py", "exit_struct.py", "stop_method.py"]
 
         return {
-            f"{file.split(".")[0]}_path": current_dir.joinpath(file)
+            f"{file.split('.')[0]}_path": current_dir.joinpath(file)
             for file in file_list
         }

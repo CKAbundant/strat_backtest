@@ -1,5 +1,4 @@
-"""
-Trading system constants and enumerations.
+"""Trading system constants and enumerations.
 
 This module contains StrEnum classes and Literal type constants
 used throughout the 'pos_mgmt' package.
@@ -8,13 +7,16 @@ used throughout the 'pos_mgmt' package.
 import sys
 
 if sys.version_info >= (3, 11):
+    # pylint: disable=wrong-import-position
     from enum import StrEnum
 else:
+    from enum import Enum
+
     # Fallback for Python < 3.11
     class StrEnum(str, Enum):
         """String enumeration for Python < 3.11 compatibility."""
 
-        pass
+        ...
 
 
 from enum import StrEnum

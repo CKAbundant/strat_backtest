@@ -20,14 +20,15 @@ def display_open_trades(open_trades: deque["StockTrade"]) -> None:
 
     msg_list = []
     for trade in open_trades:
-        date_str = trade.exit_datetime.strftime("%Y-%m-%d")
-        exit_date = f"'{date_str}'" if trade.exit_datetime else "None"
+        entry_date_str = trade.exit_datetime.strftime("%Y-%m-%d")
+        exit_date_str = trade.entry_datetime.strftime("%Y-%m-%d")
+        exit_date = f"'{entry_date_str}'" if trade.exit_datetime else "None"
         exit_action = f"'{trade.exit_action}'" if trade.exit_action else "None"
 
         trade_str = (
             "   {\n"
             f"      ticker: '{trade.ticker}', "
-            f"ent_dt: '{trade.entry_datetime.strftime("%Y-%m-%d")}', "
+            f"ent_dt: '{exit_date_str}', "
             f"ent_act: '{trade.entry_action}', "
             f"ent_lots: {trade.entry_lots}, "
             f"ent_price: {trade.entry_price}, "
