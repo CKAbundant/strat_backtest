@@ -52,22 +52,22 @@ class StockTrade(BaseModel):
             return profit_loss
         return None
 
+    # pylint: disable=comparison-with-callable
     @computed_field(description="Percentage return of trade")
     def percent_ret(self) -> Decimal | None:
         if (
             self.exit_price is not None
             and self.entry_price is not None
             and self.profit_loss is not None
-        ):  # pylint: disable=comparison-with-callable
+        ):
             percent_ret = self.profit_loss / self.entry_price
             return percent_ret.quantize(Decimal("1.000000"))
         return None
 
+    # pylint: disable=comparison-with-callable
     @computed_field(description="daily percentage return of trade")
     def daily_ret(self) -> Decimal | None:
-        if (
-            self.percent_ret is not None and self.days_held != 0
-        ):  # pylint: disable=comparison-with-callable
+        if self.percent_ret is not None and self.days_held != 0:
             daily_ret = (1 + self.percent_ret) ** (1 / Decimal(str(self.days_held))) - 1
             return daily_ret.quantize(Decimal("1.000000"))
 
@@ -76,11 +76,10 @@ class StockTrade(BaseModel):
             return self.percent_ret
         return None
 
+    # pylint: disable=comparison-with-callable
     @computed_field(description="Whether trade is profitable")
     def win(self) -> int | None:
-        if (
-            pl := self.percent_ret
-        ) is not None:  # pylint: disable=comparison-with-callable
+        if (pl := self.percent_ret) is not None:
             return int(pl > 0)
         return None
 

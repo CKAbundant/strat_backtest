@@ -36,13 +36,13 @@ def get_class_instance(
         # Import python script at class path as python module
         module = importlib.import_module(module_path)
     except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Module not found in '{script_path}' : {e}")
+        raise ModuleNotFoundError(f"Module not found in '{script_path}'.") from e
 
     try:
         # Get class from module
         req_class: Type[T] = getattr(module, class_name)
     except AttributeError as e:
-        raise AttributeError(f"'{class_name}' class is not found in module.")
+        raise AttributeError(f"'{class_name}' class is not found in module") from e
 
     # Intialize instance of class
     return req_class(**params)
@@ -58,7 +58,7 @@ def convert_path_to_pkg(script_path: str) -> str:
     return script_path.replace("/", ".")
 
 
-def get_net_pos(open_trades: list["StockTrade"]) -> int:
+def get_net_pos(open_trades: deque["StockTrade"]) -> int:
     """Get net positions from 'self.open_trades'."""
 
     return sum(
@@ -78,6 +78,8 @@ def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
 
     if len(counter) > 1:
         raise ValueError(f"'{std_field}' field is not consistent.")
+
+    return "wait" if len(counter) == 0 else list(counter.keys())[0]
 
 
 # Public Interface

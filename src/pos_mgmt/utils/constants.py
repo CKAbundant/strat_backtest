@@ -5,6 +5,18 @@ This module contains StrEnum classes and Literal type constants
 used throughout the 'pos_mgmt' package.
 """
 
+import sys
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    # Fallback for Python < 3.11
+    class StrEnum(str, Enum):
+        """String enumeration for Python < 3.11 compatibility."""
+
+        pass
+
+
 from enum import StrEnum
 from typing import Literal
 

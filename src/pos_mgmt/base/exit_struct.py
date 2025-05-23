@@ -97,7 +97,8 @@ class ExitStruct(ABC):
             return trade
 
     def _validate_completed_trades(self, stock_trade: StockTrade) -> bool:
-        """Validate whether StockTrade object is properly updated with no null values."""
+        """Validate whether StockTrade object is properly updated with no null
+        values."""
 
         # Check for null fields
         is_no_null_field = all(
@@ -310,18 +311,6 @@ class HalfFIFOExit(ExitStruct):
             raise ValueError("Completed trades not properly closed.")
 
         return completed_trade.model_dump()
-
-    def get_net_pos(self, open_trades: deque[StockTrade]) -> int:
-        """Get net positions from 'open_trades'."""
-
-        return sum(
-            (
-                trade.entry_lots - trade.exit_lots
-                if trade.entry_action == "buy"
-                else -(trade.entry_lots - trade.exit_lots)
-            )
-            for trade in open_trades
-        )
 
 
 class HalfLIFOExit(ExitStruct):

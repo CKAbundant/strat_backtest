@@ -127,7 +127,8 @@ class EntryStruct(ABC):
         latest_ticker = open_trades[-1].ticker
         if ticker != latest_ticker:
             raise ValueError(
-                f"'{ticker}' is different from ticker used in 'open_trades' ({latest_ticker})"
+                f"'{ticker}' is different from ticker used in "
+                f"'open_trades' ({latest_ticker})"
             )
 
         return ticker
@@ -199,7 +200,7 @@ class EntryStruct(ABC):
 
         return entry_datetime
 
-    def _validate_open_trades(sel, open_trades: deque[StockTrade]) -> None:
+    def _validate_open_trades(self, open_trades: deque[StockTrade]) -> None:
         """Validate StockTrade objects in 'self.open_trade'.
 
         -'entry_action' fields are  same for all StockTrade objects.
@@ -247,7 +248,9 @@ class MultiEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> multi_entry = MultiEntry(num_lots=1)
-        >>> open_trades = multi_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = multi_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(
@@ -309,7 +312,9 @@ class MultiHalfEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> multi_entry = MultiHalfEntry(num_lots=1)
-        >>> open_trades = multi_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = multi_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(
@@ -377,7 +382,9 @@ class SingleEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> single_entry = SingleEntry(num_lots=1)
-        >>> open_trades = single_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = single_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(

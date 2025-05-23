@@ -140,7 +140,7 @@ def remove_unnamed_cols(data: pd.DataFrame) -> pd.DataFrame:
     df = data.copy()
     formatted_cols = []
 
-    if any([isinstance(col, str) for col in df.columns]):
+    if any(isinstance(col, str) for col in df.columns):
         # No amendments made since columns are not multi-level
         return df
 
@@ -164,5 +164,4 @@ __all__ = [
     "load_csv",
     "save_csv",
     "set_decimal_type",
-    "display_open_trades",
 ]
