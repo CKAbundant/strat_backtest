@@ -1,82 +1,53 @@
-"""Helper functions for strategy implementation"""
+"""Generic helper functions. For example:
 
-import importlib
-from collections import Counter, deque
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+- Manipulate DataFrame
+- Format display via print
+"""
+
+from collections import deque
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from posmgmt.base.stock_trade import StockTrade
-
-# Create generic type variable 'T'
-T = TypeVar("T")
+    from pos_mgmt.base.stock_trade import StockTrade
 
 
-def get_class_instance(
-    class_name: str, script_path: str, **params: dict[str, Any]
-) -> T:
-    """Return instance of a class that is initialized with 'params'.
+def display_open_trades(open_trades: deque["StockTrade"]) -> None:
+    """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret' and 'win' fields in StockTrade."""
 
-    Args:
-        class_name (str):
-            Name of class in python script.
-        script_path (str):
-            Relative file path to python script that contains the required class.
-        **params (dict[str, Any]):
-            Arbitrary Keyword input arguments to initialize class instance.
+    if len(open_trades) == 0:
+        print("open_trades : []\n")
+        return
 
-    Returns:
-        (T): Initialized instance of class.
-    """
-
-    # Convert script path to package path
-    module_path = convert_path_to_pkg(script_path)
-
-    try:
-        # Import python script at class path as python module
-        module = importlib.import_module(module_path)
-    except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Module not found in '{script_path}' : {e}")
-
-    try:
-        # Get class from module
-        req_class: Type[T] = getattr(module, class_name)
-    except AttributeError as e:
-        raise AttributeError(f"'{class_name}' class is not found in module.")
-
-    # Intialize instance of class
-    return req_class(**params)
-
-
-def convert_path_to_pkg(script_path: str) -> str:
-    """Convert file path to package path that can be used as input to importlib."""
-
-    # Remove suffix ".py"
-    script_path = Path(script_path).with_suffix("").as_posix()
-
-    # Convert to package format for use in 'importlib.import_module'
-    return script_path.replace("/", ".")
-
-
-def get_net_pos(open_trades: list["StockTrade"]) -> int:
-    """Get net positions from 'self.open_trades'."""
-
-    return sum(
-        (
-            trade.entry_lots - trade.exit_lots
-            if trade.entry_action == "buy"
-            else -(trade.entry_lots - trade.exit_lots)
+    msg_list = []
+    for trade in open_trades:
+        exit_date = (
+            f"'{trade.exit_datetime.strftime("%Y-%m-%d")}'"
+            if trade.exit_datetime
+            else "None"
         )
-        for trade in open_trades
-    )
+        exit_action = f"'{trade.exit_action}'" if trade.exit_action else "None"
+
+        trade_str = (
+            "   {\n"
+            f"      ticker: '{trade.ticker}', "
+            f"ent_dt: '{trade.entry_datetime.strftime("%Y-%m-%d")}', "
+            f"ent_act: '{trade.entry_action}', "
+            f"ent_lots: {trade.entry_lots}, "
+            f"ent_price: {trade.entry_price}, "
+            f"ex_dt: {exit_date}, "
+            f"ex_act: {exit_action}, "
+            f"ex_lots: {trade.exit_lots}, "
+            f"ex_price: {trade.exit_price}"
+            "\n   },"
+        )
+        msg_list.append(trade_str)
+
+    msg = "\n".join(msg_list)
+
+    print(f"open_trades : \n[\n{msg}\n]\n")
 
 
-def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
-    """Get standard field (i.e. 'ticker' or 'entry_action') from 'open_trades'."""
-
-    counter = Counter([getattr(trade, std_field) for trade in open_trades])
-
-    if len(counter) > 1:
-        raise ValueError(f"'{std_field}' field is not consistent.")
-
-    return "wait" if len(counter) == 0 else list(counter.keys())[0]
+# Public Interface
+__all__ = [
+    "display_open_trades",
+]

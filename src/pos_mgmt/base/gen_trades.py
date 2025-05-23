@@ -9,9 +9,16 @@ from typing import Any
 
 import pandas as pd
 
-from config.variables import EntryMethod, ExitMethod, PriceAction
-from src.utils.strategy_utils import get_class_instance, get_net_pos, get_std_field
-from src.utils.utils import display_open_trades, set_decimal_type
+from pos_mgmt.utils import (
+    EntryMethod,
+    ExitMethod,
+    PriceAction,
+    display_open_trades,
+    get_class_instance,
+    get_net_pos,
+    get_std_field,
+    set_decimal_type,
+)
 
 from .stock_trade import StockTrade
 
@@ -159,7 +166,7 @@ class GenTrades(ABC):
                 DataFrame containing updated exit signals price-related stops.
         """
 
-        pass
+        ...
 
     def iterate_df(
         self, ticker: str, df_signals: pd.DataFrame
@@ -388,7 +395,7 @@ class GenTrades(ABC):
         print(f"self.trigger_trail : {self.trigger_trail}")
         print(f"self.step : {self.step}")
         print(f"self.trigger_trail_level : {self.trigger_trail_level}")
-        print(f"high : {record["high"]}")
+        print(f"high : {record['high']}")
         print(
             f"first entry price : {self.open_trades[0].entry_price if len(self.open_trades)>0 else None}"
         )

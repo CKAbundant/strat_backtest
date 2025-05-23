@@ -10,8 +10,6 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from config.variables import ExitMethod, PriceAction
-
 from .stock_trade import StockTrade
 
 
@@ -54,7 +52,7 @@ class ExitStruct(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        pass
+        ...
 
     def _update_pos(
         self,
@@ -499,7 +497,7 @@ class TakeAllExit(ExitStruct):
                     completed_trades.append(trade.model_dump())
 
         if len(completed_trades) != len(open_trades):
-            raise ValueError(f"Open positions failed to close completely.")
+            raise ValueError("Open positions failed to close completely.")
 
         # Reset open_trades
         open_trades.clear()

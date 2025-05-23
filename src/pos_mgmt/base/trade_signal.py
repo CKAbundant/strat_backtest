@@ -10,7 +10,7 @@ from typing import get_args
 
 import pandas as pd
 
-from config.variables import EntryType
+from pos_mgmt.utils import EntryType
 
 
 class TradeSignal(ABC):
@@ -52,7 +52,7 @@ class EntrySignal(TradeSignal, ABC):
         - 'longshort' -> 'buy', 'sell', or 'wait' signal allowed.
         """
 
-        pass
+        ...
 
     def _validate_entry_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
@@ -81,7 +81,7 @@ class ExitSignal(TradeSignal, ABC):
         - 'longshort' -> 'buy', 'sell', or 'wait' exit signal allowed.
         """
 
-        pass
+        ...
 
     def _validate_exit_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""

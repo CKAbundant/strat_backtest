@@ -1,13 +1,9 @@
 """Class to combine concrete implementation of 'EntrySignal', 'ExitSignal'
 and 'GenTrades' into a strategy"""
 
-from typing import Type
-
-import numpy as np
 import pandas as pd
 
-from config.variables import EntryType
-from src.strategy.base import EntrySignal, ExitSignal, GenTrades
+from pos_mgmt.base import EntrySignal, ExitSignal, GenTrades
 
 
 class TradingStrategy:
@@ -23,19 +19,18 @@ class TradingStrategy:
         >>> strategy.run()
 
     Args:
-        entry (EntrySignal):
+        entry_sig (EntrySignal):
             Class instance of concrete implementation of 'EntrySignal' abstract class.
-        exit (ExitSignal):
-            If provided, Class instance of concrete implementation of 'ExitSignal'
-            abstract class. If None, standard profit and stop loss will be applied via
-            'gen_trades'.
+        exit_sig (ExitSignal):
+            Class instance of concrete implementation of 'ExitSignal'
+            abstract class.
         trades (GetTrades):
             Class instance of concrete implementation of 'GetTrades' abstract class.
 
     Attributes:
-        entry (EntrySignal):
+        entry_sig (EntrySignal):
             Class instance of concrete implementation of 'EntrySignal' abstract class.
-        exit (ExitSignal):
+        exit_sig (ExitSignal):
             Class instance of concrete implementation of 'ExitSignal' abstract class.
         trades (GetTrades):
             Instance of concrete implementation of 'GetTrades' abstract class.
@@ -43,12 +38,12 @@ class TradingStrategy:
 
     def __init__(
         self,
-        entry: EntrySignal,
-        exit: ExitSignal,
+        entry_sig: EntrySignal,
+        exit_sig: ExitSignal,
         trades: GenTrades,
     ) -> None:
-        self.entry = entry
-        self.exit = exit
+        self.entry_sig = entry_sig
+        self.exit_sig = exit_sig
         self.trades = trades
 
     def __call__(self, df_ohlcv: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -68,8 +63,8 @@ class TradingStrategy:
         """
 
         # Append entry and exit signal
-        df_pa = self.entry.gen_entry_signal(df_ohlcv)
-        df_pa = self.exit.gen_exit_signal(df_pa)
+        df_pa = self.entry_sig.gen_entry_signal(df_ohlcv)
+        df_pa = self.exit_sig.gen_exit_signal(df_pa)
 
         # Generate trades
         df_trades, df_signals = self.trades.gen_trades(df_pa)

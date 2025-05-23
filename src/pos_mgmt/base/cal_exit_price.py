@@ -1,16 +1,12 @@
 """Class to calculate single stop price for all open positions based
 on price movements."""
 
-import math
 from abc import ABC, abstractmethod
-from collections import Counter, deque
+from collections import deque
 from decimal import Decimal
 
 from pos_mgmt.base.stock_trade import StockTrade
-from pos_mgmt.utils.utils import get_std_field
-
-# from strategy.base.stock_trade import StockTrade
-# from utils.strategy_utils import get_std_field
+from pos_mgmt.utils import get_std_field
 
 
 class CalExitPrice(ABC):
@@ -41,7 +37,7 @@ class CalExitPrice(ABC):
             (Decimal): Exit price for all multiple open positions.
         """
 
-        pass
+        ...
 
 
 class PercentLoss(CalExitPrice):

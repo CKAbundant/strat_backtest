@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
-from config.variables import PriceAction
+from pos_mgmt.utils import PriceAction
 
 
 class StockTrade(BaseModel):
@@ -39,7 +39,7 @@ class StockTrade(BaseModel):
         if self.exit_datetime is not None and self.entry_datetime is not None:
             days_held = self.exit_datetime - self.entry_datetime
             return days_held.days
-        return
+        return None
 
     @computed_field(description="Profit/loss when trade completed")
     def profit_loss(self) -> Decimal | None:
@@ -50,7 +50,7 @@ class StockTrade(BaseModel):
                 else self.entry_price - self.exit_price
             )
             return profit_loss
-        return
+        return None
 
     @computed_field(description="Percentage return of trade")
     def percent_ret(self) -> Decimal | None:
@@ -58,32 +58,36 @@ class StockTrade(BaseModel):
             self.exit_price is not None
             and self.entry_price is not None
             and self.profit_loss is not None
-        ):
+        ):  # pylint: disable=comparison-with-callable
             percent_ret = self.profit_loss / self.entry_price
             return percent_ret.quantize(Decimal("1.000000"))
-        return
+        return None
 
     @computed_field(description="daily percentage return of trade")
     def daily_ret(self) -> Decimal | None:
-        if self.percent_ret is not None and self.days_held != 0:
+        if (
+            self.percent_ret is not None and self.days_held != 0
+        ):  # pylint: disable=comparison-with-callable
             daily_ret = (1 + self.percent_ret) ** (1 / Decimal(str(self.days_held))) - 1
             return daily_ret.quantize(Decimal("1.000000"))
 
         if self.percent_ret is not None and self.days_held == 0:
             # daily return = percent return if closed within same day
             return self.percent_ret
-        return
+        return None
 
     @computed_field(description="Whether trade is profitable")
     def win(self) -> int | None:
-        if (pl := self.percent_ret) is not None:
+        if (
+            pl := self.percent_ret
+        ) is not None:  # pylint: disable=comparison-with-callable
             return int(pl > 0)
-        return
+        return None
 
     model_config = {"validate_assignment": True}
 
     @field_validator("exit_datetime")
-    def validate_exit_datetime(
+    def validate_exit_datetime(  # pylint: disable=no-self-argument
         cls, exit_datetime: datetime | None, info: dict[str, Any]
     ) -> datetime | None:
         # Get entry datetime from StockTrade object
@@ -95,7 +99,7 @@ class StockTrade(BaseModel):
         return exit_datetime
 
     @field_validator("exit_action")
-    def validate_exit_action(
+    def validate_exit_action(  # pylint: disable=no-self-argument
         cls, exit_action: PriceAction | None, info: dict[str, Any]
     ) -> Decimal | None:
         # Get entry_action from StockTrade object
@@ -118,7 +122,7 @@ class StockTrade(BaseModel):
         return exit_action
 
     @field_validator("exit_lots")
-    def validate_exit_lots(
+    def validate_exit_lots(  # pylint: disable=no-self-argument
         cls, exit_lots: Decimal | None, info: dict[str, Any]
     ) -> Decimal | None:
         # Get entry_lots from StockTrade object
@@ -129,6 +133,6 @@ class StockTrade(BaseModel):
                 raise ValueError("Exit lots must be equal or less than entry lots.")
 
             if exit_lots < 0 or entry_lots < 0:
-                raise ValueError(f"Entry lots and exit lots must be positive.")
+                raise ValueError("Entry lots and exit lots must be positive.")
 
         return exit_lots
