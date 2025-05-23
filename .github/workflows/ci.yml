@@ -27,6 +27,11 @@ jobs:
             **/uv.lock
             **/pyproject.toml
 
+      - name: Install dependencies for ta-lib
+        run: |
+          curl -L -O https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib_0.6.4_amd64.deb &&
+          sudo dpkg -i ta-lib_0.6.4_amd64.deb
+
       - name: Install project with dev dependencies
         run: uv sync --all-extras --dev
 
