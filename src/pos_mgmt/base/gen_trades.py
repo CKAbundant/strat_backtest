@@ -550,7 +550,7 @@ class GenTrades(ABC):
             self.trigger_trail_level = None
             self.trailing_profit = None
 
-            return
+            return None
 
         # Get standard 'entry_action' from 'self.open_trades' and first entry price
         entry_action = get_std_field(self.open_trades, "entry_action")
