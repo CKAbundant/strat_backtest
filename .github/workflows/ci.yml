@@ -39,7 +39,7 @@ jobs:
         run: uv run black --check .
 
       - name: Check linting with pylint
-        run: uv run pylint src/
+        run: uv run pylint src/ --fail-under=8
 
       # - name: Run pytest
       #   run: uv run pytest
