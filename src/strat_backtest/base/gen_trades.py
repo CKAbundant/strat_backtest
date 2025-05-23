@@ -47,6 +47,14 @@ class RiskConfig:
 class GenTrades(ABC):
     """Abstract class to generate completed trades for given strategy.
 
+    Usage:
+        >>> trading_cfg = TradingConfig(
+                entry_struct, exit_struct, num_lots, monitor_close
+            )
+        >>> risk_cfg = RiskConfig(percent_loss, stop_method, trigger_trail, step)
+        >>> trades = GenTrades(trading_cfg, risk_cfg)
+        >>> df_trades, df_signals = trades.gen_trades(df_signals)
+
     Args:
         trading_cfg (TradingConfig):
             Instance of 'TradingConfig' dataclass containing 'entry_struct',
