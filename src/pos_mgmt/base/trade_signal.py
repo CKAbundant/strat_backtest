@@ -57,7 +57,7 @@ class EntrySignal(TradeSignal, ABC):
     def _validate_entry_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
         if "entry_signal" not in df.columns:
-            raise ValueError(f"'entry_signal' column not found!")
+            raise ValueError("'entry_signal' column not found!")
 
         if self.entry_type == "long" and (df["entry_signal"] == "sell").any():
             raise ValueError("Long only strategy cannot generate sell entry signals")

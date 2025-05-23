@@ -12,7 +12,8 @@ if TYPE_CHECKING:
 
 
 def display_open_trades(open_trades: deque["StockTrade"]) -> None:
-    """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret' and 'win' fields in StockTrade."""
+    """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret'
+    and 'win' fields in StockTrade."""
 
     if len(open_trades) == 0:
         print("open_trades : []\n")

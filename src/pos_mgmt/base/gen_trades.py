@@ -346,7 +346,7 @@ class GenTrades(ABC):
         close = record["close"]
 
         # Return 'completed_list' unamended if no open position or not exit signals
-        if len(self.open_trades) == 0 or (ex_sig != "sell" and ex_sig != "buy"):
+        if len(self.open_trades) == 0 or (ex_sig not in {"sell", "buy"}):
             return completed_list
 
         # Get standard 'entry_action' from 'self.open_trades'
@@ -380,13 +380,14 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
+        first_entry_price = (
+            self.open_trades[0].entry_price if len(self.open_trades) > 0 else None
+        )
         print(f"self.trigger_trail : {self.trigger_trail}")
         print(f"self.step : {self.step}")
         print(f"self.trigger_trail_level : {self.trigger_trail_level}")
         print(f"high : {record['high']}")
-        print(
-            f"first entry price : {self.open_trades[0].entry_price if len(self.open_trades)>0 else None}"
-        )
+        print(f"first entry price : {first_entry_price}")
         print(f"self.trailing_profit : {self.trailing_profit}\n")
 
         # Update trailing profit
@@ -465,7 +466,7 @@ class GenTrades(ABC):
         # Set entry price as closing price
         entry_price = record["close"]
 
-        if ent_sig != "buy" and ent_sig != "sell":
+        if ent_sig not in {"buy", "sell"}:
             # No entry signal
             return
 
@@ -499,7 +500,7 @@ class GenTrades(ABC):
         # Skip computation if trailing profit is not activated or no open positions
         if self.trigger_trail is None or len(self.open_trades) == 0:
             self.trigger_trail_level = None
-            return
+            return None
 
         # Compute trigger_trail_level if trailing profit enabled and open
         # positions present
@@ -539,6 +540,8 @@ class GenTrades(ABC):
             if self.trailing_profit is None or computed_trailing < self.trailing_profit:
                 # Update trailing profit level if lower than previous level
                 self.trailing_profit = computed_trailing
+
+        return None
 
     def cal_trigger_trail_level(self) -> float | None:
         """Compute price level to activate trailing profit."""
@@ -676,7 +679,7 @@ class GenTrades(ABC):
         # Record include row index and required fields
         fields = ["idx", *self.req_cols]
 
-        return {attr: val for attr, val in zip(fields, record)}
+        return dict(zip(fields, record))
 
     def set_naive_tz(self, data: pd.DataFrame) -> pd.DataFrame:
         """Set the 'data' column to be time zone naive and as index to
@@ -719,6 +722,6 @@ class GenTrades(ABC):
         file_list = ["entry_struct.py", "exit_struct.py", "stop_method.py"]
 
         return {
-            f"{file.split('.')[0]}_path": current_dir.joinpath(file)
+            f"{file.split('.', maxsplit=1)[0]}_path": current_dir.joinpath(file)
             for file in file_list
         }

@@ -3,7 +3,8 @@ and 'GenTrades' into a strategy"""
 
 import pandas as pd
 
-from pos_mgmt.base import EntrySignal, ExitSignal, GenTrades
+from .gen_trades import GenTrades
+from .trade_signal import EntrySignal, ExitSignal
 
 
 class TradingStrategy:

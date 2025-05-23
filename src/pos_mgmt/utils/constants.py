@@ -5,6 +5,7 @@ used throughout the 'pos_mgmt' package.
 """
 
 import sys
+from typing import Literal
 
 if sys.version_info >= (3, 11):
     # pylint: disable=wrong-import-position
@@ -18,9 +19,6 @@ else:
 
         ...
 
-
-from enum import StrEnum
-from typing import Literal
 
 # Static variables
 PriceAction = Literal["buy", "sell", "wait"]
