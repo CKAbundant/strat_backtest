@@ -10,7 +10,7 @@ from typing import get_args
 
 import pandas as pd
 
-from config.variables import EntryType
+from pos_mgmt.utils import EntryType
 
 
 class TradeSignal(ABC):
@@ -32,7 +32,7 @@ class TradeSignal(ABC):
 
     def _validate_entry_type(self, entry_type: EntryType) -> EntryType:
         if entry_type not in get_args(EntryType):
-            raise ValueError(f"'{entry_type}' is not a valid 'EntryType'.")
+            raise ValueError("'{entry_type}' is not a valid 'EntryType'.")
 
         return entry_type
 
@@ -52,12 +52,12 @@ class EntrySignal(TradeSignal, ABC):
         - 'longshort' -> 'buy', 'sell', or 'wait' signal allowed.
         """
 
-        pass
+        ...
 
     def _validate_entry_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
         if "entry_signal" not in df.columns:
-            raise ValueError(f"'entry_signal' column not found!")
+            raise ValueError("'entry_signal' column not found!")
 
         if self.entry_type == "long" and (df["entry_signal"] == "sell").any():
             raise ValueError("Long only strategy cannot generate sell entry signals")
@@ -81,12 +81,12 @@ class ExitSignal(TradeSignal, ABC):
         - 'longshort' -> 'buy', 'sell', or 'wait' exit signal allowed.
         """
 
-        pass
+        ...
 
     def _validate_exit_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
         if "exit_signal" not in df.columns:
-            raise ValueError(f"'exit_signal' column not found!")
+            raise ValueError("'exit_signal' column not found!")
 
         if self.entry_type == "long" and (df["exit_signal"] == "buy").any():
             raise ValueError("Long only strategy cannot generate buy exit signals.")

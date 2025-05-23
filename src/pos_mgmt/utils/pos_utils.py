@@ -1,4 +1,4 @@
-"""Helper functions for strategy implementation"""
+"""Helper functions used directly in position management."""
 
 import importlib
 from collections import Counter, deque
@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 if TYPE_CHECKING:
-    from posmgmt.base.stock_trade import StockTrade
+    from pos_mgmt.base.stock_trade import StockTrade
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -36,13 +36,13 @@ def get_class_instance(
         # Import python script at class path as python module
         module = importlib.import_module(module_path)
     except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Module not found in '{script_path}' : {e}")
+        raise ModuleNotFoundError(f"Module not found in '{script_path}'.") from e
 
     try:
         # Get class from module
         req_class: Type[T] = getattr(module, class_name)
     except AttributeError as e:
-        raise AttributeError(f"'{class_name}' class is not found in module.")
+        raise AttributeError(f"'{class_name}' class is not found in module") from e
 
     # Intialize instance of class
     return req_class(**params)
@@ -58,7 +58,7 @@ def convert_path_to_pkg(script_path: str) -> str:
     return script_path.replace("/", ".")
 
 
-def get_net_pos(open_trades: list["StockTrade"]) -> int:
+def get_net_pos(open_trades: deque["StockTrade"]) -> int:
     """Get net positions from 'self.open_trades'."""
 
     return sum(
@@ -80,3 +80,11 @@ def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
         raise ValueError(f"'{std_field}' field is not consistent.")
 
     return "wait" if len(counter) == 0 else list(counter.keys())[0]
+
+
+# Public Interface
+__all__ = [
+    "get_class_instance",
+    "get_net_pos",
+    "get_std_field",
+]

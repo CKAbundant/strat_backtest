@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from config.variables import ExitMethod, PriceAction
+from pos_mgmt.utils import get_net_pos
 
 from .stock_trade import StockTrade
 
@@ -54,7 +54,7 @@ class ExitStruct(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        pass
+        ...
 
     def _update_pos(
         self,
@@ -99,7 +99,8 @@ class ExitStruct(ABC):
             return trade
 
     def _validate_completed_trades(self, stock_trade: StockTrade) -> bool:
-        """Validate whether StockTrade object is properly updated with no null values."""
+        """Validate whether StockTrade object is properly updated with no null
+        values."""
 
         # Check for null fields
         is_no_null_field = all(
@@ -258,7 +259,7 @@ class HalfFIFOExit(ExitStruct):
             return open_trades, []
 
         # Get net position and half of net position from 'open_trades'
-        net_pos = self.get_net_pos(open_trades)
+        net_pos = get_net_pos(open_trades)
         half_pos = math.ceil(abs(net_pos) / 2)
 
         for trade in open_trades:
@@ -313,18 +314,6 @@ class HalfFIFOExit(ExitStruct):
 
         return completed_trade.model_dump()
 
-    def get_net_pos(self, open_trades: deque[StockTrade]) -> int:
-        """Get net positions from 'open_trades'."""
-
-        return sum(
-            (
-                trade.entry_lots - trade.exit_lots
-                if trade.entry_action == "buy"
-                else -(trade.entry_lots - trade.exit_lots)
-            )
-            for trade in open_trades
-        )
-
 
 class HalfLIFOExit(ExitStruct):
     """keep taking profit by exiting half of latest positions . For example:
@@ -372,7 +361,7 @@ class HalfLIFOExit(ExitStruct):
         reversed_open_trades = open_trades_list[::-1]
 
         # Get net position and half of net position from 'open_trades'
-        net_pos = self.get_net_pos(open_trades)
+        net_pos = get_net_pos(open_trades)
         half_pos = math.ceil(abs(net_pos) / 2)
 
         for trade in reversed_open_trades:
@@ -426,18 +415,6 @@ class HalfLIFOExit(ExitStruct):
             raise ValueError("Completed trades not properly closed.")
 
         return completed_trade.model_dump()
-
-    def get_net_pos(self, open_trades: deque[StockTrade]) -> int:
-        """Get net positions from 'open_trades'."""
-
-        return sum(
-            (
-                trade.entry_lots - trade.exit_lots
-                if trade.entry_action == "buy"
-                else -(trade.entry_lots - trade.exit_lots)
-            )
-            for trade in open_trades
-        )
 
 
 class TakeAllExit(ExitStruct):
@@ -499,7 +476,7 @@ class TakeAllExit(ExitStruct):
                     completed_trades.append(trade.model_dump())
 
         if len(completed_trades) != len(open_trades):
-            raise ValueError(f"Open positions failed to close completely.")
+            raise ValueError("Open positions failed to close completely.")
 
         # Reset open_trades
         open_trades.clear()

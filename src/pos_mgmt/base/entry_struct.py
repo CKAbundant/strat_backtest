@@ -9,8 +9,7 @@ from decimal import Decimal
 
 from pydantic import ValidationError
 
-from config.variables import PriceAction
-from src.utils.strategy_utils import get_std_field
+from pos_mgmt.utils import PriceAction, get_std_field
 
 from .stock_trade import StockTrade
 
@@ -59,7 +58,8 @@ class EntryStruct(ABC):
             open_trades (deque[StockTrade]):
                 Updated deque list of 'StockTrade' objects.
         """
-        pass
+
+        ...
 
     def _create_new(
         self,
@@ -104,7 +104,7 @@ class EntryStruct(ABC):
 
         except ValidationError as e:
             print(f"Validation Error: {e}")
-            return
+            return None
 
     def _validate_ticker(self, open_trades: deque[StockTrade], ticker: str) -> str:
         """Validate ticker is the same for all StockTrade objects in 'open_trades.
@@ -127,7 +127,8 @@ class EntryStruct(ABC):
         latest_ticker = open_trades[-1].ticker
         if ticker != latest_ticker:
             raise ValueError(
-                f"'{ticker}' is different from ticker used in 'open_trades' ({latest_ticker})"
+                f"'{ticker}' is different from ticker used in "
+                f"'open_trades' ({latest_ticker})"
             )
 
         return ticker
@@ -155,7 +156,8 @@ class EntryStruct(ABC):
         latest_action = open_trades[-1].entry_action
         if entry_action != latest_action:
             raise ValueError(
-                f"'{entry_action}' is different from entry action used in 'open_trades' ({latest_action})"
+                f"'{entry_action}' is different from entry action used in"
+                f"'open_trades' ({latest_action})"
             )
 
         return entry_action
@@ -163,7 +165,8 @@ class EntryStruct(ABC):
     def _validate_entry_datetime(
         self, open_trades: deque[StockTrade], entry_datetime: datetime | str
     ) -> datetime:
-        """Validate entry datetime is the same for all StockTrade objects in 'open_trades.
+        """Validate entry datetime is the same for all StockTrade objects
+        in 'open_trades.
 
         Args:
             open_trades (deque[StockTrade]):
@@ -192,12 +195,13 @@ class EntryStruct(ABC):
         latest_datetime = open_trades[-1].entry_datetime
         if entry_datetime < latest_datetime:
             raise ValueError(
-                f"Entry datetime '{entry_datetime}' is earlier than latest entry datetime '{latest_datetime}'."
+                f"Entry datetime '{entry_datetime}' is earlier than "
+                f"latest entry datetime '{latest_datetime}'."
             )
 
         return entry_datetime
 
-    def _validate_open_trades(sel, open_trades: deque[StockTrade]) -> None:
+    def _validate_open_trades(self, open_trades: deque[StockTrade]) -> None:
         """Validate StockTrade objects in 'self.open_trade'.
 
         -'entry_action' fields are  same for all StockTrade objects.
@@ -222,7 +226,8 @@ class EntryStruct(ABC):
             for idx in range(len(entry_dates) - 1)
         ):
             raise ValueError(
-                "'entry_date' field is not sequential i.e. entry_date is lower than the entry_date in the previous item."
+                "'entry_date' field is not sequential i.e. entry_date is lower than "
+                "the entry_date in the previous item."
             )
 
         # Validate all exit lots are less than entry lots
@@ -235,7 +240,7 @@ class MultiEntry(EntryStruct):
     objects with same entry lots.
 
     - Add new long/short positions even if existing long/short positions.
-    - Number of lots entered are fixed to 'self.num_lots'.
+    - Number of lots entered are fixed to 'self.num_lots'.There
 
     Usage:
         >>> open_trades = deque()
@@ -244,7 +249,9 @@ class MultiEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> multi_entry = MultiEntry(num_lots=1)
-        >>> open_trades = multi_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = multi_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(
@@ -306,7 +313,9 @@ class MultiHalfEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> multi_entry = MultiHalfEntry(num_lots=1)
-        >>> open_trades = multi_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = multi_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(
@@ -374,7 +383,9 @@ class SingleEntry(EntryStruct):
         >>> entry_price = 200.0
         >>> ent_sig = "buy"
         >>> single_entry = SingleEntry(num_lots=1)
-        >>> open_trades = single_entry.open_new_pos(open_trades, ticker, dt, entry_price, ent_sig)
+        >>> open_trades = single_entry.open_new_pos(
+                open_trades, ticker, dt, entry_price, ent_sig
+            )
     """
 
     def open_new_pos(

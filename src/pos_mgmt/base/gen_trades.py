@@ -2,55 +2,58 @@
 
 from abc import ABC, abstractmethod
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from pprint import pformat
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from config.variables import EntryMethod, ExitMethod, PriceAction
-from src.utils.strategy_utils import get_class_instance, get_net_pos, get_std_field
-from src.utils.utils import display_open_trades, set_decimal_type
+from pos_mgmt.utils import (
+    EntryMethod,
+    ExitMethod,
+    PriceAction,
+    display_open_trades,
+    get_class_instance,
+    get_net_pos,
+    get_std_field,
+    set_decimal_type,
+)
 
 from .stock_trade import StockTrade
+
+
+@dataclass
+class TradingConfig:
+    """Core trading strategy configuration."""
+
+    entry_struct: EntryMethod
+    exit_struct: ExitMethod
+    num_lots: int
+    monitor_close: bool = True
+
+
+@dataclass
+class RiskConfig:
+    """Risk management and stop loss configuration."""
+
+    percent_loss: float = 0.05
+    stop_method: ExitMethod = "no_stop"
+    trigger_trail: float | None = None
+    step: float | None = None
 
 
 class GenTrades(ABC):
     """Abstract class to generate completed trades for given strategy.
 
     Args:
-        entry_struct (EntryMethod):
-            Whether to allow multiple open position ("mulitple") or single
-            open position at a time ("single").
-        exit_struct (ExitMethod):
-            Whether to apply first-in-first-out ("fifo"), last-in-first-out ("lifo"),
-            take profit for half open positions repeatedly ("half_life") or
-            take profit for all open positions ("take_all").
-        num_lots (int):
-            Number of lots to initiate new position each time (Default: 1).
-        monitor_close (bool):
-            Whether to monitor close price ("close") or both high and low price
-            (Default: True).
-        percent_loss (float):
-            Percentage loss allowed for investment (Default: 0.05).
-        stop_method (ExitMethod):
-            Exit method to generate stop price (Default: "no_stop").
-        trigger_trail (float):
-            If provided, percentage profit required to trigger trailing profit.
-            No trailing profit if None.
-        step (float):
-            If provided, percent profit increment to trail profit. If None,
-            increment set to current high - trigger_trail_level.
-        entry_struct_path (str):
-            Relative path to 'entry_struct.py'
-            (Default: "./src/strategy/base/entry_struct.py").
-        exit_struct_path (str):
-            Relative path to 'exit_struct.py'
-            (Default: "./src/strategy/base/exit_struct.py").
-        stop_method_path (str):
-            Relative path to 'cal_exit_price.py'
-            (Default: "./src/strategy/base/cal_exit_price.py").
+        trading_cfg (TradingConfig):
+            Instance of 'TradingConfig' dataclass containing 'entry_struct',
+            'exit_struct', 'num_lots' and 'monitor_close' attributes.
+        risk_cfg (RiskConfig):
+            Instance of 'RiskConfig' dataclass containing 'percent_loss',
+            'stop_method', 'trigger_trail' and 'step' attributes.
 
     Attributes:
         entry_struct (EntryMethod):
@@ -77,17 +80,14 @@ class GenTrades(ABC):
             increment set to current high - trigger_trail_level.
         entry_struct_path (str):
             Relative path to 'entry_struct.py'
-            (Default: "./src/strategy/base/entry_struct.py").
         exit_struct_path (str):
             Relative path to 'exit_struct.py'
-            (Default: "./src/strategy/base/exit_struct.py").
         stop_method_path (str):
             Relative path to 'cal_exit_price.py'
-            (Default: "./src/strategy/base/cal_exit_price.py").
         req_cols (list[str]):
             List of required columns to generate trades.
         open_trades (list[StockTrade]):
-                List of 'StockTrade' pydantic objects representing open positions.
+            List of 'StockTrade' pydantic objects representing open positions.
         stop_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, stop price and whether stop price is triggered.
         trail_info_list (list[dict[str, datetime | str | Decimal]]):
@@ -103,33 +103,28 @@ class GenTrades(ABC):
 
     def __init__(
         self,
-        entry_struct: EntryMethod,
-        exit_struct: ExitMethod,
-        num_lots: int,
-        monitor_close: bool = True,
-        percent_loss: float = 0.05,
-        stop_method: ExitMethod = "no_stop",
-        trigger_trail: float | None = None,
-        step: float | None = None,
-        entry_struct_path: str = "./src/strategy/base/entry_struct.py",
-        exit_struct_path: str = "./src/strategy/base/exit_struct.py",
-        stop_method_path: str = "./src/strategy/base/cal_exit_price.py",
+        trading_cfg: TradingConfig,
+        risk_cfg: RiskConfig,
     ) -> None:
-        self.entry_struct = entry_struct
-        self.exit_struct = exit_struct
-        self.num_lots = num_lots
-        self.monitor_close = monitor_close
-        self.percent_loss = percent_loss
-        self.stop_method = stop_method
-        self.trigger_trail = (
-            Decimal(str(trigger_trail)) if trigger_trail is not None else None
-        )  # Convert to Decimal
-        self.step = (
-            Decimal(str(step)) if step is not None else None
-        )  # Convert to Decimal
-        self.entry_struct_path = entry_struct_path
-        self.exit_struct_path = exit_struct_path
-        self.stop_method_path = stop_method_path
+        # Trading configuration
+        self.entry_struct = trading_cfg.entry_struct
+        self.exit_struct = trading_cfg.exit_struct
+        self.num_lots = trading_cfg.num_lots
+        self.monitor_close = trading_cfg.monitor_close
+
+        # Risk configuration
+        self.percent_loss = risk_cfg.percent_loss
+        self.stop_method = risk_cfg.stop_method
+        self.trigger_trail = self._convert_to_decimal(risk_cfg.trigger_trail)
+        self.step = self._convert_to_decimal(risk_cfg.step)
+
+        # Required paths
+        path_dict = self._get_req_paths()
+        self.entry_struct_path = path_dict["entry_struct_path"]
+        self.exit_struct_path = path_dict["exit_struct_path"]
+        self.stop_method_path = path_dict["stop_method_path"]
+
+        # Others
         self.req_cols = [
             "date",
             "high",
@@ -159,7 +154,7 @@ class GenTrades(ABC):
                 DataFrame containing updated exit signals price-related stops.
         """
 
-        pass
+        ...
 
     def iterate_df(
         self, ticker: str, df_signals: pd.DataFrame
@@ -351,7 +346,7 @@ class GenTrades(ABC):
         close = record["close"]
 
         # Return 'completed_list' unamended if no open position or not exit signals
-        if len(self.open_trades) == 0 or (ex_sig != "sell" and ex_sig != "buy"):
+        if len(self.open_trades) == 0 or (ex_sig not in {"sell", "buy"}):
             return completed_list
 
         # Get standard 'entry_action' from 'self.open_trades'
@@ -385,13 +380,14 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
+        first_entry_price = (
+            self.open_trades[0].entry_price if len(self.open_trades) > 0 else None
+        )
         print(f"self.trigger_trail : {self.trigger_trail}")
         print(f"self.step : {self.step}")
         print(f"self.trigger_trail_level : {self.trigger_trail_level}")
-        print(f"high : {record["high"]}")
-        print(
-            f"first entry price : {self.open_trades[0].entry_price if len(self.open_trades)>0 else None}"
-        )
+        print(f"high : {record['high']}")
+        print(f"first entry price : {first_entry_price}")
         print(f"self.trailing_profit : {self.trailing_profit}\n")
 
         # Update trailing profit
@@ -470,7 +466,7 @@ class GenTrades(ABC):
         # Set entry price as closing price
         entry_price = record["close"]
 
-        if ent_sig != "buy" and ent_sig != "sell":
+        if ent_sig not in {"buy", "sell"}:
             # No entry signal
             return
 
@@ -504,7 +500,7 @@ class GenTrades(ABC):
         # Skip computation if trailing profit is not activated or no open positions
         if self.trigger_trail is None or len(self.open_trades) == 0:
             self.trigger_trail_level = None
-            return
+            return None
 
         # Compute trigger_trail_level if trailing profit enabled and open
         # positions present
@@ -545,6 +541,8 @@ class GenTrades(ABC):
                 # Update trailing profit level if lower than previous level
                 self.trailing_profit = computed_trailing
 
+        return None
+
     def cal_trigger_trail_level(self) -> float | None:
         """Compute price level to activate trailing profit."""
 
@@ -552,7 +550,7 @@ class GenTrades(ABC):
             self.trigger_trail_level = None
             self.trailing_profit = None
 
-            return
+            return None
 
         # Get standard 'entry_action' from 'self.open_trades' and first entry price
         entry_action = get_std_field(self.open_trades, "entry_action")
@@ -681,10 +679,11 @@ class GenTrades(ABC):
         # Record include row index and required fields
         fields = ["idx", *self.req_cols]
 
-        return {attr: val for attr, val in zip(fields, record)}
+        return dict(zip(fields, record))
 
     def set_naive_tz(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Set the 'data' column to be time zone naive and as index to faciliate join."""
+        """Set the 'data' column to be time zone naive and as index to
+        faciliate join."""
 
         # Set 'date' column as index
         if "date" not in data.columns:
@@ -698,3 +697,31 @@ class GenTrades(ABC):
         df = df.set_index("date")
 
         return df
+
+    def _convert_to_decimal(self, num: int | float | None) -> Decimal | None:
+        """Convert 'num' to Decimal type if not None."""
+
+        return Decimal(str(num)) if num is not None else None
+
+    def _get_req_paths(self) -> dict[str, str]:
+        """Get relative file path to 'entry_struct.py', 'exit_struct.py'
+        and 'stop_method.py'.
+
+        Args:
+            None.
+
+        Returns:
+            (dict[str, str]):
+                Dictionary containing 'entry_struct_path','exit_struct_path',
+                and 'stop_method_path'.
+        """
+
+        # 'gen_trades.py' is in the same folder as 'entry_struct.py',
+        # 'exit_struct.py' and 'stop_method.py'
+        current_dir = Path(__file__).parent
+        file_list = ["entry_struct.py", "exit_struct.py", "stop_method.py"]
+
+        return {
+            f"{file.split('.', maxsplit=1)[0]}_path": current_dir.joinpath(file)
+            for file in file_list
+        }

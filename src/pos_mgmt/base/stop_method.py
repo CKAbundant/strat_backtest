@@ -1,19 +1,15 @@
 """Class to calculate single stop price for all open positions based
 on price movements."""
 
-import math
 from abc import ABC, abstractmethod
-from collections import Counter, deque
+from collections import deque
 from decimal import Decimal
 
-from posmgmt.base.stock_trade import StockTrade
-from posmgmt.utils.utils import get_std_field
-
-# from strategy.base.stock_trade import StockTrade
-# from utils.strategy_utils import get_std_field
+from pos_mgmt.base.stock_trade import StockTrade
+from pos_mgmt.utils import get_std_field
 
 
-class CalExitPrice(ABC):
+class StopMethod(ABC):
     """Abstract class to generate exit price (i.e. either profit or stop loss)
     for multiple open positions based on price movement.
 
@@ -41,10 +37,10 @@ class CalExitPrice(ABC):
             (Decimal): Exit price for all multiple open positions.
         """
 
-        pass
+        ...
 
 
-class PercentLoss(CalExitPrice):
+class PercentLoss(StopMethod):
     """Compute stop price such that total loss for all open positions
     is within the accepted percent loss. For example:
 
@@ -90,7 +86,7 @@ class PercentLoss(CalExitPrice):
         return sum(trade.entry_lots - trade.exit_lots for trade in open_trades)
 
 
-class LatestLoss(CalExitPrice):
+class LatestLoss(StopMethod):
     """Compute stop price based on the percentage stop loss set
     for latest open trade. For example:
 
@@ -111,7 +107,7 @@ class LatestLoss(CalExitPrice):
         """
 
         if len(open_trades) == 0:
-            raise ValueError(f"'open_trades' cannot be empty.")
+            raise ValueError("'open_trades' cannot be empty.")
 
         # Get entry action and latest entry price
         entry_action = get_std_field(open_trades, "entry_action")
@@ -127,7 +123,7 @@ class LatestLoss(CalExitPrice):
         return Decimal(round(stop_price, 2))
 
 
-class NearestLoss(CalExitPrice):
+class NearestLoss(StopMethod):
     """Use stop price (based on the percentage loss) that is nearest to
     current monitor price. For example:
 
@@ -149,7 +145,7 @@ class NearestLoss(CalExitPrice):
         """
 
         if len(open_trades) == 0:
-            raise ValueError(f"'open_trades' cannot be empty.")
+            raise ValueError("'open_trades' cannot be empty.")
 
         # Get entry action
         entry_action = get_std_field(open_trades, "entry_action")
