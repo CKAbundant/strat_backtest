@@ -21,3 +21,6 @@ dev = [
     "pylint",
     "pytest",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pos_mgmt"]

@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from collections import Counter, deque
 from decimal import Decimal
 
-from posmgmt.base.stock_trade import StockTrade
-from posmgmt.utils.utils import get_std_field
+from pos_mgmt.base.stock_trade import StockTrade
+from pos_mgmt.utils.utils import get_std_field
 
 # from strategy.base.stock_trade import StockTrade
 # from utils.strategy_utils import get_std_field
