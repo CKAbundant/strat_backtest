@@ -3,11 +3,10 @@
 import importlib
 from collections import Counter
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import Any, Type, TypeVar
 
-if TYPE_CHECKING:
-    from strat_backtest.base.stock_trade import StockTrade
-    from strat_backtest.utils.constants import OpenTrades
+from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils.constants import OpenTrades
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -59,7 +58,7 @@ def convert_path_to_pkg(script_path: str) -> str:
     return script_path.replace("/", ".")
 
 
-def get_net_pos(open_trades: tuple["StockTrade"] | OpenTrades) -> int:
+def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:
     """Get net positions from 'self.open_trades'."""
 
     return sum(

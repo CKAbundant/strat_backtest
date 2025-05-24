@@ -5,13 +5,13 @@
 """
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from strat_backtest.base import HalfExitStruct
-from strat_backtest.utils.constants import (
-    ClosedPositionResult,
-    CompletedTrades,
-    OpenTrades,
-)
+from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
+
+if TYPE_CHECKING:
+    from strat_backtest.utils.constants import CompletedTrades
 
 
 class HalfFIFOExit(HalfExitStruct):
