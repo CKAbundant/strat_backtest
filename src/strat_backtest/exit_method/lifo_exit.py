@@ -5,11 +5,10 @@
 """
 
 from datetime import datetime
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from strat_backtest.base import ExitStruct
-from strat_backtest.utils import ClosedPositionResult, OpenTrades
+from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
 
 if TYPE_CHECKING:
     from strat_backtest.utils import CompletedTrades

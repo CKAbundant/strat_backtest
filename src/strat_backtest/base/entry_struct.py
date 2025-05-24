@@ -1,15 +1,14 @@
 """Abstract class used to generate various entry stuctures."""
 
 from abc import ABC, abstractmethod
-from collections import deque
 from datetime import datetime
 from decimal import Decimal
 
 from pydantic import ValidationError
 
-from strat_backtest.utils import OpenTrades, PriceAction, get_std_field
-
-from .stock_trade import StockTrade
+from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils.constants import OpenTrades, PriceAction
+from strat_backtest.utils.pos_utils import get_std_field
 
 
 class EntryStruct(ABC):

@@ -11,15 +11,15 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from strat_backtest.base import ExitStruct
-from strat_backtest.utils import (
+from strat_backtest.utils.constants import (
     ClosedPositionResult,
     CompletedTrades,
     OpenTrades,
-    get_net_pos,
 )
+from strat_backtest.utils.pos_utils import get_net_pos
 
 if TYPE_CHECKING:
-    from ..base.stock_trade import StockTrade
+    from strat_backtest.base.stock_trade import StockTrade
 
 
 class HalfLIFOExit(ExitStruct):

@@ -3,7 +3,7 @@ and 'GenTrades' into a strategy"""
 
 import pandas as pd
 
-from strat_backtest.base import EntrySignal, ExitSignal, GenTrades
+from strat_backtest import EntrySignal, ExitSignal, GenTrades
 
 
 class TradingStrategy:

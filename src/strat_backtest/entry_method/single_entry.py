@@ -8,7 +8,7 @@
 from datetime import datetime
 
 from strat_backtest.base import EntryStruct
-from strat_backtest.utils import OpenTrades, PriceAction
+from strat_backtest.utils.constants import OpenTrades, PriceAction
 
 
 class SingleEntry(EntryStruct):

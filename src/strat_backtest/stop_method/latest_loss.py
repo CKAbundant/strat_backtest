@@ -7,7 +7,8 @@
 from decimal import Decimal
 
 from strat_backtest.base import StopMethod
-from strat_backtest.utils import OpenTrades, get_net_pos, get_std_field
+from strat_backtest.utils.constants import OpenTrades
+from strat_backtest.utils.pos_utils import get_std_field
 
 
 class LatestLoss(StopMethod):

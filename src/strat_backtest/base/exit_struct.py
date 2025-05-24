@@ -1,15 +1,13 @@
 """Abstract class used to generate various exit stuctures."""
 
-import math
 from abc import ABC, abstractmethod
-from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from strat_backtest.utils import ClosedPositionResult, OpenTrades
+from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
 
 if TYPE_CHECKING:
     from strat_backtest.utils import CompletedTrades

@@ -8,9 +8,10 @@ import sys
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal, TypeAlias
+from typing import TYPE_CHECKING, Literal, TypeAlias
 
-from ..base.stock_trade import StockTrade
+if TYPE_CHECKING:
+    from strat_backtest.base.stock_trade import StockTrade
 
 if sys.version_info >= (3, 11):
     # pylint: disable=wrong-import-position

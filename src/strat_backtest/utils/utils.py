@@ -4,7 +4,7 @@
 - Format display via print
 """
 
-from strat_backtest.utils import OpenTrades
+from strat_backtest.utils.constants import OpenTrades
 
 
 def display_open_trades(open_trades: OpenTrades) -> None:
@@ -13,7 +13,7 @@ def display_open_trades(open_trades: OpenTrades) -> None:
 
     if len(open_trades) == 0:
         print("open_trades : []\n")
-        return
+        return None
 
     msg_list = []
     for trade in open_trades:

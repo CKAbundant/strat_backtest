@@ -6,21 +6,23 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from strat_backtest.utils import (
+from strat_backtest.utils.constants import (
     CompletedTrades,
     EntryMethod,
     ExitMethod,
     PriceAction,
-    display_open_trades,
+)
+from strat_backtest.utils.file_utils import set_decimal_type
+from strat_backtest.utils.pos_utils import (
     get_class_instance,
     get_net_pos,
     get_std_field,
-    set_decimal_type,
 )
+from strat_backtest.utils.utils import display_open_trades
 
 if TYPE_CHECKING:
     from strat_backtest.utils import OpenTrades

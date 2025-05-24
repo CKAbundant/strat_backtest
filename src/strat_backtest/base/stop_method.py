@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
 
-from strat_backtest.utils import OpenTrades, get_std_field
+from strat_backtest.utils.constants import OpenTrades
 
 
 class StopMethod(ABC):
