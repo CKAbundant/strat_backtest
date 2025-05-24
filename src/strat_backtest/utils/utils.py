@@ -41,6 +41,8 @@ def display_open_trades(open_trades: OpenTrades) -> None:
 
     print(f"open_trades : \n[\n{msg}\n]\n")
 
+    return None
+
 
 # Public Interface
 __all__ = [

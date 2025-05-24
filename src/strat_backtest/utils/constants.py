@@ -10,8 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
-if TYPE_CHECKING:
-    from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.base.stock_trade import StockTrade
 
 if sys.version_info >= (3, 11):
     # pylint: disable=wrong-import-position
@@ -54,7 +53,7 @@ class StopMethod(StrEnum):
 
 
 # Type aliases for trading system
-OpenTrades: TypeAlias = deque["StockTrade"]
+OpenTrades: TypeAlias = deque[StockTrade]
 CompletedTrades: TypeAlias = list[dict[str, Decimal | str | datetime]]
 ClosedPositionResult: TypeAlias = tuple[OpenTrades, CompletedTrades]
 

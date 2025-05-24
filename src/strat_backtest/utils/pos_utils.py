@@ -1,12 +1,13 @@
 """Helper functions used directly in position management."""
 
 import importlib
-from collections import Counter, deque
+from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 if TYPE_CHECKING:
     from strat_backtest.base.stock_trade import StockTrade
+    from strat_backtest.utils.constants import OpenTrades
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -58,7 +59,7 @@ def convert_path_to_pkg(script_path: str) -> str:
     return script_path.replace("/", ".")
 
 
-def get_net_pos(open_trades: deque["StockTrade"]) -> int:
+def get_net_pos(open_trades: tuple["StockTrade"] | OpenTrades) -> int:
     """Get net positions from 'self.open_trades'."""
 
     return sum(
@@ -71,7 +72,7 @@ def get_net_pos(open_trades: deque["StockTrade"]) -> int:
     )
 
 
-def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
+def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
     """Get standard field (i.e. 'ticker' or 'entry_action') from 'open_trades'."""
 
     counter = Counter([getattr(trade, std_field) for trade in open_trades])
