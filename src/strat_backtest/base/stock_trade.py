@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
-from pos_mgmt.utils import PriceAction
+from strat_backtest.utils import PriceAction
 
 
 class StockTrade(BaseModel):

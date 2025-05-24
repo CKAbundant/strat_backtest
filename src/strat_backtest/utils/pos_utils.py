@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 if TYPE_CHECKING:
-    from pos_mgmt.base.stock_trade import StockTrade
+    from strat_backtest.base.stock_trade import StockTrade
 
 # Create generic type variable 'T'
 T = TypeVar("T")

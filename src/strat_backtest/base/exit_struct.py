@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from pos_mgmt.utils import get_net_pos
+from strat_backtest.utils import get_net_pos
 
 from .stock_trade import StockTrade
 

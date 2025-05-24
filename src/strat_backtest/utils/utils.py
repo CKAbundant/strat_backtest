@@ -8,7 +8,7 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pos_mgmt.base.stock_trade import StockTrade
+    from strat_backtest.base.stock_trade import StockTrade
 
 
 def display_open_trades(open_trades: deque["StockTrade"]) -> None:

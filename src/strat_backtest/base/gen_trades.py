@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from pos_mgmt.utils import (
+from strat_backtest.utils import (
     EntryMethod,
     ExitMethod,
     PriceAction,

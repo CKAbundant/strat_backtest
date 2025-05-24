@@ -1,4 +1,4 @@
-"""Utility modules for pos_mgmt package."""
+"""Utility modules for strat_backtest package."""
 
 from .constants import *
 from .file_utils import *

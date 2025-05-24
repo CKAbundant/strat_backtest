@@ -1,7 +1,7 @@
 """Trading system constants and enumerations.
 
 This module contains StrEnum classes and Literal type constants
-used throughout the 'pos_mgmt' package.
+used throughout the 'strat_backtest' package.
 """
 
 import sys

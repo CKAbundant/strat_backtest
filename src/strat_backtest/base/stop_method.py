@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from collections import deque
 from decimal import Decimal
 
-from pos_mgmt.base.stock_trade import StockTrade
-from pos_mgmt.utils import get_std_field
+from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils import get_std_field
 
 
 class StopMethod(ABC):

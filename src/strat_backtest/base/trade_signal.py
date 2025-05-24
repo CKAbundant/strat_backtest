@@ -10,7 +10,7 @@ from typing import get_args
 
 import pandas as pd
 
-from pos_mgmt.utils import EntryType
+from strat_backtest.utils import EntryType
 
 
 class TradeSignal(ABC):
