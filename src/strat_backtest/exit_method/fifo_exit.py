@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from strat_backtest.base import ExitStruct
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
+from strat_backtest.utils.pos_utils import validate_completed_trades
 
 if TYPE_CHECKING:
     from strat_backtest.utils.constants import CompletedTrades
@@ -57,7 +58,7 @@ class FIFOExit(ExitStruct):
 
         # Convert StockTrade to dictionary only if all fields are populated
         # i.e. trade completed.
-        if self._validate_completed_trades(earliest_trade):
+        if validate_completed_trades(earliest_trade):
             # Remove earliest StockTrade object since it is completed
             open_trades.popleft()
 

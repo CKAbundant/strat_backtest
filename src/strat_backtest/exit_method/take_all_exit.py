@@ -14,6 +14,10 @@ from strat_backtest.utils.constants import (
     CompletedTrades,
     OpenTrades,
 )
+from strat_backtest.utils.pos_utils import (
+    gen_completed_trade,
+    validate_completed_trades,
+)
 
 if TYPE_CHECKING:
     from strat_backtest.base.stock_trade import StockTrade
@@ -70,11 +74,11 @@ class TakeAllExit(ExitStruct):
                 lots_to_exit = trade.entry_lots - initial_exit_lots
 
                 # Create completed trades using 'lots_to_exit'
-                completed_trades.append(self._gen_completed_trade(trade, lots_to_exit))
+                completed_trades.append(gen_completed_trade(trade, lots_to_exit))
 
             else:
                 # Generate completed trades for fully open position
-                if self._validate_completed_trades(trade):
+                if validate_completed_trades(trade):
                     completed_trades.append(trade.model_dump())
 
         if len(completed_trades) != len(open_trades):
@@ -84,21 +88,3 @@ class TakeAllExit(ExitStruct):
         open_trades.clear()
 
         return open_trades, completed_trades
-
-    def _gen_completed_trade(
-        self, trade: "StockTrade", lots_to_exit: Decimal
-    ) -> CompletedTrades:
-        """Generate StockTrade object with completed trade from 'StockTrade'
-        and convert to dictionary."""
-
-        # Create a shallow copy of the updated trade
-        completed_trade = trade.model_copy()
-
-        # Update the 'entry_lots' and 'exit_lots' to be same as 'lots_to_exit'
-        completed_trade.entry_lots = lots_to_exit
-        completed_trade.exit_lots = lots_to_exit
-
-        if not self._validate_completed_trades(completed_trade):
-            raise ValueError("Completed trades not properly closed.")
-
-        return completed_trade.model_dump()

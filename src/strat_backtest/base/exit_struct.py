@@ -14,7 +14,11 @@ from strat_backtest.utils.constants import (
     CompletedTrades,
     OpenTrades,
 )
-from strat_backtest.utils.pos_utils import get_net_pos
+from strat_backtest.utils.pos_utils import (
+    gen_completed_trade,
+    get_net_pos,
+    validate_completed_trades,
+)
 
 
 class ExitStruct(ABC):
@@ -100,20 +104,6 @@ class ExitStruct(ABC):
             print(f"Validation Error : {e}")
             return trade
 
-    def _validate_completed_trades(self, stock_trade: StockTrade) -> bool:
-        """Validate whether StockTrade object is properly updated with no null
-        values."""
-
-        # Check for null fields
-        is_no_null_field = all(
-            field is not None for field in stock_trade.model_dump().values()
-        )
-
-        # Check if number of entry lots must equal number of exit lots
-        is_lots_matched = stock_trade.entry_lots == stock_trade.exit_lots
-
-        return is_no_null_field and is_lots_matched
-
 
 class HalfExitStruct(ExitStruct, ABC):
     """Abstract class to populate 'StockTrade' pydantic object to close
@@ -173,11 +163,11 @@ class HalfExitStruct(ExitStruct, ABC):
                     return open_trades, []
 
                 # Only update 'new_open_trades' if trades are still partially closed
-                if not self._validate_completed_trades(trade):
+                if not validate_completed_trades(trade):
                     new_open_trades.append(trade)
 
                 # Create completed trades using 'lots_to_exit'
-                completed_trades.append(self._gen_completed_trade(trade, lots_to_exit))
+                completed_trades.append(gen_completed_trade(trade, lots_to_exit))
 
                 # Update remaining positions required to be closed and net position
                 half_pos -= lots_to_exit
@@ -187,21 +177,3 @@ class HalfExitStruct(ExitStruct, ABC):
                 new_open_trades.append(trade)
 
         return new_open_trades, completed_trades
-
-    def _gen_completed_trade(
-        self, trade: StockTrade, lots_to_exit: Decimal
-    ) -> CompletedTrades:
-        """Generate StockTrade object with completed trade from 'StockTrade'
-        and convert to dictionary."""
-
-        # Create a shallow copy of the updated trade
-        completed_trade = trade.model_copy()
-
-        # Update the 'entry_lots' and 'exit_lots' to be same as 'lots_to_exit'
-        completed_trade.entry_lots = lots_to_exit
-        completed_trade.exit_lots = lots_to_exit
-
-        if not self._validate_completed_trades(completed_trade):
-            raise ValueError("Completed trades not properly closed.")
-
-        return completed_trade.model_dump()
