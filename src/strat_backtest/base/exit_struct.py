@@ -5,15 +5,16 @@ from abc import ABC, abstractmethod
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import (
-    ClosedPositionResult,
-    CompletedTrades,
-    OpenTrades,
-)
+from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
+
+if TYPE_CHECKING:
+    from strat_backtest.utils.constants import CompletedTrades
+
 from strat_backtest.utils.pos_utils import (
     gen_completed_trade,
     get_net_pos,

@@ -120,6 +120,6 @@ __all__ = [
     "get_class_instance",
     "get_net_pos",
     "get_std_field",
-    "gen_completed_trades",
+    "gen_completed_trade",
     "validate_completed_trades",
 ]
