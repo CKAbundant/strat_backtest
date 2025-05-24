@@ -1,4 +1,4 @@
-"""Abstract classes accessible at 'base' sub-package."""
+"""Import abstract classes to be accessible at 'base' sub-package."""
 
 # Abstract classes to generate strategy and perform backtesting
 from .entry_struct import EntryStruct

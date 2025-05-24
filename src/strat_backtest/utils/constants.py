@@ -5,7 +5,12 @@ used throughout the 'strat_backtest' package.
 """
 
 import sys
-from typing import Literal
+from collections import deque
+from datetime import datetime
+from decimal import Decimal
+from typing import Literal, TypeAlias
+
+from ..base.stock_trade import StockTrade
 
 if sys.version_info >= (3, 11):
     # pylint: disable=wrong-import-position
@@ -47,6 +52,11 @@ class StopMethod(StrEnum):
     NEAREST_LOSS = "nearest_loss"
 
 
+# Type aliases for trading system
+OpenTrades: TypeAlias = deque[StockTrade]
+CompletedTrades: TypeAlias = list[dict[str, Decimal | str | datetime]]
+ClosedPositionResult: TypeAlias = tuple[OpenTrades, CompletedTrades]
+
 # Public interface
 __all__ = [
     "PriceAction",
@@ -54,4 +64,7 @@ __all__ = [
     "EntryMethod",
     "ExitMethod",
     "StopMethod",
+    "OpenTrades",
+    "CompletedTrades",
+    "ClosedPositionResult",
 ]
