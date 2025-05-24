@@ -26,7 +26,7 @@ class FIFOExit(ExitStruct):
         self,
         open_trades: OpenTrades,
         dt: datetime,
-        exit_price: Decimal,
+        exit_price: float,
     ) -> ClosedPositionResult:
         """Update existing StockTrade objects (still open); and remove completed
         StockTrade objects in 'open_trades'.
@@ -36,7 +36,7 @@ class FIFOExit(ExitStruct):
                 Deque list of StockTrade pydantic object to record open trades.
             dt (datetime):
                 Trade datetime object.
-            exit_price (Decimal):
+            exit_price (float):
                 Exit price of stock ticker.
 
         Returns:

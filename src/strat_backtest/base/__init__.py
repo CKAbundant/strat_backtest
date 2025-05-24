@@ -6,7 +6,6 @@ from .exit_struct import ExitStruct
 from .gen_trades import GenTrades
 
 # Pydantic object to record completed trade
-from .stock_trade import StockTrade
 from .stop_method import StopMethod
 from .trade_signal import EntrySignal, ExitSignal
 
@@ -18,5 +17,4 @@ __all__ = [
     "StopMethod",
     "EntrySignal",
     "ExitSignal",
-    "StockTrade",
 ]

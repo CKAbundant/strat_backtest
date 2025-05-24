@@ -2,7 +2,6 @@
 
 - 'EntrySignal' -> Generate signal to initiate new position.
 - 'ExitSignal' -> Generate signal to exit position with either profit or loss.
-- 'GenTrades' -> Generate completed trades based on entry and exit signal.
 """
 
 from abc import ABC, abstractmethod

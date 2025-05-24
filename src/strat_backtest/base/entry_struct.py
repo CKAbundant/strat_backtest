@@ -1,5 +1,4 @@
-"""Abstract class and concrete implementation of various
-entry stuctures."""
+"""Abstract class used to generate various entry stuctures."""
 
 from abc import ABC, abstractmethod
 from collections import deque
@@ -8,7 +7,7 @@ from decimal import Decimal
 
 from pydantic import ValidationError
 
-from strat_backtest.utils import PriceAction, get_std_field
+from strat_backtest.utils import OpenTrades, PriceAction, get_std_field
 
 from .stock_trade import StockTrade
 
@@ -32,12 +31,12 @@ class EntryStruct(ABC):
     @abstractmethod
     def open_new_pos(
         self,
-        open_trades: deque[StockTrade],
+        open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
         ent_sig: PriceAction,
         entry_price: float,
-    ) -> deque[StockTrade]:
+    ) -> OpenTrades:
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
         'entry_lots' and 'entry_price'.
 
@@ -62,13 +61,13 @@ class EntryStruct(ABC):
 
     def _create_new(
         self,
-        open_trades: deque[StockTrade],
+        open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
         ent_sig: PriceAction,
         entry_price: float,
         entry_lots: int | None = None,
-    ) -> StockTrade:
+    ) -> "StockTrade" | None:
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
         'entry_lots' and 'entry_price'.
 
@@ -105,11 +104,11 @@ class EntryStruct(ABC):
             print(f"Validation Error: {e}")
             return None
 
-    def _validate_ticker(self, open_trades: deque[StockTrade], ticker: str) -> str:
+    def _validate_ticker(self, open_trades: OpenTrades, ticker: str) -> str:
         """Validate ticker is the same for all StockTrade objects in 'open_trades.
 
         Args:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Deque collection of open trades.
             ticker (str):
                 Stock ticker used to create new open trade.
@@ -133,12 +132,12 @@ class EntryStruct(ABC):
         return ticker
 
     def _validate_entry_action(
-        self, open_trades: deque[StockTrade], entry_action: PriceAction
+        self, open_trades: OpenTrades, entry_action: PriceAction
     ) -> PriceAction:
         """Validate entry action is the same for all StockTrade objects in 'open_trades.
 
         Args:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Deque collection of open trades.
             entry_action (PriceAction):
                 Entry action used to create new open trade.
@@ -162,13 +161,13 @@ class EntryStruct(ABC):
         return entry_action
 
     def _validate_entry_datetime(
-        self, open_trades: deque[StockTrade], entry_datetime: datetime | str
+        self, open_trades: OpenTrades, entry_datetime: datetime | str
     ) -> datetime:
         """Validate entry datetime is the same for all StockTrade objects
         in 'open_trades.
 
         Args:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Deque collection of open trades.
             entry_datetime (datetime | str):
                 Entry datetime used to create new open trade
@@ -200,7 +199,7 @@ class EntryStruct(ABC):
 
         return entry_datetime
 
-    def _validate_open_trades(self, open_trades: deque[StockTrade]) -> None:
+    def _validate_open_trades(self, open_trades: OpenTrades) -> None:
         """Validate StockTrade objects in 'self.open_trade'.
 
         -'entry_action' fields are  same for all StockTrade objects.

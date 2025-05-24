@@ -4,14 +4,10 @@
 - Format display via print
 """
 
-from collections import deque
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils import OpenTrades
 
 
-def display_open_trades(open_trades: deque["StockTrade"]) -> None:
+def display_open_trades(open_trades: OpenTrades) -> None:
     """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret'
     and 'win' fields in StockTrade."""
 

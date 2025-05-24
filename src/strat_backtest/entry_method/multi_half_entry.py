@@ -7,16 +7,11 @@ reduce risk.
 """
 
 import math
-from collections import deque
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
 from strat_backtest.base import EntryStruct
-from strat_backtest.utils import PriceAction
-
-if TYPE_CHECKING:
-    from strat_backtest.base import StockTrade
+from strat_backtest.utils import OpenTrades, PriceAction
 
 
 class MultiHalfEntry(EntryStruct):
@@ -42,17 +37,17 @@ class MultiHalfEntry(EntryStruct):
 
     def open_new_pos(
         self,
-        open_trades: deque[StockTrade],
+        open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
         ent_sig: PriceAction,
         entry_price: float,
-    ) -> deque[StockTrade]:
+    ):
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
         'entry_lots' and 'entry_price'.
 
         Args:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Deque list of StockTrade pydantic object to record open trades.
             ticker (str):
                 Stock ticker to be traded.
@@ -64,7 +59,7 @@ class MultiHalfEntry(EntryStruct):
                 Entry price for stock ticker.
 
         Returns:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Updated deque list of 'StockTrade' objects.
         """
 
@@ -81,7 +76,7 @@ class MultiHalfEntry(EntryStruct):
 
         return open_trades
 
-    def get_half_lots(self, open_trades: deque[StockTrade]) -> Decimal:
+    def get_half_lots(self, open_trades: OpenTrades) -> Decimal:
         """Get half of latest StockTrade object in 'open_trades' till
         minimum 1 lot."""
 

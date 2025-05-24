@@ -5,15 +5,10 @@
 - Meaning no new position can be initiated unless existing position is closed.
 """
 
-from collections import deque
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from strat_backtest.base import EntryStruct
-from strat_backtest.utils import PriceAction
-
-if TYPE_CHECKING:
-    from strat_backtest.base import StockTrade
+from strat_backtest.utils import OpenTrades, PriceAction
 
 
 class SingleEntry(EntryStruct):
@@ -36,7 +31,7 @@ class SingleEntry(EntryStruct):
 
     def open_new_pos(
         self,
-        open_trades: deque[StockTrade],
+        open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
         ent_sig: PriceAction,
@@ -46,7 +41,7 @@ class SingleEntry(EntryStruct):
         'entry_lots' and 'entry_price'.
 
         Args:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Deque list of StockTrade pydantic object to record open trades.
             ticker (str):
                 Stock ticker to be traded.
@@ -58,7 +53,7 @@ class SingleEntry(EntryStruct):
                 Entry price for stock ticker.
 
         Returns:
-            open_trades (deque[StockTrade]):
+            open_trades (OpenTrades):
                 Updated deque list of 'StockTrade' objects.
         """
 

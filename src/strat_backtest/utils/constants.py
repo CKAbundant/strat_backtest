@@ -53,7 +53,7 @@ class StopMethod(StrEnum):
 
 
 # Type aliases for trading system
-OpenTrades: TypeAlias = deque[StockTrade]
+OpenTrades: TypeAlias = deque["StockTrade"]
 CompletedTrades: TypeAlias = list[dict[str, Decimal | str | datetime]]
 ClosedPositionResult: TypeAlias = tuple[OpenTrades, CompletedTrades]
 

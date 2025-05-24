@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from strat_backtest.utils import (
+    CompletedTrades,
     EntryMethod,
     ExitMethod,
     PriceAction,
@@ -21,7 +22,8 @@ from strat_backtest.utils import (
     set_decimal_type,
 )
 
-from .stock_trade import StockTrade
+if TYPE_CHECKING:
+    from strat_backtest.utils import OpenTrades
 
 
 @dataclass
@@ -94,7 +96,7 @@ class GenTrades(ABC):
             Relative path to 'cal_exit_price.py'
         req_cols (list[str]):
             List of required columns to generate trades.
-        open_trades (list[StockTrade]):
+        open_trades (OpenTrades):
             List of 'StockTrade' pydantic objects representing open positions.
         stop_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, stop price and whether stop price is triggered.
@@ -141,7 +143,7 @@ class GenTrades(ABC):
             "entry_signal",
             "exit_signal",
         ]
-        self.open_trades: deque[StockTrade] = deque()
+        self.open_trades = deque()
         self.stop_info_list = []
         self.trail_info_list = []
         self.trigger_trail_level = None
@@ -243,22 +245,22 @@ class GenTrades(ABC):
 
     def exit_all_end(
         self,
-        completed_list: list[dict[str, Any]],
-        record: dict[str, float | datetime],
-    ) -> list[dict[str, Any]]:
+        completed_list: CompletedTrades,
+        record: dict[str, Decimal | datetime],
+    ) -> CompletedTrades:
         """Exit all open positions at end of testing/trading period.
 
         - Close off all position if end of testing period.
         - No new postiion at end of testing period.
 
         Args:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
@@ -273,19 +275,19 @@ class GenTrades(ABC):
 
     def check_stop_loss(
         self,
-        completed_list: list[dict[str, Any]],
-        record: dict[str, float | datetime],
-    ) -> list[dict[str, Any]]:
+        completed_list: CompletedTrades,
+        record: dict[str, Decimal | datetime],
+    ) -> CompletedTrades:
         """Check if stop loss condition met
 
         Args:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
@@ -332,19 +334,19 @@ class GenTrades(ABC):
 
     def check_profit(
         self,
-        completed_list: list[dict[str, Any]],
-        record: dict[str, float | datetime],
-    ) -> list[dict[str, Any]]:
+        completed_list: CompletedTrades,
+        record: dict[str, Decimal | datetime],
+    ) -> CompletedTrades:
         """Check whether take profit condition is met and update completed_list.
 
         Args:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
@@ -372,19 +374,19 @@ class GenTrades(ABC):
 
     def check_trailing_profit(
         self,
-        completed_list: list[dict[str, Any]],
-        record: dict[str, float | datetime],
-    ) -> list[dict[str, Any]]:
+        completed_list: CompletedTrades,
+        record: dict[str, Decimal | datetime],
+    ) -> CompletedTrades:
         """Check if stop loss condition met
 
         Args:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
@@ -454,14 +456,14 @@ class GenTrades(ABC):
     def check_new_pos(
         self,
         ticker: str,
-        record: dict[str, float | datetime],
+        record: dict[str, Decimal | datetime],
     ) -> None:
         """Create new open position based on 'self.entry_struct' method.
 
         Args:
             ticker (str):
                 Stock ticker to be traded.
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -494,11 +496,11 @@ class GenTrades(ABC):
         if self.trigger_trail_level is None:
             self.trigger_trail_level = self.cal_trigger_trail_level()
 
-    def cal_trailing_profit(self, record: dict[str, float | datetime]) -> None:
+    def cal_trailing_profit(self, record: dict[str, Decimal | datetime]) -> None:
         """Compute trailing profit level.
 
         Args:
-            record (dict[str, float | datetime]):
+            record (dict[str, Decimal | datetime]):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -575,7 +577,7 @@ class GenTrades(ABC):
         dt: datetime,
         ex_sig: PriceAction,
         exit_price: float,
-    ) -> list[dict[str, Any]]:
+    ) -> CompletedTrades:
         """Close existing open positions based on 'self.exit_struct' method.
 
         Args:
@@ -588,7 +590,7 @@ class GenTrades(ABC):
                 Exit price of stock ticker.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
@@ -615,7 +617,7 @@ class GenTrades(ABC):
         self,
         dt: datetime,
         exit_price: float,
-    ) -> list[dict[str, Any]]:
+    ) -> CompletedTrades:
         """Close all open positions via 'TakeAllExit.close_pos' method.
 
         Args:
@@ -625,7 +627,7 @@ class GenTrades(ABC):
                 Exit price of stock ticker.
 
         Returns:
-            completed_list (list[dict[str, Any]]):
+            completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
 

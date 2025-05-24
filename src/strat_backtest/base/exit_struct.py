@@ -1,5 +1,4 @@
-"""Abstract class and concrete implementation of various
-exit stuctures."""
+"""Abstract class used to generate various exit stuctures."""
 
 import math
 from abc import ABC, abstractmethod
@@ -10,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from strat_backtest.utils import ClosedPositionResult, OpenTrades, get_net_pos
+from strat_backtest.utils import ClosedPositionResult, OpenTrades
 
 if TYPE_CHECKING:
     from strat_backtest.utils import CompletedTrades
@@ -37,7 +36,7 @@ class ExitStruct(ABC):
         self,
         open_trades: OpenTrades,
         dt: datetime,
-        exit_price: Decimal,
+        exit_price: float,
     ) -> ClosedPositionResult:
         """Update existing StockTrade objects (still open); and remove completed
         StockTrade objects in 'open_trades'.
@@ -47,7 +46,7 @@ class ExitStruct(ABC):
                 Deque list of StockTrade pydantic object to record open trades.
             dt (datetime):
                 Trade datetime object.
-            exit_price (Decimal):
+            exit_price (float):
                 Exit price of stock ticker.
 
         Returns:
