@@ -29,6 +29,7 @@ else:
 # Static variables
 PriceAction = Literal["buy", "sell", "wait"]
 EntryType = Literal["long", "short", "longshort"]
+ExitType = Literal["stop", "trail"]
 
 
 # Dynamic variables
@@ -44,6 +45,12 @@ class ExitMethod(StrEnum):
     HALF_FIFO = "half_fifo"
     HALF_LIFO = "half_lifo"
     TAKE_ALL = "take_all"
+
+
+class TrailMethod(StrEnum):
+    FIRST_TRAIL = "first_trail"
+    LATEST_TRAIL = "lastest_trail"
+    MEAN_TRAIL = "mean_trail"
 
 
 class StopMethod(StrEnum):
@@ -62,6 +69,7 @@ ClosedPositionResult: TypeAlias = tuple[OpenTrades, CompletedTrades]
 __all__ = [
     "PriceAction",
     "EntryType",
+    "ExitType",
     "EntryMethod",
     "ExitMethod",
     "StopMethod",

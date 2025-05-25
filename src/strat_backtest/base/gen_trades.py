@@ -14,10 +14,13 @@ from strat_backtest.utils.constants import (
     CompletedTrades,
     EntryMethod,
     ExitMethod,
+    ExitType,
     PriceAction,
+    TrailMethod,
 )
 from strat_backtest.utils.file_utils import set_decimal_type
 from strat_backtest.utils.pos_utils import (
+    convert_to_decimal,
     get_class_instance,
     get_net_pos,
     get_std_field,
@@ -25,6 +28,7 @@ from strat_backtest.utils.pos_utils import (
 from strat_backtest.utils.utils import display_open_trades
 
 if TYPE_CHECKING:
+    from strat_backtest.base import StopLoss, TrailProfit
     from strat_backtest.utils import OpenTrades
 
 
@@ -44,7 +48,8 @@ class RiskConfig:
 
     percent_loss: float = 0.05
     stop_method: ExitMethod = "no_stop"
-    trigger_trail: float | None = None
+    trail_method: TrailMethod = "no_trail"
+    trigger_trail: float = 0.2
     step: float | None = None
 
 
@@ -84,9 +89,10 @@ class GenTrades(ABC):
             Percentage loss allowed for investment (Default: 0.05).
         stop_method (ExitMethod):
             Exit method to generate stop price (Default: "no_stop").
+        trail_method (TrailMethod):
+            Exit method to generate trailing profit price (Default: "no_trail").
         trigger_trail (Decimal):
-            If provided, percentage profit required to trigger trailing profit.
-            No trailing profit if None.
+            Percentage profit required to trigger trailing profit (Default: 0.2).
         step (Decimal):
             If provided, percent profit increment to trail profit. If None,
             increment set to current high - trigger_trail_level.
@@ -94,8 +100,10 @@ class GenTrades(ABC):
             Relative path to 'entry_struct.py'
         exit_struct_path (str):
             Relative path to 'exit_struct.py'
-        stop_method_path (str):
-            Relative path to 'cal_exit_price.py'
+        stop_loss_path (str):
+            Relative path to 'stop_loss.py'.
+        trail_profit_path (str):
+            Relative path to 'trail_profit.py'.
         req_cols (list[str]):
             List of required columns to generate trades.
         open_trades (OpenTrades):
@@ -105,12 +113,10 @@ class GenTrades(ABC):
         trail_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, trail profit price and whether trailing profit
             is triggered.
-        trigger_trail_level (float):
-            Actual price required to trigger trailing profit. Calculated from
-            'trigger_trail'.
-        trailing_profit (float):
-            Trailing profit price level. If triggered, all open positions
-            will be closed.
+        stop_loss_inst (StopLoss):
+            Instance of 'StopLoss' class.
+        trail_profit_inst (TrailProfit):
+            Instance of 'TrailProfit' class.
     """
 
     def __init__(
@@ -127,14 +133,16 @@ class GenTrades(ABC):
         # Risk configuration
         self.percent_loss = risk_cfg.percent_loss
         self.stop_method = risk_cfg.stop_method
-        self.trigger_trail = self._convert_to_decimal(risk_cfg.trigger_trail)
-        self.step = self._convert_to_decimal(risk_cfg.step)
+        self.trail_method = risk_cfg.trail_method
+        self.trigger_trail = convert_to_decimal(risk_cfg.trigger_trail)
+        self.step = convert_to_decimal(risk_cfg.step)
 
         # Required paths
         path_dict = self._get_req_paths()
         self.entry_struct_path = path_dict["entry_struct_path"]
         self.exit_struct_path = path_dict["exit_struct_path"]
-        self.stop_method_path = path_dict["stop_method_path"]
+        self.stop_loss_path = path_dict["stop_loss_path"]
+        self.trail_profit_path = path_dict["trail_profit_path"]
 
         # Others
         self.req_cols = [
@@ -148,8 +156,8 @@ class GenTrades(ABC):
         self.open_trades = deque()
         self.stop_info_list = []
         self.trail_info_list = []
-        self.trigger_trail_level = None
-        self.trailing_profit = None
+        self.stop_loss_inst = None
+        self.trail_profit_inst = None
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -233,7 +241,6 @@ class GenTrades(ABC):
 
             print(f"net_pos after update : {get_net_pos(self.open_trades)}")
             print(f"len(self.open_trades) : {len(self.open_trades)}")
-            print(f"self.trigger_trail_level after update: {self.trigger_trail_level}")
             display_open_trades(self.open_trades)
 
         # Append stop loss price and trailing price if available
@@ -297,40 +304,16 @@ class GenTrades(ABC):
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
             return completed_list
 
-        dt = record["date"]
-        close = record["close"]
-        low = record["low"]
-        high = record["high"]
-
-        # Get standard 'entry_action' from 'self.open_trades'; aand stop price
-        entry_action = get_std_field(self.open_trades, "entry_action")
+        # Compute stop loss price based on 'self.stop_method'
         stop_price = self.cal_stop_price()
 
-        cond_list = [
-            self.monitor_close and entry_action == "buy" and close < stop_price,
-            self.monitor_close and entry_action == "sell" and close > stop_price,
-            not self.monitor_close and entry_action == "buy" and low < stop_price,
-            not self.monitor_close and entry_action == "sell" and high > stop_price,
-        ]
+        # Check if stop loss triggered; and update 'completed_list' accordingly
+        completed_list, trigger_info = self._update_trigger_status(
+            completed_list, record, stop_price, exit_type="stop"
+        )
 
-        # Exit price is closing price if monitor based on closing price
-        # else stop price
-        exit_price = close if self.monitor_close else stop_price
-
-        # Exit all open positions if any condition in 'cond_list' is true
-        if any(cond_list):
-            exit_action = "sell" if entry_action == "buy" else "buy"
-            print(f"\nStop triggered -> {exit_action} @ stop price {stop_price}\n")
-
-            completed_list.extend(self.exit_all(dt, exit_price))
-            self.stop_info_list.append(
-                {"date": dt, "stop_price": stop_price, "stop_triggered": Decimal("1")}
-            )
-
-        else:
-            self.stop_info_list.append(
-                {"date": dt, "stop_price": stop_price, "stop_triggered": Decimal("0")}
-            )
+        # Update 'self.stop_info_list' with trigger_info
+        self.stop_info_list.append(trigger_info)
 
         return completed_list
 
@@ -358,7 +341,7 @@ class GenTrades(ABC):
         close = record["close"]
 
         # Return 'completed_list' unamended if no open position or not exit signals
-        if len(self.open_trades) == 0 or (ex_sig not in {"sell", "buy"}):
+        if len(self.open_trades) == 0 or ex_sig not in {"sell", "buy"}:
             return completed_list
 
         # Get standard 'entry_action' from 'self.open_trades'
@@ -392,66 +375,21 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        first_entry_price = (
-            self.open_trades[0].entry_price if len(self.open_trades) > 0 else None
-        )
-        print(f"self.trigger_trail : {self.trigger_trail}")
-        print(f"self.step : {self.step}")
-        print(f"self.trigger_trail_level : {self.trigger_trail_level}")
-        print(f"high : {record['high']}")
-        print(f"first entry price : {first_entry_price}")
-        print(f"self.trailing_profit : {self.trailing_profit}\n")
-
-        # Update trailing profit
-        self.cal_trailing_profit(record)
-        print(f"self.trailing_profit after update : {self.trailing_profit}")
-
-        # Return completed list if trailing profit is still None after update
-        if self.trailing_profit is None:
+        # Return 'completed_list' unamended if no net position or
+        # no trailing method set
+        if len(self.open_trades) == 0 or self.trail_method == "no_trail":
             return completed_list
 
-        trail = self.trailing_profit
-        dt = record["date"]
-        high = record["high"]
-        low = record["low"]
-        close = record["close"]
+        # Update trailing profit
+        trail_price = self.cal_trailing_profit(record)
 
-        # Get standard 'entry_action' from 'self.open_trades'
-        entry_action = get_std_field(self.open_trades, "entry_action")
+        # Check if trailing profit triggered; and update 'completed_list' accordingly
+        completed_list, trigger_info = self._update_trigger_status(
+            completed_list, record, trail_price, exit_type="trail"
+        )
 
-        cond_list = [
-            self.monitor_close and entry_action == "buy" and close < trail,
-            self.monitor_close and entry_action == "sell" and close > trail,
-            not self.monitor_close and entry_action == "buy" and low < trail,
-            not self.monitor_close and entry_action == "sell" and high > trail,
-        ]
-
-        # Exit price is closing price if monitor based on closing price
-        # else stop price
-        exit_price = close if self.monitor_close else trail
-
-        # Exit all open positions if any condition in 'cond_list' is true
-        if any(cond_list):
-            exit_action = "sell" if entry_action == "buy" else "buy"
-            print(f"Trail triggered -> {exit_action} @ trail price {trail}\n")
-
-            # Trailing profit price triggered
-            completed_list.extend(self.exit_all(dt, exit_price))
-            self.trail_info_list.append(
-                {
-                    "date": dt,
-                    "trail_price": trail,
-                    "trail_triggered": Decimal("1"),
-                }
-            )
-        else:
-            self.trail_info_list.append(
-                {
-                    "date": dt,
-                    "trail_price": trail,
-                    "trail_triggered": Decimal("0"),
-                }
-            )
+        # Update 'self.stop_info_list' with trigger_info
+        self.trail_info_list.append(trigger_info)
 
         return completed_list
 
@@ -495,84 +433,18 @@ class GenTrades(ABC):
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
 
-        if self.trigger_trail_level is None:
-            self.trigger_trail_level = self.cal_trigger_trail_level()
-
     def cal_trailing_profit(self, record: dict[str, Decimal | datetime]) -> None:
-        """Compute trailing profit level.
+        """Compute trailing profit price to protect profit."""
 
-        Args:
-            record (dict[str, Decimal | datetime]):
-                Dictionary mapping required attributes to its values.
-
-        Returns:
-            None.
-        """
-
-        # Skip computation if trailing profit is not activated or no open positions
-        if self.trigger_trail is None or len(self.open_trades) == 0:
-            self.trigger_trail_level = None
-            return None
-
-        # Compute trigger_trail_level if trailing profit enabled and open
-        # positions present
-        if self.trigger_trail_level is None:
-            self.trigger_trail_level = self.cal_trigger_trail_level()
-
-        high = record["high"]
-        low = record["low"]
-
-        # Get standard 'entry_action' from 'self.open_trades'
-        entry_action = get_std_field(self.open_trades, "entry_action")
-
-        # Compute amount of profit increment to shift trailing profit
-        first_price = self.open_trades[0].entry_price
-        step_level = first_price * self.step if self.step is not None else None
-
-        # Current high must be higher than trigger_trail_level for long positions
-        if entry_action == "buy" and (excess := high - self.trigger_trail_level) >= 0:
-            computed_trailing = (
-                first_price + excess
-                if step_level is None
-                else first_price + (excess // step_level) * step_level
+        if self.trail_profit_inst is None:
+            self.trail_profit_inst = get_class_instance(
+                self.trail_method,
+                self.trail_profit_path,
+                trigger_trail=self.trigger_trail,
+                step=self.step,
             )
 
-            if self.trailing_profit is None or computed_trailing > self.trailing_profit:
-                # Update trailing profit level if higher than previous level
-                self.trailing_profit = computed_trailing
-
-        # Current low must be lower than trigger_trail_level for short positions
-        elif entry_action == "sell" and (excess := self.trigger_trail_level - low) >= 0:
-            computed_trailing = (
-                first_price - excess
-                if step_level is None
-                else first_price - (excess // step_level * step_level)
-            )
-
-            if self.trailing_profit is None or computed_trailing < self.trailing_profit:
-                # Update trailing profit level if lower than previous level
-                self.trailing_profit = computed_trailing
-
-        return None
-
-    def cal_trigger_trail_level(self) -> float | None:
-        """Compute price level to activate trailing profit."""
-
-        if len(self.open_trades) == 0 or self.trigger_trail is None:
-            self.trigger_trail_level = None
-            self.trailing_profit = None
-
-            return None
-
-        # Get standard 'entry_action' from 'self.open_trades' and first entry price
-        entry_action = get_std_field(self.open_trades, "entry_action")
-        first_price = self.open_trades[0].entry_price
-
-        return (
-            first_price * (1 + self.trigger_trail)
-            if entry_action == "buy"
-            else first_price * (1 - self.trigger_trail)
-        )
+        return self.trail_profit_inst.cal_trail_price(self.open_trades, record)
 
     def take_profit(
         self,
@@ -644,20 +516,20 @@ class GenTrades(ABC):
         if len(self.open_trades) != 0:
             raise ValueError("Open positions are not closed completely.")
 
-        # Reset trigger trail level and trailing profit
-        self.trigger_trail_level = None
-        self.trailing_profit = None
+        # Reset trailing profit attribute in 'self.trail_profit_inst
+        self.reset_price_levels()
 
         return completed_list
 
     def cal_stop_price(self) -> Decimal:
         """Compute price to trigger stop loss."""
 
-        stop_loss = get_class_instance(
-            self.stop_method, self.stop_method_path, percent_loss=self.percent_loss
-        )
+        if self.stop_loss_inst is None:
+            self.stop_loss_inst = get_class_instance(
+                self.stop_method, self.stop_loss_path, percent_loss=self.percent_loss
+            )
 
-        return stop_loss.cal_exit_price(self.open_trades)
+        return self.stop_loss_inst.cal_exit_price(self.open_trades)
 
     def append_info(
         self,
@@ -674,8 +546,8 @@ class GenTrades(ABC):
         df_info = pd.DataFrame(info_list)
 
         # Ensure both 'date' column in 'df' and 'df_info' are time zone naive
-        df_signals = self.set_naive_tz(df_signals)
-        df_info = self.set_naive_tz(df_info)
+        df_signals = self._set_naive_tz(df_signals)
+        df_info = self._set_naive_tz(df_info)
 
         # Perform join via index
         df = df_signals.join(df_info)
@@ -693,7 +565,7 @@ class GenTrades(ABC):
 
         return dict(zip(fields, record))
 
-    def set_naive_tz(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _set_naive_tz(self, data: pd.DataFrame) -> pd.DataFrame:
         """Set the 'data' column to be time zone naive and as index to
         faciliate join."""
 
@@ -710,11 +582,6 @@ class GenTrades(ABC):
 
         return df
 
-    def _convert_to_decimal(self, num: int | float | None) -> Decimal | None:
-        """Convert 'num' to Decimal type if not None."""
-
-        return Decimal(str(num)) if num is not None else None
-
     def _get_req_paths(self) -> dict[str, str]:
         """Get relative file path to 'entry_struct.py', 'exit_struct.py'
         and 'stop_method.py'.
@@ -725,15 +592,96 @@ class GenTrades(ABC):
         Returns:
             (dict[str, str]):
                 Dictionary containing 'entry_struct_path','exit_struct_path',
-                and 'stop_method_path'.
+                and 'stop_loss_path'.
         """
 
         # 'gen_trades.py' is in the same folder as 'entry_struct.py',
         # 'exit_struct.py' and 'stop_method.py'
         current_dir = Path(__file__).parent
-        file_list = ["entry_struct.py", "exit_struct.py", "stop_method.py"]
+        file_list = [
+            "entry_struct.py",
+            "exit_struct.py",
+            "stop_loss.py",
+            "trail_profit.py",
+        ]
 
         return {
             f"{file.split('.', maxsplit=1)[0]}_path": current_dir.joinpath(file)
             for file in file_list
         }
+
+    def _update_trigger_status(
+        self,
+        completed_list: CompletedTrades,
+        record: dict[str, Decimal | datetime],
+        trigger_price: Decimal,
+        exit_type: ExitType,
+    ) -> tuple[bool, Decimal]:
+        """Check if either trailing profit or stop loss price is triggered.
+
+        Args:
+            completed_list (CompletedTrades):
+                List of dictionary containing required fields to generate DataFrame.
+            record (dict[str, Decimal | datetime]):
+                Dictionary mapping required attributes to its values.
+            trigger_price (Decimal):
+                Either trailing profit or stop loss price.
+            exit_type (ExitType):
+                Whether exit position due to stop loss or trailing profit
+                being triggered.
+
+        Returns:
+            completed_list (CompletedTrades):
+                List of dictionary containing required fields to generate DataFrame.
+            trigger_info (dict[str, datetime | Decimal]):
+                Dictionary containing datetime, trigger price and whether triggered.
+        """
+
+        dt = record["date"]
+        close = record["close"]
+        low = record["low"]
+        high = record["high"]
+
+        # Get standard 'entry_action' from 'self.open_trades'; and stop price
+        entry_action = get_std_field(self.open_trades, "entry_action")
+
+        # List of exit conditions
+        cond_list = [
+            self.monitor_close and entry_action == "buy" and close < trigger_price,
+            self.monitor_close and entry_action == "sell" and close > trigger_price,
+            not self.monitor_close and entry_action == "buy" and low < trigger_price,
+            not self.monitor_close and entry_action == "sell" and high > trigger_price,
+        ]
+
+        # Actual exit price is closing price if monitor based on closing price
+        # else exit price
+        exit_price = close if self.monitor_close else trigger_price
+
+        # Exit all open positions if any condition in 'cond_list' is true
+        if any(cond_list):
+            exit_action = "sell" if entry_action == "buy" else "buy"
+            print(
+                f"\n{exit_type.title()} triggered -> "
+                f"{exit_action} @ {exit_type} price {trigger_price}\n"
+            )
+
+            completed_list.extend(self.exit_all(dt, exit_price))
+            trigger_status = Decimal("1")
+
+        else:
+            trigger_status = Decimal("0")
+
+        trigger_info = {
+            "date": dt,
+            f"{exit_type}_price": trigger_price,
+            f"{exit_type}_triggered": trigger_status,
+        }
+
+        return completed_list, trigger_info
+
+    def reset_price_levels(self) -> None:
+        """Set 'trailing_profit' and 'ref_price' attribute for 'self.trail_profit_inst'
+        to None if applicable."""
+
+        if self.trail_profit_inst is not None:
+            self.trail_profit_inst.reset_price_levels()

@@ -1,4 +1,4 @@
-"""Import concrete implementation of 'StopMethod' to be accessible
+"""Import concrete implementation of 'StopLoss' to be accessible
 at 'stop_method' sub-package.
 
 - PercentLoss -> Stop loss based on pre-defined percent loss.
