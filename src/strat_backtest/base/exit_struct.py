@@ -11,15 +11,14 @@ from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
-
-if TYPE_CHECKING:
-    from strat_backtest.utils.constants import CompletedTrades
-
 from strat_backtest.utils.pos_utils import (
     gen_completed_trade,
     get_net_pos,
     validate_completed_trades,
 )
+
+if TYPE_CHECKING:
+    from strat_backtest.utils.constants import CompletedTrades
 
 
 class ExitStruct(ABC):
