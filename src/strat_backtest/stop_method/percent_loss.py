@@ -1,18 +1,18 @@
 """Implementation of PercentLoss class
 
-- Concrete implementation of 'StopMethod' abstract class
+- Concrete implementation of 'StopLoss' abstract class
 - Compute stop price for all open position such that will result in losses
 equal to pre-defined stop loss.
 """
 
 from decimal import Decimal
 
-from strat_backtest.base import StopMethod
+from strat_backtest.base import StopLoss
 from strat_backtest.utils.constants import OpenTrades
 from strat_backtest.utils.pos_utils import get_net_pos, get_std_field
 
 
-class PercentLoss(StopMethod):
+class PercentLoss(StopLoss):
     """Compute stop price such that total loss for all open positions
     is within the accepted percent loss. For example:
 

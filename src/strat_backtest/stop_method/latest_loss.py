@@ -1,17 +1,17 @@
 """Implementation of LatestLoss class
 
-- Concrete implementation of 'StopMethod' abstract class
+- Concrete implementation of 'StopLoss' abstract class
 - Set stop price based on stop loss for the latest open position.
 """
 
 from decimal import Decimal
 
-from strat_backtest.base import StopMethod
+from strat_backtest.base import StopLoss
 from strat_backtest.utils.constants import OpenTrades
 from strat_backtest.utils.pos_utils import get_std_field
 
 
-class LatestLoss(StopMethod):
+class LatestLoss(StopLoss):
     """Compute stop price based on the percentage stop loss set
     for latest open trade. For example:
 

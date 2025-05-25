@@ -4,9 +4,10 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 
 from strat_backtest.utils.constants import OpenTrades
+from strat_backtest.utils.pos_utils import convert_to_decimal
 
 
-class StopMethod(ABC):
+class StopLoss(ABC):
     """Abstract class to generate exit price (i.e. either profit or stop loss)
     for multiple open positions based on price movement.
 
@@ -20,7 +21,7 @@ class StopMethod(ABC):
     """
 
     def __init__(self, percent_loss: float = 0.2) -> None:
-        self.percent_loss = Decimal(str(percent_loss))  # Convert to Decimal
+        self.percent_loss = convert_to_decimal(percent_loss)
 
     @abstractmethod
     def cal_exit_price(self, open_trades: OpenTrades) -> Decimal:

@@ -115,6 +115,12 @@ def validate_completed_trades(stock_trade: StockTrade) -> bool:
     return is_no_null_field and is_lots_matched
 
 
+def convert_to_decimal(num: int | float | None) -> Decimal | None:
+    """Convert 'num' to Decimal type if not None."""
+
+    return Decimal(str(num)) if num is not None else None
+
+
 # Public Interface
 __all__ = [
     "get_class_instance",
@@ -122,4 +128,5 @@ __all__ = [
     "get_std_field",
     "gen_completed_trade",
     "validate_completed_trades",
+    "convert_to_decimal",
 ]
