@@ -4,20 +4,16 @@
 - Format display via print
 """
 
-from collections import deque
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pos_mgmt.base.stock_trade import StockTrade
+from strat_backtest.utils.constants import OpenTrades
 
 
-def display_open_trades(open_trades: deque["StockTrade"]) -> None:
+def display_open_trades(open_trades: OpenTrades) -> None:
     """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret'
     and 'win' fields in StockTrade."""
 
     if len(open_trades) == 0:
         print("open_trades : []\n")
-        return
+        return None
 
     msg_list = []
     for trade in open_trades:
@@ -44,6 +40,8 @@ def display_open_trades(open_trades: deque["StockTrade"]) -> None:
     msg = "\n".join(msg_list)
 
     print(f"open_trades : \n[\n{msg}\n]\n")
+
+    return None
 
 
 # Public Interface

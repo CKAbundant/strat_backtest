@@ -1,12 +1,13 @@
 """Helper functions used directly in position management."""
 
 import importlib
-from collections import Counter, deque
+from collections import Counter
+from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import Any, Type, TypeVar
 
-if TYPE_CHECKING:
-    from pos_mgmt.base.stock_trade import StockTrade
+from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils.constants import CompletedTrades, OpenTrades
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -58,7 +59,7 @@ def convert_path_to_pkg(script_path: str) -> str:
     return script_path.replace("/", ".")
 
 
-def get_net_pos(open_trades: deque["StockTrade"]) -> int:
+def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:
     """Get net positions from 'self.open_trades'."""
 
     return sum(
@@ -71,7 +72,7 @@ def get_net_pos(open_trades: deque["StockTrade"]) -> int:
     )
 
 
-def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
+def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
     """Get standard field (i.e. 'ticker' or 'entry_action') from 'open_trades'."""
 
     counter = Counter([getattr(trade, std_field) for trade in open_trades])
@@ -82,9 +83,43 @@ def get_std_field(open_trades: deque["StockTrade"], std_field: str) -> str:
     return "wait" if len(counter) == 0 else list(counter.keys())[0]
 
 
+def gen_completed_trade(trade: StockTrade, lots_to_exit: Decimal) -> CompletedTrades:
+    """Generate StockTrade object with completed trade from 'StockTrade'
+    and convert to dictionary."""
+
+    # Create a shallow copy of the updated trade
+    completed_trade = trade.model_copy()
+
+    # Update the 'entry_lots' and 'exit_lots' to be same as 'lots_to_exit'
+    completed_trade.entry_lots = lots_to_exit
+    completed_trade.exit_lots = lots_to_exit
+
+    if not validate_completed_trades(completed_trade):
+        raise ValueError("Completed trades not properly closed.")
+
+    return completed_trade.model_dump()
+
+
+def validate_completed_trades(stock_trade: StockTrade) -> bool:
+    """Validate whether StockTrade object is properly updated with no null
+    values."""
+
+    # Check for null fields
+    is_no_null_field = all(
+        field is not None for field in stock_trade.model_dump().values()
+    )
+
+    # Check if number of entry lots must equal number of exit lots
+    is_lots_matched = stock_trade.entry_lots == stock_trade.exit_lots
+
+    return is_no_null_field and is_lots_matched
+
+
 # Public Interface
 __all__ = [
     "get_class_instance",
     "get_net_pos",
     "get_std_field",
+    "gen_completed_trade",
+    "validate_completed_trades",
 ]

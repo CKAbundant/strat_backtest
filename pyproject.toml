@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pos-mgmt"
+name = "strat-backtest"
 version = "0.1.0"
-description = "Add your description here"
+description = "Framework to backtest trading strategy (including deep learning models)"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
 license = {text = "MIT"}
@@ -23,7 +23,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pos_mgmt"]
+packages = ["src/strat_backtest"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
