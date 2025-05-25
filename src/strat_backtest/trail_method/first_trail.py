@@ -39,7 +39,7 @@ class FirstTrail(TrailProfit):
             raise ValueError("'open_trades' cannot be empty.")
 
         # Use entry price for first open position as reference price
-        first_price = self.open_trades[0].entry_price
+        first_price = open_trades[0].entry_price
 
         # Get standard 'entry_action' from 'self.open_trades'
         entry_action = get_std_field(open_trades, "entry_action")

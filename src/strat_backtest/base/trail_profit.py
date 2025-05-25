@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from strat_backtest.utils.constants import OpenTrades, PriceAction
-from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
+from strat_backtest.utils.pos_utils import convert_to_decimal
 
 
 class TrailProfit(ABC):
@@ -95,7 +95,8 @@ class TrailProfit(ABC):
         record: dict[str, Decimal | datetime],
         entry_action: PriceAction,
     ) -> Decimal:
-        """Calculate trailing profit based on current OHLC, reference price and entry action.
+        """Calculate trailing profit based on current OHLC, reference price and
+        entry action.
 
         Args:
             record (dict[str, Decimal | datetime]):
