@@ -14,7 +14,7 @@ T = TypeVar("T")
 
 
 def get_class_instance(
-    class_name: str, script_path: str, **params: dict[str, Any]
+    class_name: str, module_path: str, **params: dict[str, Any]
 ) -> T:
     """Return instance of a class that is initialized with 'params'.
 
@@ -27,9 +27,6 @@ def get_class_instance(
     Returns:
         (T): Initialized instance of class.
     """
-
-    # Convert script path to package path
-    module_path = convert_path_to_pkg(script_path)
 
     try:
         # Import python script at class path as python module
@@ -45,26 +42,6 @@ def get_class_instance(
 
     # Intialize instance of class
     return req_class(**params)
-
-
-def convert_path_to_pkg(script_path: str, main_pkg: str = "strat_backtest") -> str:
-    """Convert file path to package path that can be used as input to importlib.
-
-    Args:
-        script_path (str):
-            Relative path to python script containig required module.
-        main_pkg (str):
-            Name of main package to generate module path (Default: "strat_backtest").
-
-    Returns:
-        (str): Module path.
-    """
-
-    # Get parts for 'script_path' in reverse order
-    reversed_tuple = Path(script_path).parts[::-1]
-
-    # Convert to package format for use in 'importlib.import_module'
-    return script_path.replace("/", ".")
 
 
 def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:

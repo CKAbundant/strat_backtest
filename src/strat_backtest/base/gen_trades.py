@@ -96,14 +96,8 @@ class GenTrades(ABC):
         step (Decimal):
             If provided, percent profit increment to trail profit. If None,
             increment set to current high - trigger_trail_level.
-        entry_struct_path (str):
-            Module path to 'entry_struct.py'
-        exit_struct_path (str):
-            Module path to 'exit_struct.py'
-        stop_loss_path (str):
-            Module path to 'stop_loss.py'.
-        trail_profit_path (str):
-            Module path to 'trail_profit.py'.
+        module_paths(dict[str, str]):
+            Dictionary mapping name of concrete class to its module path.
         req_cols (list[str]):
             List of required columns to generate trades.
         open_trades (OpenTrades):
@@ -137,12 +131,8 @@ class GenTrades(ABC):
         self.trigger_trail = convert_to_decimal(risk_cfg.trigger_trail)
         self.step = convert_to_decimal(risk_cfg.step)
 
-        # Required paths
-        mod_dict = self._get_req_module_paths()
-        self.entry_struct_path = mod_dict["entry_struct_path"]
-        self.exit_struct_path = mod_dict["exit_struct_path"]
-        self.stop_loss_path = mod_dict["stop_loss_path"]
-        self.trail_profit_path = mod_dict["trail_profit_path"]
+        # Get dictionary mapping
+        self.module_paths = self._get_module_paths()
 
         # Others
         self.req_cols = [
@@ -422,7 +412,9 @@ class GenTrades(ABC):
 
         # Get initialized instance of concrete class implementation
         entry_instance = get_class_instance(
-            self.entry_struct, self.entry_struct_path, num_lots=self.num_lots
+            self.entry_struct,
+            self.module_paths.get(self.entry_struct),
+            num_lots=self.num_lots,
         )
 
         # Update 'self.open_trades' with new open position
@@ -439,7 +431,7 @@ class GenTrades(ABC):
         if self.trail_profit_inst is None:
             self.trail_profit_inst = get_class_instance(
                 self.trail_method,
-                self.trail_profit_path,
+                self.module_paths.get(self.trail_method),
                 trigger_trail=self.trigger_trail,
                 step=self.step,
             )
@@ -478,7 +470,9 @@ class GenTrades(ABC):
             return []
 
         # Get initialized instance of concrete class implementation
-        exit_instance = get_class_instance(self.exit_struct, self.exit_struct_path)
+        exit_instance = get_class_instance(
+            self.exit_struct, self.module_paths.get(self.exit_struct)
+        )
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = exit_instance.close_pos(
@@ -506,7 +500,9 @@ class GenTrades(ABC):
         """
 
         # Get initialized instance of concrete class implementation
-        take_all_exit = get_class_instance("TakeAllExit", self.exit_struct_path)
+        take_all_exit = get_class_instance(
+            "TakeAllExit", self.module_paths.get("TakeAllExit")
+        )
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = take_all_exit.close_pos(
@@ -526,7 +522,9 @@ class GenTrades(ABC):
 
         if self.stop_loss_inst is None:
             self.stop_loss_inst = get_class_instance(
-                self.stop_method, self.stop_loss_path, percent_loss=self.percent_loss
+                self.stop_method,
+                self.module_paths.get(self.stop_method),
+                percent_loss=self.percent_loss,
             )
 
         return self.stop_loss_inst.cal_exit_price(self.open_trades)
@@ -582,29 +580,51 @@ class GenTrades(ABC):
 
         return df
 
-    def _get_module_paths(
-        self, class_name: EntryMethod | ExitMethod | TrailMethod | StopMethod
-    ) -> str:
-        """Get module path for concrete implementation of 'EntryStruct',
-        'ExitStruct', 'StopLoss' and 'TrailProfit' abstract class.
+    def _get_module_paths(main_pkg: str = "strat_backtest") -> dict[str, str]:
+        """Convert file path to package path that can be used as input to importlib.
 
         Args:
-            class_name (EntryMethod | ExitMethod | TrailMethod | StopMethod):
-                Name of concrete implementation of 'EntryStruct', 'ExitStruct',
-                'StopLoss' and 'TrailProfit' abstract class.
+            script_path (str):
+                Relative path to python script containig required module.
+            main_pkg (str):
+                Name of main package to generate module path (Default: "strat_backtest").
 
         Returns:
-            (str):
-                Module path to required 'class_name'.
+            module_info (dict[str, str]):
+                Dictionary mapping each concrete class to module path.
         """
 
-        # entry_methods = {}
+        # Get main package directory path
+        main_pkg_path = Path(__file__).parents[1]
 
-        # module_dir = "strat_backtest.base"
+        # Get list of folder paths containin concrete implementation of 'EntryStruc',
+        # 'ExitStruct', 'StopLoss' and 'TrailProfit' abstract class.
+        folder_paths = [
+            rel_path
+            for rel_path in main_pkg_path.iterdir()
+            if rel_path.is_dir()
+            and rel_path.name not in {"base", "utils", "__pycache__"}
+        ]
 
-        # # 'gen_trades.py' is in the same folder as 'entry_struct.py',
-        # # 'exit_struct.py' and 'stop_method.py'
-        # return {f"{file}_path": f"{module_dir}.{file}" for file in file_names}
+        module_info = {}
+
+        # Iterate through contents of each folder path
+        for folder in folder_paths:
+            # Get all python scripts inside folder
+            for file_path in folder.glob("*.py"):
+                # Omit suffixes if any
+                file_name = file_path.stem
+                folder_name = folder.stem
+
+                # Get name of concrete class
+                class_name = "".join(
+                    part.upper() if part in {"fifo", "lifo"} else part.title()
+                    for part in file_name.split("_")
+                )
+
+                module_info[class_name] = f"{main_pkg}.{folder_name}.{file_name}"
+
+        return module_info
 
     def _update_trigger_status(
         self,
