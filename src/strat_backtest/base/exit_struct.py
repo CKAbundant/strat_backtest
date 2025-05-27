@@ -85,7 +85,6 @@ class ExitStruct(ABC):
             (StockTrade): StockTrade object updated with exit info
         """
 
-        # set exit_lots to be net entry and exit lots to ensure
         exit_lots = exit_lots or trade.entry_lots
 
         # Get exit action to update position

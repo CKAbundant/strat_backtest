@@ -1,5 +1,7 @@
 """Abstract class used to generate various entry stuctures."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 from decimal import Decimal

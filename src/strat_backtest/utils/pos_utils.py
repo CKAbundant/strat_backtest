@@ -19,10 +19,8 @@ def get_class_instance(
     """Return instance of a class that is initialized with 'params'.
 
     Args:
-        class_name (str):
-            Name of class in python script.
-        script_path (str):
-            Relative file path to python script that contains the required class.
+        module_path (str):
+            Module path relative from main package e.g. strat_backtest.base.entry_struct..
         **params (dict[str, Any]):
             Arbitrary Keyword input arguments to initialize class instance.
 
@@ -37,7 +35,7 @@ def get_class_instance(
         # Import python script at class path as python module
         module = importlib.import_module(module_path)
     except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Module not found in '{script_path}'.") from e
+        raise ModuleNotFoundError(f"Invalid module path : '{module_path}'") from e
 
     try:
         # Get class from module
@@ -49,11 +47,21 @@ def get_class_instance(
     return req_class(**params)
 
 
-def convert_path_to_pkg(script_path: str) -> str:
-    """Convert file path to package path that can be used as input to importlib."""
+def convert_path_to_pkg(script_path: str, main_pkg: str = "strat_backtest") -> str:
+    """Convert file path to package path that can be used as input to importlib.
 
-    # Remove suffix ".py"
-    script_path = Path(script_path).with_suffix("").as_posix()
+    Args:
+        script_path (str):
+            Relative path to python script containig required module.
+        main_pkg (str):
+            Name of main package to generate module path (Default: "strat_backtest").
+
+    Returns:
+        (str): Module path.
+    """
+
+    # Get parts for 'script_path' in reverse order
+    reversed_tuple = Path(script_path).parts[::-1]
 
     # Convert to package format for use in 'importlib.import_module'
     return script_path.replace("/", ".")

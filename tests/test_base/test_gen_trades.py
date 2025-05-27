@@ -17,14 +17,32 @@
 - test_iterate_df
 """
 
-import pandas as pd
-import pytest
+from datetime import datetime
 
-from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
+from ..test_utils import gen_takeall_completed_list
 
 
-class TestGenTrades(GenTrades):
-    """Concrete implemenation for testing 'GenTrades' abstract class"""
+def test_init(gen_trades_inst):
+    """Test '__init__' method for 'GenTrades' class."""
 
-    def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-        return pd.DataFrame(), pd.DataFrame()
+    assert gen_trades_inst.entry_struct == "MultiEntry"
+    assert gen_trades_inst.exit_struct == "FIFOExit"
+    assert gen_trades_inst.stop_method == "no_stop"
+    assert gen_trades_inst.trail_method == "no_trail"
+
+
+def test_exit_all(gen_trades_inst, open_trades):
+    """Test 'exit_all' method for 'GenTrades' class."""
+
+    # Set 'open_trades' attribute
+    gen_trades_inst.open_trades = open_trades
+
+    # Generate completed trade list based on 'exit_dt' datetime
+    exit_dt = datetime(2025, 4, 14, tzinfo=None)
+    exit_price = 202.52
+
+    # Generate computed and expected completed list
+    computed_list = gen_trades_inst.exit_all(exit_dt, exit_price)
+    expected_list = gen_takeall_completed_list(open_trades, exit_dt, exit_price)
+
+    assert set(computed_list) == set(expected_list)

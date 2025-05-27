@@ -34,30 +34,31 @@ ExitType = Literal["stop", "trail"]
 
 # Dynamic variables
 class EntryMethod(StrEnum):
-    MULTIPLE = "multiple"
-    MULTIPLE_HALF = "multiple_half"
-    SINGLE = "single"
+    MULTIPLE = "MultiEntry"
+    MULTIPLE_HALF = "MultiHalfEntry"
+    SINGLE = "SingleEntry"
 
 
 class ExitMethod(StrEnum):
-    FIFO = "fifo"
-    LIFO = "lifo"
-    HALF_FIFO = "half_fifo"
-    HALF_LIFO = "half_lifo"
-    TAKE_ALL = "take_all"
+    FIFO = "FIFOExit"
+    LIFO = "LIFOExit"
+    HALF_FIFO = "HalfFIFOExit"
+    HALF_LIFO = "HalfLIFOExit"
+    TAKE_ALL = "TakeAllExit"
 
 
 class TrailMethod(StrEnum):
-    FIRST_TRAIL = "first_trail"
-    LATEST_TRAIL = "lastest_trail"
-    MEAN_TRAIL = "mean_trail"
+    NO_TRAIL = "no_trail"
+    FIRST_TRAIL = "FirstTrail"
+    LATEST_TRAIL = "LastestTrail"
+    MEAN_TRAIL = "MeanTrail"
 
 
 class StopMethod(StrEnum):
     NO_STOP = "no_stop"
-    PERCENT_LOSS = "percent_loss"
-    LATEST_LOSS = "latest_loss"
-    NEAREST_LOSS = "nearest_loss"
+    PERCENT_LOSS = "PercentLoss"
+    LATEST_LOSS = "LatestLoss"
+    NEAREST_LOSS = "NearestLoss"
 
 
 # Type aliases for trading system

@@ -16,6 +16,7 @@ from strat_backtest.utils.constants import (
     ExitMethod,
     ExitType,
     PriceAction,
+    StopMethod,
     TrailMethod,
 )
 from strat_backtest.utils.file_utils import set_decimal_type
@@ -74,12 +75,11 @@ class GenTrades(ABC):
 
     Attributes:
         entry_struct (EntryMethod):
-            Whether to allow multiple open position ("mulitple") or single
-            open position at a time ("single").
+            Whether to allow multiple open position ("MultiEntry") or single
+            open position at a time ("SingleEntry").
         exit_struct (ExitMethod):
-            Whether to apply first-in-first-out ("fifo"), last-in-first-out ("lifo"),
-            take profit for half open positions repeatedly ("half_life") or
-            take profit for all open positions ("take_all").
+            Whether to apply "FIFOExit", "LIFOExit", "HalfFIFOExit", "HalfLIFOExit",
+            or "TakeAllExit".
         num_lots (int):
             Number of lots to initiate new position each time (Default: 1).
         monitor_close (bool):
@@ -97,17 +97,17 @@ class GenTrades(ABC):
             If provided, percent profit increment to trail profit. If None,
             increment set to current high - trigger_trail_level.
         entry_struct_path (str):
-            Relative path to 'entry_struct.py'
+            Module path to 'entry_struct.py'
         exit_struct_path (str):
-            Relative path to 'exit_struct.py'
+            Module path to 'exit_struct.py'
         stop_loss_path (str):
-            Relative path to 'stop_loss.py'.
+            Module path to 'stop_loss.py'.
         trail_profit_path (str):
-            Relative path to 'trail_profit.py'.
+            Module path to 'trail_profit.py'.
         req_cols (list[str]):
             List of required columns to generate trades.
         open_trades (OpenTrades):
-            List of 'StockTrade' pydantic objects representing open positions.
+            Deque list of 'StockTrade' pydantic objects representing open positions.
         stop_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, stop price and whether stop price is triggered.
         trail_info_list (list[dict[str, datetime | str | Decimal]]):
@@ -138,11 +138,11 @@ class GenTrades(ABC):
         self.step = convert_to_decimal(risk_cfg.step)
 
         # Required paths
-        path_dict = self._get_req_paths()
-        self.entry_struct_path = path_dict["entry_struct_path"]
-        self.exit_struct_path = path_dict["exit_struct_path"]
-        self.stop_loss_path = path_dict["stop_loss_path"]
-        self.trail_profit_path = path_dict["trail_profit_path"]
+        mod_dict = self._get_req_module_paths()
+        self.entry_struct_path = mod_dict["entry_struct_path"]
+        self.exit_struct_path = mod_dict["exit_struct_path"]
+        self.stop_loss_path = mod_dict["stop_loss_path"]
+        self.trail_profit_path = mod_dict["trail_profit_path"]
 
         # Others
         self.req_cols = [
@@ -582,33 +582,29 @@ class GenTrades(ABC):
 
         return df
 
-    def _get_req_paths(self) -> dict[str, str]:
-        """Get relative file path to 'entry_struct.py', 'exit_struct.py'
-        and 'stop_method.py'.
+    def _get_module_paths(
+        self, class_name: EntryMethod | ExitMethod | TrailMethod | StopMethod
+    ) -> str:
+        """Get module path for concrete implementation of 'EntryStruct',
+        'ExitStruct', 'StopLoss' and 'TrailProfit' abstract class.
 
         Args:
-            None.
+            class_name (EntryMethod | ExitMethod | TrailMethod | StopMethod):
+                Name of concrete implementation of 'EntryStruct', 'ExitStruct',
+                'StopLoss' and 'TrailProfit' abstract class.
 
         Returns:
-            (dict[str, str]):
-                Dictionary containing 'entry_struct_path','exit_struct_path',
-                and 'stop_loss_path'.
+            (str):
+                Module path to required 'class_name'.
         """
 
-        # 'gen_trades.py' is in the same folder as 'entry_struct.py',
-        # 'exit_struct.py' and 'stop_method.py'
-        current_dir = Path(__file__).parent
-        file_list = [
-            "entry_struct.py",
-            "exit_struct.py",
-            "stop_loss.py",
-            "trail_profit.py",
-        ]
+        # entry_methods = {}
 
-        return {
-            f"{file.split('.', maxsplit=1)[0]}_path": current_dir.joinpath(file)
-            for file in file_list
-        }
+        # module_dir = "strat_backtest.base"
+
+        # # 'gen_trades.py' is in the same folder as 'entry_struct.py',
+        # # 'exit_struct.py' and 'stop_method.py'
+        # return {f"{file}_path": f"{module_dir}.{file}" for file in file_names}
 
     def _update_trigger_status(
         self,
