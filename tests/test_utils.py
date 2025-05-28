@@ -130,7 +130,21 @@ def gen_exit_all_end_completed_list(
 def cal_percent_loss_stop_price(
     open_trades: OpenTrades, percent_loss: float = 0.05
 ) -> Decimal:
-    """Compute stop price based on 'PercentLoss' method given test open trades."""
+    """Compute stop price based on 'PercentLoss' method given test open trades.
+
+    This function creates the expected stop price that should result from
+    calling 'cal_stop_price' method with the given parameters. Used for
+    assertion comparisons in pytests.
+
+    Args:
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        percent_loss (float):
+            maximum percentage loss allowable.
+
+    Returns:
+        (Decimal): Stop pricebased on 'PercenLoss' method.
+    """
 
     # Convert percent_loss to Decimal
     percent_loss = Decimal(str(percent_loss))
