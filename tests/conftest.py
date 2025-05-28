@@ -8,17 +8,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
+from strat_backtest.base.gen_trades import RiskConfig, TradingConfig
 from strat_backtest.base.stock_trade import StockTrade
 
 FIXTURE_DIR = Path(__file__).parent
-
-
-class TestGenTrades(GenTrades):
-    """Concrete implemenation for testing 'GenTrades' abstract class"""
-
-    def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-        return pd.DataFrame(), pd.DataFrame()
 
 
 @pytest.fixture
@@ -53,13 +46,6 @@ def sample_gen_trades():
         )
 
     return pd.read_parquet(parquet_path)
-
-
-@pytest.fixture
-def gen_trades_inst(trading_config, risk_config):
-    """Generate instance of 'TestGenTrades' to test non-abstract methods."""
-
-    return TestGenTrades(trading_config, risk_config)
 
 
 @pytest.fixture

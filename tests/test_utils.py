@@ -2,8 +2,56 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
+import pandas as pd
+
+from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
 from strat_backtest.utils.constants import CompletedTrades, OpenTrades
+from strat_backtest.utils.pos_utils import get_std_field
+
+
+class TestGenTrades(GenTrades):
+    """Concrete implemenation for testing 'GenTrades' abstract class"""
+
+    def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        return pd.DataFrame(), pd.DataFrame()
+
+
+def gen_testgentrades_inst(
+    trading_cfg: TradingConfig, risk_cfg: RiskConfig, **kwargs: Any
+) -> TestGenTrades:
+    """Generate instance of 'TestGenTrades' class.
+
+    Args:
+        trading_cfg (TradingConfig):
+            Instance of 'TradingConfig' StrEnum class.
+        risk_cfg (RiskConfig):
+            Instance of 'RiskConfig' StrEnum class.
+        **kwargs (Any):
+            Additional keyword arguments to set as attributes on the
+            created instance. Only existing attributes will be modified.
+
+    Returns:
+        (TestGenTrades):
+            Instance of 'TestGenTrades' class with specified configuration and
+            any additional attributes set via kwargs.
+    """
+
+    # Create instance of 'TestGenTrades' with provided trading and risk config
+    gen_trades = TestGenTrades(trading_cfg, risk_cfg)
+
+    # Set attributes for valid keyword arguments
+    for (
+        field,
+        attribute,
+    ) in kwargs.items():
+        if field not in vars(gen_trades):
+            raise AttributeError(f"'{field}' is not a valid attribute for 'GenTrades'.")
+
+        setattr(gen_trades, field, attribute)
+
+    return gen_trades
 
 
 def gen_takeallexit_completed_list(
@@ -77,3 +125,30 @@ def gen_exit_all_end_completed_list(
     )
 
     return completed_list
+
+
+def cal_percent_loss_stop_price(
+    open_trades: OpenTrades, percent_loss: float = 0.05
+) -> Decimal:
+    """Compute stop price based on 'PercentLoss' method given test open trades."""
+
+    # Convert percent_loss to Decimal
+    percent_loss = Decimal(str(percent_loss))
+
+    # Entry action should be the same for all open positions
+    entry_action = get_std_field(open_trades, "entry_action")
+
+    # Calculate average prices for open positions
+    # Open positions are not partially filled, which simplifies calculation
+    total_lots = sum(trade.entry_lots for trade in open_trades)
+    av_price = (
+        sum(trade.entry_price * trade.entry_lots for trade in open_trades) / total_lots
+    )
+
+    stop_price = (
+        av_price * (1 - percent_loss)
+        if entry_action == "buy"
+        else av_price * (1 + percent_loss)
+    )
+
+    return round(stop_price, 2)
