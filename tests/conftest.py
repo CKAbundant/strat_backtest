@@ -101,11 +101,11 @@ def completed_list():
     return [
         {
             "ticker": "AAPL",
-            "entry_datetime": datetime.datetime(2025, 3, 25, 0, 0),
+            "entry_datetime": datetime(2025, 3, 25, 0, 0),
             "entry_action": "buy",
             "entry_lots": Decimal("10"),
             "entry_price": Decimal("223.75"),
-            "exit_datetime": datetime.datetime(2025, 3, 28, 0, 0),
+            "exit_datetime": datetime(2025, 3, 28, 0, 0),
             "exit_action": "sell",
             "exit_lots": Decimal("10"),
             "exit_price": Decimal("217.9"),

@@ -72,6 +72,8 @@ def gen_exit_all_end_completed_list(
             trading period.
     """
 
-    return completed_list.extend(
-        gen_takeallexit_completed_list(record["date"], record["close"])
+    completed_list.extend(
+        gen_takeallexit_completed_list(open_trades, record["date"], record["close"])
     )
+
+    return completed_list

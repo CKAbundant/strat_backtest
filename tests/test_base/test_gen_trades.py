@@ -69,5 +69,8 @@ def test_exit_all_end(gen_trades_inst, open_trades, completed_list):
         open_trades.copy(), completed_list.copy(), record.copy()
     )
 
+    print(f"computed_list : \n\n{pformat(computed_list)}\n")
+    print(f"expected_list : \n\n{pformat(expected_list)}\n")
+
     assert computed_list == expected_list
     assert gen_trades_inst.open_trades == deque()
