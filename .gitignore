@@ -1,6 +1,33 @@
-data/
-.env
+# Pytest cache
+.pytest_cache/
+
+# Python bytecode cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Tox testing
+.tox/
+
+# Virtual environments (if stored locally)
 .venv/
+venv/
+env/
+.env
+
+# IDE and editor caches
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Personal
 data/

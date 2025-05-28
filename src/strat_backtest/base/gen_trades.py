@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from pprint import pformat
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -580,7 +581,7 @@ class GenTrades(ABC):
 
         return df
 
-    def _get_module_paths(main_pkg: str = "strat_backtest") -> dict[str, str]:
+    def _get_module_paths(self, main_pkg: str = "strat_backtest") -> dict[str, str]:
         """Convert file path to package path that can be used as input to importlib.
 
         Args:
@@ -612,9 +613,12 @@ class GenTrades(ABC):
         for folder in folder_paths:
             # Get all python scripts inside folder
             for file_path in folder.glob("*.py"):
-                # Omit suffixes if any
                 file_name = file_path.stem
                 folder_name = folder.stem
+
+                # Ignore __init__.py
+                if file_name == "__init__":
+                    continue
 
                 # Get name of concrete class
                 class_name = "".join(

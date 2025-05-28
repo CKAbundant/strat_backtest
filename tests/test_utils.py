@@ -35,6 +35,6 @@ def gen_takeall_completed_list(
         pos.exit_lots = pos.entry_lots
         pos.exit_price = exit_price
 
-        expected_list.append(pos)
+        expected_list.append(pos.model_dump())
 
     return expected_list
