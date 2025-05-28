@@ -21,7 +21,7 @@ from collections import deque
 from datetime import datetime
 from pprint import pformat
 
-from ..test_utils import gen_takeall_completed_list
+from ..test_utils import gen_exit_all_end_completed_list, gen_takeallexit_completed_list
 
 
 def test_init(gen_trades_inst):
@@ -45,8 +45,29 @@ def test_exit_all(gen_trades_inst, open_trades):
 
     # Generate computed and expected completed list
     computed_list = gen_trades_inst.exit_all(exit_dt, exit_price)
+    expected_list = gen_takeallexit_completed_list(open_trades, exit_dt, exit_price)
 
-    expected_list = gen_takeall_completed_list(open_trades, exit_dt, exit_price)
+    assert computed_list == expected_list
+    assert gen_trades_inst.open_trades == deque()
+
+
+def test_exit_all_end(gen_trades_inst, open_trades, completed_list):
+    """Test 'exit_all_end' method for 'GenTrades' class."""
+
+    # OHLCV of AAPL on 14 Apr 2025
+    record = {"date": datetime(2025, 4, 14, tzinfo=None), "close": 202.52}
+
+    # Test 1: No open positions scenario
+    gen_trades_inst.open_trades = deque()
+    computed_list = gen_trades_inst.exit_all_end(completed_list.copy(), record.copy())
+    assert computed_list == completed_list
+
+    # Test 2: open positios scenario
+    gen_trades_inst.open_trades = open_trades.copy()
+    computed_list = gen_trades_inst.exit_all_end(completed_list.copy(), record.copy())
+    expected_list = gen_exit_all_end_completed_list(
+        open_trades.copy(), completed_list.copy(), record.copy()
+    )
 
     assert computed_list == expected_list
     assert gen_trades_inst.open_trades == deque()

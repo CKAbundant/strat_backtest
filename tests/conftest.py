@@ -2,6 +2,7 @@
 
 from collections import deque
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -90,3 +91,28 @@ def open_trades():
     )
 
     return deque([first_trade, second_trade, third_trade])
+
+
+@pytest.fixture
+def completed_list():
+    """Generate sample 'completed_list' i.e. list of dictionary containing
+    completed stock trade info."""
+
+    return [
+        {
+            "ticker": "AAPL",
+            "entry_datetime": datetime.datetime(2025, 3, 25, 0, 0),
+            "entry_action": "buy",
+            "entry_lots": Decimal("10"),
+            "entry_price": Decimal("223.75"),
+            "exit_datetime": datetime.datetime(2025, 3, 28, 0, 0),
+            "exit_action": "sell",
+            "exit_lots": Decimal("10"),
+            "exit_price": Decimal("217.9"),
+            "days_held": 3,
+            "profit_loss": Decimal("-5.85"),
+            "percent_ret": Decimal("-0.026145"),
+            "daily_ret": Decimal("-0.008792"),
+            "win": 0,
+        }
+    ]
