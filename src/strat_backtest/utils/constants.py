@@ -65,6 +65,7 @@ class StopMethod(StrEnum):
 OpenTrades: TypeAlias = deque["StockTrade"]
 CompletedTrades: TypeAlias = list[dict[str, Decimal | str | datetime]]
 ClosedPositionResult: TypeAlias = tuple[OpenTrades, CompletedTrades]
+Record: TypeAlias = dict[str, PriceAction | Decimal | datetime]
 
 # Public interface
 __all__ = [
@@ -77,4 +78,5 @@ __all__ = [
     "OpenTrades",
     "CompletedTrades",
     "ClosedPositionResult",
+    "Record",
 ]

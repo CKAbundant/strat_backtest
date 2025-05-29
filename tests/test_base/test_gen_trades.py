@@ -21,11 +21,15 @@ from collections import deque
 from datetime import datetime
 from pprint import pformat
 
+import pytest
+
 from ..test_utils import (
     cal_nearestloss_stop_price,
     cal_percentloss_stop_price,
     gen_check_stop_loss_completed_list,
     gen_exit_all_end_completed_list,
+    gen_exit_record,
+    gen_take_profit_completed_list,
     gen_takeallexit_completed_list,
     gen_testgentrades_inst,
 )
@@ -62,11 +66,13 @@ def test_exit_all(trading_config, risk_config, open_trades):
     assert test_inst.open_trades == deque()
 
 
-def test_exit_all_end(trading_config, risk_config, open_trades, completed_list):
+def test_exit_all_end(
+    trading_config, risk_config, open_trades, completed_list, sample_gen_trades
+):
     """Test 'exit_all_end' method for 'GenTrades' class."""
 
-    # OHLCV of AAPL on 14 Apr 2025
-    record = {"date": datetime(2025, 4, 14, tzinfo=None), "close": 202.52}
+    # OHLCV of AAPL at end of trading period i.e. last item in sample_gen_trades
+    record = sample_gen_trades.iloc[-1, :].to_dict()
 
     # Test 1: No open positions scenario
     test_inst = gen_testgentrades_inst(trading_config, risk_config, open_trades=deque())
@@ -103,33 +109,47 @@ def test_cal_stop_price(trading_config, risk_config, open_trades):
     assert computed_price == expected_price
 
 
-def test_check_stop_loss(trading_config, risk_config, open_trades, completed_list):
-    """Test 'check_stop_loss' method for 'GenTrades' class."""
+@pytest.mark.parametrize(
+    "stop_method, open_trades_setup",
+    [("latestLoss", "empty"), ("no_stop", "with_trades")],
+)
+def test_check_stop_loss_no_action(
+    trading_config,
+    risk_config,
+    open_trades,
+    completed_list,
+    sample_gen_trades,
+    stop_method,
+    open_trades_setup,
+):
+    """Test scenarios where 'check_stop_loss' returns original 'completed_list'."""
 
-    # OHLCV of AAPL on 14 Apr 2025
-    record = {
-        "date": datetime(2025, 4, 8, tzinfo=None),
-        "high": 190.09,
-        "low": 168.99,
-        "close": 172.19,
-    }
+    # OHLCV of AAPL at end of trading period i.e. last item in sample_gen_trades
+    record = sample_gen_trades.iloc[-1, :].to_dict()
 
-    # Test 1: No open positions scenario
+    # Set up 'open_trades'
+    trades_input = deque() if open_trades_setup == "empty" else open_trades.copy()
+
+    # Generate test instance based on 'stop_method' and 'open_trades_setup'
     test_inst = gen_testgentrades_inst(
-        trading_config, risk_config, open_trades=deque(), stop_method="LatestLoss"
+        trading_config, risk_config, open_trades=trades_input, stop_method=stop_method
     )
-    no_open_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
 
-    # Test 2: No 'stop_method' == 'no_stop' scenario
-    test_inst = gen_testgentrades_inst(
-        trading_config, risk_config, open_trades=open_trades.copy()
-    )
-    no_stop_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
 
-    assert no_open_list == completed_list
-    assert no_stop_list == completed_list
+    assert computed_list == completed_list
 
-    # Test 3: 'stop_method' == 'NearestLoss'
+
+def test_check_stop_loss_nearest_loss(
+    trading_config, risk_config, open_trades, completed_list, sample_gen_trades
+):
+    """Test 'check_stop_loss' for 'NearestLoss' scenario."""
+
+    # OHLCV of AAPL on 8 Apr 2025
+    df = sample_gen_trades
+    record = df.loc[df["date"] == "2025-04-08", :].to_dict(orient="records")[0]
+
     test_inst = gen_testgentrades_inst(
         trading_config,
         risk_config,
@@ -147,7 +167,60 @@ def test_check_stop_loss(trading_config, risk_config, open_trades, completed_lis
         risk_config.percent_loss,
     )
 
-    # print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    # print(f"expected_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
+    assert test_inst.stop_info_list == [trigger_info]
+
+
+@pytest.mark.parametrize("exit_sig", ["wait", "buy"])
+def test_take_profit_no_action(
+    trading_config,
+    risk_config,
+    sample_gen_trades,
+    exit_sig,
+):
+    """Test scenarios where 'take_profit' returns empty list."""
+
+    # Generate record with desired 'exit_signal'
+    record = gen_exit_record(sample_gen_trades, exit_sig)
+    dt = record["date"]
+    ex_sig = record["exit_signal"]
+    exit_price = record["close"]  # Assume position closed at closing
+
+    # Generate generic test instance
+    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+
+    assert computed_list == []
+
+
+def test_take_profit_fifoexit(
+    trading_config, risk_config, open_trades, sample_gen_trades
+):
+    """Test 'take_profit' for 'FIFOExit' scenario."""
+
+    # OHLCV of AAPL on 10 Apr 2025 (sell signal)
+    df = sample_gen_trades
+    record = df.loc[df["date"] == "2025-04-10", :].to_dict(orient="records")[0]
+
+    dt = record["date"]
+    ex_sig = record["exit_signal"]
+    exit_price = record["close"]  # Assume position closed at closing
+
+    # Generate test instance with 'exit_method' == 'FIFOExit'
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=open_trades.copy()
+    )
+
+    # Generate computed and expected 'completed_list'
+    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+    expected_open_trades, expected_list = gen_take_profit_completed_list(
+        open_trades.copy(), dt, exit_price
+    )
+
+    assert computed_list == expected_list
+    assert test_inst.open_trades == expected_open_trades

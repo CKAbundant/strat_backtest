@@ -1,5 +1,6 @@
 """Utility functions used in test scripts."""
 
+import random
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -7,7 +8,14 @@ from typing import Any
 import pandas as pd
 
 from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
-from strat_backtest.utils.constants import CompletedTrades, OpenTrades
+from strat_backtest.base.stock_trade import StockTrade
+from strat_backtest.utils.constants import (
+    ClosedPositionResult,
+    CompletedTrades,
+    OpenTrades,
+    PriceAction,
+    Record,
+)
 from strat_backtest.utils.pos_utils import get_std_field
 
 
@@ -16,6 +24,37 @@ class TestGenTrades(GenTrades):
 
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         return pd.DataFrame(), pd.DataFrame()
+
+
+def gen_exit_record(
+    df_sample: pd.DataFrame, ex_sig: PriceAction
+) -> dict[str, str | Decimal]:
+    """Generate dictionary with selected 'exit_signal'
+
+    Args:
+        df_sample (pd.DataFrame):
+            Sample of signals DataFrame, which contains 'exit_signal' column.
+        ex_sig (PriceAction):
+            Either 'buy', 'sell' or 'wait'.
+
+    Returns:
+        (dict[str, str | Decimal]):
+            Selected single record in 'df_sample' converted to dictionary.
+    """
+
+    # Filter 'df_sample' with 'entry_signal' and 'exit_signal' == 'wait'
+    df_wait = df_sample.loc[
+        (df_sample["entry_signal"] == "wait") & (df_sample["exit_signal"] == "wait"), :
+    ].reset_index(drop=True)
+
+    # Randomly select row with 'exit_signal' == 'wait'; and convert to dictionary
+    random_idx = random.choice(list(df_wait.index))
+    record = df_wait.iloc[random_idx, :].to_dict()
+
+    # Set 'exit_signal' to desired value
+    record["exit_signal"] = ex_sig
+
+    return record
 
 
 def gen_testgentrades_inst(
@@ -51,6 +90,26 @@ def gen_testgentrades_inst(
     return gen_trades
 
 
+def update_open_pos(
+    trade: StockTrade, exit_dt: datetime | pd.Timestamp, exit_price: float
+) -> StockTrade:
+    """Update open position with exit datetime and price."""
+
+    # Get 'exit_action' based on 'entry_action'
+    exit_action = "sell" if trade.entry_action == "buy" else "buy"
+
+    # Ensure 'exit_dt' is datetime type
+    if isinstance(exit_dt, pd.Timestamp):
+        exit_dt = exit_dt.to_pydatetime()
+
+    trade.exit_datetime = exit_dt
+    trade.exit_action = exit_action
+    trade.exit_lots = trade.entry_lots
+    trade.exit_price = Decimal(str(exit_price))
+
+    return trade
+
+
 def gen_takeallexit_completed_list(
     open_trades: OpenTrades, exit_dt: datetime, exit_price: float
 ) -> CompletedTrades:
@@ -66,6 +125,8 @@ def gen_takeallexit_completed_list(
             Deque list of 'StockTrade' pydantic objects representing open positions.
         exit_dt (datetime):
             Datetime object when open position is closed.
+        exit_price (float):
+            Exit price to exit open position.
 
     Returns:
         expected_list (CompletedTrades):
@@ -75,16 +136,10 @@ def gen_takeallexit_completed_list(
     expected_list = []
 
     for open_pos in open_trades:
-        # Create shallow copy of open position
-        pos = open_pos.model_copy()
+        # Update 'open_pos'
+        pos = update_open_pos(open_pos.model_copy(), exit_dt, exit_price)
 
-        # Update 'completed_pos' with exit info, ensuring positions
-        # are properly closed
-        pos.exit_datetime = exit_dt
-        pos.exit_action = "sell" if pos.entry_action == "buy" else "buy"
-        pos.exit_lots = pos.entry_lots
-        pos.exit_price = exit_price
-
+        # Convert to dictionary
         expected_list.append(pos.model_dump())
 
     return expected_list
@@ -93,7 +148,7 @@ def gen_takeallexit_completed_list(
 def gen_exit_all_end_completed_list(
     open_trades: OpenTrades,
     completed_list: CompletedTrades,
-    record: dict[str, Decimal | datetime],
+    record: Record,
 ) -> CompletedTrades:
     """Generate expected 'completed_list' via 'exit_all_end" method
     at end of trading period.
@@ -108,7 +163,7 @@ def gen_exit_all_end_completed_list(
         completed_list (CompletedTrades):
             Initial list of dictionaries containing completed trades info just
             before end of trading period.
-        record (dict[str, Decimal | datetime]):
+        record (Record):
             OHLCV info at end of trading period.
 
     Returns:
@@ -206,9 +261,9 @@ def gen_check_stop_loss_completed_list(
     cfg: dict[str, TradingConfig | RiskConfig],
     open_trades: OpenTrades,
     completed_list: CompletedTrades,
-    record: dict[str, Decimal | datetime],
+    record: Record,
     percent_loss: float = 0.05,
-) -> CompletedTrades:
+) -> tuple[CompletedTrades, dict[str, datetime | Decimal]]:
     """Generate expected 'completed_list' via 'exit_all_end" method
     at end of trading period.
 
@@ -222,18 +277,17 @@ def gen_check_stop_loss_completed_list(
         open_trades (OpenTrades):
             Deque list of 'StockTrade' pydantic objects representing open positions.
         completed_list (CompletedTrades):
-            Initial list of dictionaries containing completed trades info just
-            before end of trading period.
-        record (dict[str, Decimal | datetime]):
+            List of dictionaries containing completed trades info.
+        record (Record):
             OHLCV info at end of trading period.
         percent_loss (float):
             maximum percentage loss allowable.
 
     Returns:
-        expected_list (CompletedTrades):
+        (CompletedTrades):
             List of dictionaries containing completed trades info at end of
             trading period.
-        trigger_info (dict[str, datetime | Decimal]):
+        (dict[str, datetime | Decimal]):
             Dictionary containing datetime, trigger price and whether triggered.
     """
 
@@ -247,9 +301,6 @@ def gen_check_stop_loss_completed_list(
     # Convert percent_loss to Decimal
     percent_loss = Decimal(str(percent_loss))
 
-    # Entry action should be the same for all open positions
-    entry_action = get_std_field(open_trades, "entry_action")
-
     # Generate expected 'completed_list
     stop_price = cal_nearestloss_stop_price(open_trades, percent_loss)
 
@@ -257,3 +308,40 @@ def gen_check_stop_loss_completed_list(
     return test_inst._update_trigger_status(
         completed_list, record, stop_price, exit_type="stop"
     )
+
+
+def gen_take_profit_completed_list(
+    open_trades: OpenTrades,
+    dt: datetime | pd.Timestamp,
+    exit_price: float,
+) -> ClosedPositionResult:
+    """Generate expected 'completed_list' via 'take_profit" method.
+
+    This function creates the expected final state of completed trades
+    (i.e. 'completed_list') that should result from calling 'take_profit' method
+    via 'FIFOExit' method with the given parameters. Used for assertion comparisons
+    in pytests.
+
+    Args:
+        open_trades (OpenTrades):
+                Deque list of StockTrade pydantic object to record open trades.
+        dt (datetime | pd.Timestamp):
+            Trade datetime object.
+        exit_price (float):
+            Exit price of stock ticker.
+
+    Returns:
+        open_trades (OpenTrades):
+            Updated deque list of 'StockTrade' pydantic objects.
+        completed_list (CompletedTrades):
+            List of dictionaries containing completed trades info at end of
+            trading period.
+    """
+
+    # First open position is exited
+    first_trade = open_trades.popleft()
+
+    # Update 'first_open' with 'dt' and 'exit_price'
+    first_trade = update_open_pos(first_trade, dt, exit_price)
+
+    return open_trades, [first_trade.model_dump()]
