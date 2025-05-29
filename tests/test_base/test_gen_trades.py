@@ -22,7 +22,9 @@ from datetime import datetime
 from pprint import pformat
 
 from ..test_utils import (
-    cal_percent_loss_stop_price,
+    cal_nearestloss_stop_price,
+    cal_percentloss_stop_price,
+    gen_check_stop_loss_completed_list,
     gen_exit_all_end_completed_list,
     gen_takeallexit_completed_list,
     gen_testgentrades_inst,
@@ -86,7 +88,7 @@ def test_exit_all_end(trading_config, risk_config, open_trades, completed_list):
 def test_cal_stop_price(trading_config, risk_config, open_trades):
     """Test 'cal_stop_price' method for 'GenTrades' class."""
 
-    # Create test instance with 'stop_method' == 'PercenLoss'
+    # Create test instance with 'stop_method' == 'PercentLoss'
     test_inst = gen_testgentrades_inst(
         trading_config,
         risk_config,
@@ -96,6 +98,56 @@ def test_cal_stop_price(trading_config, risk_config, open_trades):
 
     # Calculate expected and computed stop price
     computed_price = test_inst.cal_stop_price()
-    expected_price = cal_percent_loss_stop_price(open_trades, risk_config.percent_loss)
+    expected_price = cal_percentloss_stop_price(open_trades, risk_config.percent_loss)
 
     assert computed_price == expected_price
+
+
+def test_check_stop_loss(trading_config, risk_config, open_trades, completed_list):
+    """Test 'check_stop_loss' method for 'GenTrades' class."""
+
+    # OHLCV of AAPL on 14 Apr 2025
+    record = {
+        "date": datetime(2025, 4, 8, tzinfo=None),
+        "high": 190.09,
+        "low": 168.99,
+        "close": 172.19,
+    }
+
+    # Test 1: No open positions scenario
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=deque(), stop_method="LatestLoss"
+    )
+    no_open_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+
+    # Test 2: No 'stop_method' == 'no_stop' scenario
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=open_trades.copy()
+    )
+    no_stop_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+
+    assert no_open_list == completed_list
+    assert no_stop_list == completed_list
+
+    # Test 3: 'stop_method' == 'NearestLoss'
+    test_inst = gen_testgentrades_inst(
+        trading_config,
+        risk_config,
+        stop_method="NearestLoss",
+        open_trades=open_trades.copy(),
+    )
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+    expected_list, trigger_info = gen_check_stop_loss_completed_list(
+        dict(trading_cfg=trading_config, risk_cfg=risk_config),
+        open_trades.copy(),
+        completed_list.copy(),
+        record.copy(),
+        risk_config.percent_loss,
+    )
+
+    # print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+
+    assert computed_list == expected_list

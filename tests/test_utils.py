@@ -42,10 +42,7 @@ def gen_testgentrades_inst(
     gen_trades = TestGenTrades(trading_cfg, risk_cfg)
 
     # Set attributes for valid keyword arguments
-    for (
-        field,
-        attribute,
-    ) in kwargs.items():
+    for field, attribute in kwargs.items():
         if field not in vars(gen_trades):
             raise AttributeError(f"'{field}' is not a valid attribute for 'GenTrades'.")
 
@@ -127,7 +124,7 @@ def gen_exit_all_end_completed_list(
     return completed_list
 
 
-def cal_percent_loss_stop_price(
+def cal_percentloss_stop_price(
     open_trades: OpenTrades, percent_loss: float = 0.05
 ) -> Decimal:
     """Compute stop price based on 'PercentLoss' method given test open trades.
@@ -166,3 +163,97 @@ def cal_percent_loss_stop_price(
     )
 
     return round(stop_price, 2)
+
+
+def cal_nearestloss_stop_price(
+    open_trades: OpenTrades, percent_loss: float = 0.05
+) -> Decimal:
+    """Compute stop price based on 'NearestLoss' method given test open trades.
+
+    This function creates the expected stop price that should result from
+    calling 'cal_stop_price' method with the given parameters. Used for
+    assertion comparisons in pytests.
+
+    Args:
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        percent_loss (float):
+            maximum percentage loss allowable.
+
+    Returns:
+        (Decimal): Stop price based on 'PercenLoss' method.
+    """
+
+    # Convert percent_loss to Decimal
+    percent_loss = Decimal(str(percent_loss))
+
+    # Entry action should be the same for all open positions
+    entry_action = get_std_field(open_trades, "entry_action")
+
+    # Calculate stop loss for each open position based on 'percent_loss'
+    if entry_action == "buy":
+        stop_list = [trade.entry_price * (1 - percent_loss) for trade in open_trades]
+
+        return round(max(stop_list), 2)
+
+    if entry_action == "sell":
+        stop_list = [trade.entry_price * (1 + percent_loss) for trade in open_trades]
+
+        return round(min(stop_list), 2)
+
+
+def gen_check_stop_loss_completed_list(
+    cfg: dict[str, TradingConfig | RiskConfig],
+    open_trades: OpenTrades,
+    completed_list: CompletedTrades,
+    record: dict[str, Decimal | datetime],
+    percent_loss: float = 0.05,
+) -> CompletedTrades:
+    """Generate expected 'completed_list' via 'exit_all_end" method
+    at end of trading period.
+
+    This function creates the expected final state of completed trades
+    (i.e. 'completed_list') that should result from calling 'exit_all_end' method
+    with the given parameters. Used for assertion comparisons in pytests.
+
+    Args:
+        cfg (dict[TradingConfig, RiskConfig]):
+            Dictionary mapping to instance of TradingConfig and RiskConfig.
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        completed_list (CompletedTrades):
+            Initial list of dictionaries containing completed trades info just
+            before end of trading period.
+        record (dict[str, Decimal | datetime]):
+            OHLCV info at end of trading period.
+        percent_loss (float):
+            maximum percentage loss allowable.
+
+    Returns:
+        expected_list (CompletedTrades):
+            List of dictionaries containing completed trades info at end of
+            trading period.
+        trigger_info (dict[str, datetime | Decimal]):
+            Dictionary containing datetime, trigger price and whether triggered.
+    """
+
+    # Generate instance of 'TestGenTrades' with 'stop_method' == 'NearestLoss'
+    test_inst = gen_testgentrades_inst(
+        **cfg,
+        stop_method="NearestLoss",
+        open_trades=open_trades.copy(),
+    )
+
+    # Convert percent_loss to Decimal
+    percent_loss = Decimal(str(percent_loss))
+
+    # Entry action should be the same for all open positions
+    entry_action = get_std_field(open_trades, "entry_action")
+
+    # Generate expected 'completed_list
+    stop_price = cal_nearestloss_stop_price(open_trades, percent_loss)
+
+    # Check if stop loss triggered; and update 'completed_list' accordingly
+    return test_inst._update_trigger_status(
+        completed_list, record, stop_price, exit_type="stop"
+    )

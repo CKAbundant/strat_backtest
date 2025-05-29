@@ -73,7 +73,7 @@ def open_trades():
         entry_datetime=datetime(2025, 4, 8, tzinfo=None),
         entry_action="buy",
         entry_lots=10,
-        entry_price=172.42,
+        entry_price=172.19,
     )
 
     return deque([first_trade, second_trade, third_trade])

@@ -665,6 +665,11 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
 
+        # print(f"\n\n\n{self.monitor_close=}")
+        # print(f"{entry_action=}")
+        # print(f"{close=}")
+        # print(f"{trigger_price=}")
+
         # List of exit conditions
         cond_list = [
             self.monitor_close and entry_action == "buy" and close < trigger_price,
@@ -679,11 +684,11 @@ class GenTrades(ABC):
 
         # Exit all open positions if any condition in 'cond_list' is true
         if any(cond_list):
-            exit_action = "sell" if entry_action == "buy" else "buy"
-            print(
-                f"\n{exit_type.title()} triggered -> "
-                f"{exit_action} @ {exit_type} price {trigger_price}\n"
-            )
+            # exit_action = "sell" if entry_action == "buy" else "buy"
+            # print(
+            #     f"\n{exit_type.title()} triggered -> "
+            #     f"{exit_action} @ {exit_type} price {trigger_price}\n"
+            # )
 
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")

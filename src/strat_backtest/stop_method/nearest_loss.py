@@ -53,4 +53,4 @@ class NearestLoss(StopLoss):
         # for short position
         stop_price = max(stop_list) if entry_action == "buy" else min(stop_list)
 
-        return Decimal(round(stop_price, 2))
+        return round(stop_price, 2)
