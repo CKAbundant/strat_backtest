@@ -92,7 +92,7 @@ class TrailProfit(ABC):
 
     def _cal_trailing_profit(
         self,
-        record: dict[str, Decimal | datetime],
+        record: dict[str, float | Decimal | datetime],
         entry_action: PriceAction,
     ) -> Decimal:
         """Calculate trailing profit based on current OHLC, reference price and
@@ -108,8 +108,8 @@ class TrailProfit(ABC):
             (Decimal): Trailing profit price for all multiple open positions.
         """
 
-        high = record["high"]
-        low = record["low"]
+        high = convert_to_decimal(record["high"])
+        low = convert_to_decimal(record["low"])
 
         # Update trailing profit if current high must be higher than
         # trigger_trail_level for long positions

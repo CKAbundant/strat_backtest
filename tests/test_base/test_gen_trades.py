@@ -25,6 +25,7 @@ import pytest
 
 from ..test_utils import (
     cal_percentloss_stop_price,
+    cal_trailing_price,
     gen_check_profit_completed_list,
     gen_check_stop_loss_completed_list,
     gen_exit_all_end_completed_list,
@@ -323,7 +324,9 @@ def test_cal_trailing_profit(
     )
 
     # Calculate expected and computed stop price
-    computed_price = test_inst.cal_trailing_profit()
-    expected_price = cal_percentloss_stop_price(open_trades, risk_config.percent_loss)
+    computed_price = test_inst.cal_trailing_profit(record.copy())
+    expected_price = cal_trailing_price(
+        open_trades.copy(), record.copy(), risk_config.trigger_trail, risk_config.step
+    )
 
     assert computed_price == expected_price

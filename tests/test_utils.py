@@ -3,6 +3,7 @@
 import random
 from datetime import datetime
 from decimal import Decimal
+from pprint import pformat
 from typing import Any
 
 import pandas as pd
@@ -16,7 +17,7 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import get_std_field
+from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
 
 
 class TestGenTrades(GenTrades):
@@ -141,7 +142,7 @@ def update_open_pos(
     trade.exit_datetime = exit_dt
     trade.exit_action = exit_action
     trade.exit_lots = trade.entry_lots
-    trade.exit_price = Decimal(str(exit_price))
+    trade.exit_price = convert_to_decimal(exit_price)
 
     return trade
 
@@ -235,7 +236,7 @@ def cal_percentloss_stop_price(
     """
 
     # Convert percent_loss to Decimal
-    percent_loss = Decimal(str(percent_loss))
+    percent_loss = convert_to_decimal(percent_loss)
 
     # Entry action should be the same for all open positions
     entry_action = get_std_field(open_trades, "entry_action")
@@ -276,7 +277,7 @@ def cal_nearestloss_stop_price(
     """
 
     # Convert percent_loss to Decimal
-    percent_loss = Decimal(str(percent_loss))
+    percent_loss = convert_to_decimal(percent_loss)
 
     # Entry action should be the same for all open positions
     entry_action = get_std_field(open_trades, "entry_action")
@@ -335,7 +336,7 @@ def gen_check_stop_loss_completed_list(
     )
 
     # Convert percent_loss to Decimal
-    percent_loss = Decimal(str(percent_loss))
+    percent_loss = convert_to_decimal(percent_loss)
 
     # Generate expected 'completed_list
     stop_price = cal_nearestloss_stop_price(open_trades, percent_loss)
@@ -425,13 +426,15 @@ def gen_check_profit_completed_list(
 
 
 def cal_trailing_price(
-    open_trades: OpenTrades, record: Record, trigger_trail: float = 0.05
+    open_trades: OpenTrades,
+    record: Record,
+    trigger_trail: float = 0.05,
+    step: float | None = None,
 ) -> Decimal:
     """Compute trailing price based on 'FirstTrail' method given test open trades.
 
     This function creates the expected trailing price that should result from
-    calling 'cal_trailing_profit' method with the given parameters. 'step' is set as
-    None to simplify calculation. Used for assertion comparisons in pytests.
+    calling 'cal_trailing_profit' method with the given parameters. Used for assertion comparisons in pytests.
 
     Args:
         open_trades (OpenTrades):
@@ -440,13 +443,19 @@ def cal_trailing_price(
             OHLCV info including entry and exit signal
         trigger_trail (Decimal):
             Percentage profit required to trigger trailing profit (Default: 0.05).
+        step (Decimal):
+            If provided, percent profit increment to trail profit. If None,
+            increment set to current high - trigger_trail_level.
 
     Returns:
         (Decimal | None): If available, trailing price based on 'FirstTrail' method.
     """
 
-    high = record["high"]
-    low = record["low"]
+    # Ensure input parameters are decimal type
+    high = convert_to_decimal(record["high"])
+    low = convert_to_decimal(record["low"])
+    trigger_trail = convert_to_decimal(trigger_trail)
+    step = convert_to_decimal(step)
     computed_trailing = None
 
     # Use entry price for first open position as reference price
@@ -461,11 +470,23 @@ def cal_trailing_price(
         else first_price * (1 - trigger_trail)
     )
 
+    # print(f"record : \n\n{pformat(record, sort_dicts=False)}\n")
+    # print(f"{first_price=}")
+    # print(f"{trigger_level=}")
+    # print(f"{high=}")
+
+    step_level = first_price * step if step else None
+
+    # Check if current price has traded above the 'trigger_level' threshold
     excess = high - trigger_level if entry_action == "buy" else trigger_level - low
 
     if excess > 0:
+        excess = (excess // step_level) * step_level if step else excess
         computed_trailing = (
             first_price + excess if entry_action == "buy" else first_price - excess
         )
+
+    # print(f"{excess=}")
+    # print(f"first_price + excess : {first_price + excess}\n")
 
     return computed_trailing

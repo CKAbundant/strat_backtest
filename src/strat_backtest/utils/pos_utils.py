@@ -103,7 +103,13 @@ def validate_completed_trades(stock_trade: StockTrade) -> bool:
 def convert_to_decimal(num: int | float | None) -> Decimal | None:
     """Convert 'num' to Decimal type if not None."""
 
-    return Decimal(str(num)) if num is not None else None
+    if num is None:
+        return None
+
+    if not isinstance(num, (int, float, Decimal)):
+        raise TypeError(f"'{num}' is not a numeric type.")
+
+    return Decimal(str(num))
 
 
 # Public Interface
