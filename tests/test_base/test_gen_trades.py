@@ -173,12 +173,13 @@ def test_check_stop_loss_nearestloss(
         completed_list.copy(),
         record.copy(),
     )
+    expected_stop_info_list = [trigger_info] if trigger_info else []
 
     # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
     # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
-    assert test_inst.stop_info_list == [trigger_info]
+    assert test_inst.stop_info_list == expected_stop_info_list
 
 
 @pytest.mark.parametrize("exit_sig", ["wait", "buy"])
@@ -369,8 +370,14 @@ def test_check_trailing_profit_no_action(
     assert computed_list == completed_list
 
 
+@pytest.mark.parametrize("trigger_trail", [0.5, 0.01])
 def test_check_trailing_profit_firsttrail(
-    trading_config, risk_config, open_trades, completed_list, sample_gen_trades
+    trading_config,
+    risk_config,
+    open_trades,
+    completed_list,
+    sample_gen_trades,
+    trigger_trail,
 ):
     """Test 'check_stop_loss' for 'NearestLoss' scenario."""
 
@@ -382,7 +389,7 @@ def test_check_trailing_profit_firsttrail(
         "trading_cfg": trading_config,
         "risk_cfg": risk_config,
         "trail_method": "FirstTrail",
-        "trigger_trail": 0.01,  # Make it easier to trigger trailing
+        "trigger_trail": trigger_trail,
         "open_trades": open_trades.copy(),
     }
     test_inst = gen_testgentrades_inst(**params)
@@ -400,10 +407,11 @@ def test_check_trailing_profit_firsttrail(
         completed_list.copy(),
         record.copy(),
     )
+    expected_trail_info_list = [trigger_info] if trigger_info else []
 
     # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
     # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
-    print(f"{trigger_info=}")
+    # print(f"{expected_trail_info_list=}")
 
     assert computed_list == expected_list
-    assert test_inst.trail_info_list == [trigger_info]
+    assert test_inst.trail_info_list == expected_trail_info_list

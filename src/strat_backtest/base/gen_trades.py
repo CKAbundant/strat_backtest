@@ -666,9 +666,9 @@ class GenTrades(ABC):
         """
 
         dt = record["date"]
-        close = record["close"]
-        low = record["low"]
-        high = record["high"]
+        close = convert_to_decimal(record["close"])
+        low = convert_to_decimal(record["low"])
+        high = convert_to_decimal(record["high"])
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
@@ -692,11 +692,11 @@ class GenTrades(ABC):
 
         # Exit all open positions if any condition in 'cond_list' is true
         if any(cond_list):
-            exit_action = "sell" if entry_action == "buy" else "buy"
-            print(
-                f"\n{exit_type.title()} triggered -> "
-                f"{exit_action} @ {exit_type} price {trigger_price}\n"
-            )
+            # exit_action = "sell" if entry_action == "buy" else "buy"
+            # print(
+            #     f"\n{exit_type.title()} triggered -> "
+            #     f"{exit_action} @ {exit_type} price {trigger_price}\n"
+            # )
 
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")

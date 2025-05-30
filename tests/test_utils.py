@@ -507,6 +507,10 @@ def gen_check_trailing_profit_completed_list(
         params["open_trades"], record, test_inst.trigger_trail, test_inst.step
     )
 
+    # Update trailing profit
+    if trailing_price is None:
+        return completed_list, None
+
     # Check if stop loss triggered; and update 'completed_list' accordingly
     return test_inst._update_trigger_status(
         completed_list, record, trailing_price, exit_type="trail"
