@@ -24,8 +24,8 @@ from pprint import pformat
 import pytest
 
 from ..test_utils import (
-    cal_nearestloss_stop_price,
     cal_percentloss_stop_price,
+    gen_check_profit_completed_list,
     gen_check_stop_loss_completed_list,
     gen_exit_all_end_completed_list,
     gen_exit_record,
@@ -224,3 +224,67 @@ def test_take_profit_fifoexit(
 
     assert computed_list == expected_list
     assert test_inst.open_trades == expected_open_trades
+
+
+@pytest.mark.parametrize(
+    "exit_sig, open_trades_setup",
+    [("wait", "with_trades"), ("sell", "empty")],
+)
+def test_check_profit_no_action(
+    trading_config,
+    risk_config,
+    open_trades,
+    completed_list,
+    sample_gen_trades,
+    exit_sig,
+    open_trades_setup,
+):
+    """Test scenarios where 'check_profit' returns original 'completed_list'."""
+
+    # Generate record with required exe
+    record = gen_exit_record(sample_gen_trades, exit_sig)
+
+    # Set up 'open_trades'
+    trades_input = deque() if open_trades_setup == "empty" else open_trades.copy()
+
+    # Generate test instance based on 'stop_method' and 'open_trades_setup'
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=trades_input
+    )
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_profit(completed_list.copy(), record.copy())
+
+    assert computed_list == completed_list
+
+
+def test_check_profit_fifoexit(
+    trading_config, risk_config, open_trades, completed_list, sample_gen_trades
+):
+    """Test 'check_profit' for 'FIFOExit' scenario."""
+
+    # Get the latest record with 'sell' exit signal
+    df = sample_gen_trades
+    record = df.loc[df["exit_signal"] == "sell", :].tail(1).to_dict(orient="records")[0]
+
+    test_inst = gen_testgentrades_inst(
+        trading_config,
+        risk_config,
+        open_trades=open_trades.copy(),
+    )
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_profit(completed_list.copy(), record.copy())
+    expected_trades, expected_list = gen_check_profit_completed_list(
+        open_trades.copy(),
+        completed_list.copy(),
+        record.copy(),
+    )
+
+    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    # print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
+    # print(f"test_inst.open_trades : \n\n{pformat(test_inst.open_trades)}\n")
+
+    assert computed_list == expected_list
+    assert test_inst.open_trades == expected_trades

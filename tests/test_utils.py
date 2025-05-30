@@ -345,3 +345,44 @@ def gen_take_profit_completed_list(
     first_trade = update_open_pos(first_trade, dt, exit_price)
 
     return open_trades, [first_trade.model_dump()]
+
+
+def gen_check_profit_completed_list(
+    open_trades: OpenTrades,
+    completed_list: CompletedTrades,
+    record: Record,
+) -> ClosedPositionResult:
+    """Generate expected 'completed_list' via 'check_profit" method.
+
+    This function creates the expected final state of completed trades
+    (i.e. 'completed_list') that should result from calling 'check_profit' method
+    via 'FIFOExit' method with the given parameters. Used for assertion comparisons
+    in pytests.
+
+    Args:
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        completed_list (CompletedTrades):
+            List of dictionaries containing completed trades info.
+        record (Record):
+            OHLCV info at end of trading period.
+
+    Returns:
+        expected_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        completed_list (CompletedTrades):
+            List of dictionaries containing completed trades info at end of
+            trading period.
+    """
+
+    dt = record["date"]
+    exit_price = record["close"]  # Assume exit position at closing
+
+    expected_trades, expected_list = gen_take_profit_completed_list(
+        open_trades, dt, exit_price
+    )
+
+    # Update existing 'completed_list'
+    completed_list.extend(expected_list)
+
+    return expected_trades, completed_list
