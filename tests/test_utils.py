@@ -42,7 +42,7 @@ def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
         # Convert to datetime type
         dt = datetime.strptime(dt, "%Y-%m-%d")
 
-    if dt not in df_sample["date"]:
+    if dt not in df_sample["date"].to_list():
         raise ValueError(f"'{dt}' is an invalid date!")
 
     return df.loc[df["date"] == dt, :].to_dict(orient="records")[0]
@@ -295,11 +295,9 @@ def cal_nearestloss_stop_price(
 
 
 def gen_check_stop_loss_completed_list(
-    cfg: dict[str, TradingConfig | RiskConfig],
-    open_trades: OpenTrades,
+    params: dict[str, Any],
     completed_list: CompletedTrades,
     record: Record,
-    percent_loss: float = 0.05,
 ) -> tuple[CompletedTrades, dict[str, datetime | Decimal]]:
     """Generate expected 'completed_list' via 'exit_all_end" method
     at end of trading period.
@@ -309,16 +307,12 @@ def gen_check_stop_loss_completed_list(
     with the given parameters. Used for assertion comparisons in pytests.
 
     Args:
-        cfg (dict[TradingConfig, RiskConfig]):
-            Dictionary mapping to instance of TradingConfig and RiskConfig.
-        open_trades (OpenTrades):
-            Deque list of 'StockTrade' pydantic objects representing open positions.
+        params (dict[str, Any]):
+            Dictionary containing parameters to intialize 'TestGenTrades'.
         completed_list (CompletedTrades):
             List of dictionaries containing completed trades info.
         record (Record):
             OHLCV info including entry and exit signal.
-        percent_loss (float):
-            maximum percentage loss allowable.
 
     Returns:
         (CompletedTrades):
@@ -329,17 +323,15 @@ def gen_check_stop_loss_completed_list(
     """
 
     # Generate instance of 'TestGenTrades' with 'stop_method' == 'NearestLoss'
-    test_inst = gen_testgentrades_inst(
-        **cfg,
-        stop_method="NearestLoss",
-        open_trades=open_trades.copy(),
-    )
+    test_inst = gen_testgentrades_inst(**params)
 
     # Convert percent_loss to Decimal
     percent_loss = convert_to_decimal(percent_loss)
 
     # Generate expected 'completed_list
-    stop_price = cal_nearestloss_stop_price(open_trades, percent_loss)
+    stop_price = cal_nearestloss_stop_price(
+        params["open_trades"], test_inst.percent_loss
+    )
 
     # Check if stop loss triggered; and update 'completed_list' accordingly
     return test_inst._update_trigger_status(
@@ -430,7 +422,7 @@ def cal_trailing_price(
     record: Record,
     trigger_trail: float = 0.05,
     step: float | None = None,
-) -> Decimal:
+) -> Decimal | None:
     """Compute trailing price based on 'FirstTrail' method given test open trades.
 
     This function creates the expected trailing price that should result from
@@ -456,7 +448,9 @@ def cal_trailing_price(
     low = convert_to_decimal(record["low"])
     trigger_trail = convert_to_decimal(trigger_trail)
     step = convert_to_decimal(step)
-    computed_trailing = None
+
+    if len(open_trades) == 0:
+        return None
 
     # Use entry price for first open position as reference price
     first_price = open_trades[0].entry_price
@@ -482,11 +476,53 @@ def cal_trailing_price(
 
     if excess > 0:
         excess = (excess // step_level) * step_level if step else excess
-        computed_trailing = (
-            first_price + excess if entry_action == "buy" else first_price - excess
-        )
+        return first_price + excess if entry_action == "buy" else first_price - excess
 
     # print(f"{excess=}")
     # print(f"first_price + excess : {first_price + excess}\n")
 
-    return computed_trailing
+    return None
+
+
+def gen_check_trailing_profit_completed_list(
+    params: dict[str, Any],
+    completed_list: CompletedTrades,
+    record: Record,
+) -> tuple[CompletedTrades, dict[str, datetime | Decimal]]:
+    """Generate expected 'completed_list' via 'exit_all_end" method
+    at end of trading period.
+
+    This function creates the expected final state of completed trades
+    (i.e. 'completed_list') that should result from calling 'exit_all_end' method
+    with the given parameters. Used for assertion comparisons in pytests.
+
+    Args:
+        params (dict[str, Any]):
+            Dictionary containing parameters to intialize 'TestGenTrades'.
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        completed_list (CompletedTrades):
+            List of dictionaries containing completed trades info.
+        record (Record):
+            OHLCV info including entry and exit signal.
+
+    Returns:
+        (CompletedTrades):
+            List of dictionaries containing completed trades info at end of
+            trading period.
+        (dict[str, datetime | Decimal]):
+            Dictionary containing datetime, trigger price and whether triggered.
+    """
+
+    # Generate instance of 'TestGenTrades' with 'stop_method' == 'FirstTrail'
+    test_inst = gen_testgentrades_inst(**params)
+
+    # Generate expected 'completed_list
+    trailing_price = cal_trailing_price(
+        params["open_trades"], record, test_inst.trigger_trail, test_inst.step
+    )
+
+    # Check if stop loss triggered; and update 'completed_list' accordingly
+    return test_inst._update_trigger_status(
+        completed_list, record, trailing_price, exit_type="trail"
+    )

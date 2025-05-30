@@ -378,7 +378,8 @@ class GenTrades(ABC):
             return completed_list
 
         # Update trailing profit
-        trail_price = self.cal_trailing_profit(record)
+        if (trail_price := self.cal_trailing_profit(record)) is None:
+            return completed_list
 
         # Check if trailing profit triggered; and update 'completed_list' accordingly
         completed_list, trigger_info = self._update_trigger_status(
@@ -644,7 +645,7 @@ class GenTrades(ABC):
         record: Record,
         trigger_price: Decimal,
         exit_type: ExitType,
-    ) -> tuple[bool, Decimal]:
+    ) -> tuple[CompletedTrades, dict[str, datetime | Decimal]]:
         """Check if either trailing profit or stop loss price is triggered.
 
         Args:
@@ -655,8 +656,7 @@ class GenTrades(ABC):
             trigger_price (Decimal):
                 Either trailing profit or stop loss price.
             exit_type (ExitType):
-                Whether exit position due to stop loss or trailing profit
-                being triggered.
+                Either 'stop' or 'trail'.
 
         Returns:
             completed_list (CompletedTrades):
@@ -692,11 +692,11 @@ class GenTrades(ABC):
 
         # Exit all open positions if any condition in 'cond_list' is true
         if any(cond_list):
-            # exit_action = "sell" if entry_action == "buy" else "buy"
-            # print(
-            #     f"\n{exit_type.title()} triggered -> "
-            #     f"{exit_action} @ {exit_type} price {trigger_price}\n"
-            # )
+            exit_action = "sell" if entry_action == "buy" else "buy"
+            print(
+                f"\n{exit_type.title()} triggered -> "
+                f"{exit_action} @ {exit_type} price {trigger_price}\n"
+            )
 
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")
@@ -705,7 +705,7 @@ class GenTrades(ABC):
             trigger_status = Decimal("0")
 
         trigger_info = {
-            "date": dt,
+            "date": dt.to_pydatetime() if isinstance(dt, pd.Timestamp) else dt,
             f"{exit_type}_price": trigger_price,
             f"{exit_type}_triggered": trigger_status,
         }

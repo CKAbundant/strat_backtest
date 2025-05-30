@@ -28,6 +28,7 @@ from ..test_utils import (
     cal_trailing_price,
     gen_check_profit_completed_list,
     gen_check_stop_loss_completed_list,
+    gen_check_trailing_profit_completed_list,
     gen_exit_all_end_completed_list,
     gen_record,
     gen_take_profit_completed_list,
@@ -144,7 +145,7 @@ def test_check_stop_loss_no_action(
     assert computed_list == completed_list
 
 
-def test_check_stop_loss_nearest_loss(
+def test_check_stop_loss_nearestloss(
     trading_config, risk_config, open_trades, completed_list, sample_gen_trades
 ):
     """Test 'check_stop_loss' for 'NearestLoss' scenario."""
@@ -152,25 +153,29 @@ def test_check_stop_loss_nearest_loss(
     # OHLCV of AAPL on 8 Apr 2025
     record = get_date_record(sample_gen_trades, "2025-04-08")
 
-    test_inst = gen_testgentrades_inst(
-        trading_config,
-        risk_config,
-        stop_method="NearestLoss",
-        open_trades=open_trades.copy(),
-    )
+    # Create a deep copy of 'open_trades'
+    copied_open_trades = deque([trade.model_copy(deep=True) for trade in open_trades])
+
+    # Generate test instance with 'stop_method' == 'NearestLoss'
+    params = {
+        "trading_cfg": trading_config,
+        "risk_cfg": risk_config,
+        "stop_method": "NearestLoss",
+        "percent_loss": 0.05,
+        "open_trades": copied_open_trades,
+    }
+    test_inst = gen_testgentrades_inst(**params)
 
     # Generate computed 'completed_list'
     computed_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
     expected_list, trigger_info = gen_check_stop_loss_completed_list(
-        dict(trading_cfg=trading_config, risk_cfg=risk_config),
-        open_trades.copy(),
+        params,
         completed_list.copy(),
         record.copy(),
-        risk_config.percent_loss,
     )
 
     # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    # print(f"expected_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.stop_info_list == [trigger_info]
@@ -206,8 +211,8 @@ def test_take_profit_fifoexit(
 ):
     """Test 'take_profit' for 'FIFOExit' scenario."""
 
-    # OHLCV of AAPL on 10 Apr 2025 (sell signal)
-    record = get_date_record(sample_gen_trades, "2025-04-10")
+    # OHLCV of AAPL on 15 Apr 2025 (sell signal)
+    record = get_date_record(sample_gen_trades, "2025-04-15")
 
     dt = record["date"]
     ex_sig = record["exit_signal"]
@@ -330,3 +335,75 @@ def test_cal_trailing_profit(
     )
 
     assert computed_price == expected_price
+
+
+@pytest.mark.parametrize(
+    "trail_method, open_trades_setup",
+    [("FirstTrail", "empty"), ("no_trail", "with_trades")],
+)
+def test_check_trailing_profit_no_action(
+    trading_config,
+    risk_config,
+    open_trades,
+    completed_list,
+    sample_gen_trades,
+    trail_method,
+    open_trades_setup,
+):
+    """Test scenarios where 'check_stop_loss' returns original 'completed_list'."""
+
+    # Get latest record in sample DataFrame
+    record = get_latest_record(sample_gen_trades)
+
+    # Set up 'open_trades'
+    trades_input = deque() if open_trades_setup == "empty" else open_trades.copy()
+
+    # Generate test instance based on 'stop_method' and 'open_trades_setup'
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=trades_input, trail_method=trail_method
+    )
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+
+    assert computed_list == completed_list
+
+
+def test_check_trailing_profit_firsttrail(
+    trading_config, risk_config, open_trades, completed_list, sample_gen_trades
+):
+    """Test 'check_stop_loss' for 'NearestLoss' scenario."""
+
+    # Get latest record in sample DataFrame
+    record = get_latest_record(sample_gen_trades)
+
+    # Generate test instance with 'trail_method' == 'FirstTrail'
+    params = {
+        "trading_cfg": trading_config,
+        "risk_cfg": risk_config,
+        "trail_method": "FirstTrail",
+        "trigger_trail": 0.01,  # Make it easier to trigger trailing
+        "open_trades": open_trades.copy(),
+    }
+    test_inst = gen_testgentrades_inst(**params)
+
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_trailing_profit(
+        completed_list.copy(), record.copy()
+    )
+
+    # Ensure 'open_trades' is correctly parsed in params
+    params["open_trades"] = open_trades.copy()
+
+    expected_list, trigger_info = gen_check_trailing_profit_completed_list(
+        params,
+        completed_list.copy(),
+        record.copy(),
+    )
+
+    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    print(f"{trigger_info=}")
+
+    assert computed_list == expected_list
+    assert test_inst.trail_info_list == [trigger_info]
