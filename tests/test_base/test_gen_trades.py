@@ -150,11 +150,8 @@ def test_check_stop_loss_nearestloss(
 ):
     """Test 'check_stop_loss' for 'NearestLoss' scenario."""
 
-    # OHLCV of AAPL on 8 Apr 2025
-    record = get_date_record(sample_gen_trades, "2025-04-08")
-
-    # Create a deep copy of 'open_trades'
-    copied_open_trades = deque([trade.model_copy(deep=True) for trade in open_trades])
+    # OHLCV of AAPL on 15 Apr 2025
+    record = get_date_record(sample_gen_trades, "2025-04-15")
 
     # Generate test instance with 'stop_method' == 'NearestLoss'
     params = {
@@ -162,12 +159,15 @@ def test_check_stop_loss_nearestloss(
         "risk_cfg": risk_config,
         "stop_method": "NearestLoss",
         "percent_loss": 0.05,
-        "open_trades": copied_open_trades,
+        "open_trades": open_trades.copy(),
     }
     test_inst = gen_testgentrades_inst(**params)
 
     # Generate computed 'completed_list'
     computed_list = test_inst.check_stop_loss(completed_list.copy(), record.copy())
+
+    # Compute expected 'completed_list'
+    params["open_trades"] = open_trades.copy()
     expected_list, trigger_info = gen_check_stop_loss_completed_list(
         params,
         completed_list.copy(),

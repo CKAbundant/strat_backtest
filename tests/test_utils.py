@@ -50,7 +50,6 @@ def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
 
 def gen_record(
     df_sample: pd.DataFrame,
-    open_trades: OpenTrades,
     ex_sig: PriceAction,
     ent_sig: PriceAction | None = None,
 ) -> Record:
@@ -60,8 +59,6 @@ def gen_record(
     Args:
         df_sample (pd.DataFrame):
             Sample of signals DataFrame, which contains 'exit_signal' column.
-        open_trades (OpenTrades):
-            Deque list of 'StockTrade' pydantic objects representing open positions.
         ex_sig (PriceAction):
             Exit signal either 'buy', 'sell' or 'wait'.
         ent_sig (PriceAction):
@@ -72,18 +69,8 @@ def gen_record(
             Selected single record in 'df_sample' converted to dictionary.
     """
 
-    # Get latest 'entry_datetime' for all open positions i.e.
-    # last item in 'open_trades'
-    latest_entry_dt = open_trades[-1].entry_datetime
-
-    # Filter entry datetime that is later than 'latest_entry_dt'
-    df_valid = df_sample.loc[df_sample["date"] > latest_entry_dt, :].reset_index(
-        drop=True
-    )
-
-    # Randomly select single record in df_valid
-    random_idx = random.choice(list(df_valid.index))
-    record = df_valid.iloc[random_idx, :].to_dict()
+    # Get latest record from sample DataFrame
+    record = get_latest_record(df_sample)
 
     # Set 'exit_signal' to desired value
     record["exit_signal"] = ex_sig
@@ -326,12 +313,10 @@ def gen_check_stop_loss_completed_list(
     test_inst = gen_testgentrades_inst(**params)
 
     # Convert percent_loss to Decimal
-    percent_loss = convert_to_decimal(percent_loss)
+    percent_loss = convert_to_decimal(params["percent_loss"])
 
     # Generate expected 'completed_list
-    stop_price = cal_nearestloss_stop_price(
-        params["open_trades"], test_inst.percent_loss
-    )
+    stop_price = cal_nearestloss_stop_price(params["open_trades"], percent_loss)
 
     # Check if stop loss triggered; and update 'completed_list' accordingly
     return test_inst._update_trigger_status(
