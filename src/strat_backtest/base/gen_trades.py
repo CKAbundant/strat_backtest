@@ -339,6 +339,11 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'
         entry_action = get_std_field(self.open_trades, "entry_action")
 
+        if ex_sig == entry_action:
+            raise ValueError(
+                f"Exit signal '{ex_sig}' is same as entry action '{entry_action}."
+            )
+
         # Exit all open position in order to flip position
         # If entry_action == 'buy', then ex_sig must be 'sell'
         # ex_sig != entry_action

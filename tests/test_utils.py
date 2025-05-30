@@ -26,33 +26,69 @@ class TestGenTrades(GenTrades):
         return pd.DataFrame(), pd.DataFrame()
 
 
-def gen_exit_record(
-    df_sample: pd.DataFrame, ex_sig: PriceAction
-) -> dict[str, str | Decimal]:
-    """Generate dictionary with selected 'exit_signal'
+def get_latest_record(df_sample: pd.DataFrame) -> Record:
+    """Generate dictionary from last record in sample DataFrame."""
+
+    return df_sample.iloc[-1, :].to_dict()
+
+
+def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
+    """Generate dictionary for record with required datetime."""
+
+    df = df_sample.copy()
+
+    if isinstance(dt, str):
+        # Convert to datetime type
+        dt = datetime.strptime(dt, "%Y-%m-%d")
+
+    if dt not in df_sample["date"]:
+        raise ValueError(f"'{dt}' is an invalid date!")
+
+    return df.loc[df["date"] == dt, :].to_dict(orient="records")[0]
+
+
+def gen_record(
+    df_sample: pd.DataFrame,
+    open_trades: OpenTrades,
+    ex_sig: PriceAction,
+    ent_sig: PriceAction | None = None,
+) -> Record:
+    """Generate dictionary with selected 'exit_signal' and 'entry_signal'
+    (if provided).
 
     Args:
         df_sample (pd.DataFrame):
             Sample of signals DataFrame, which contains 'exit_signal' column.
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
         ex_sig (PriceAction):
-            Either 'buy', 'sell' or 'wait'.
+            Exit signal either 'buy', 'sell' or 'wait'.
+        ent_sig (PriceAction):
+            If provided, entry signal either 'buy', 'sell' or 'wait'.
 
     Returns:
         (dict[str, str | Decimal]):
             Selected single record in 'df_sample' converted to dictionary.
     """
 
-    # Filter 'df_sample' with 'entry_signal' and 'exit_signal' == 'wait'
-    df_wait = df_sample.loc[
-        (df_sample["entry_signal"] == "wait") & (df_sample["exit_signal"] == "wait"), :
-    ].reset_index(drop=True)
+    # Get latest 'entry_datetime' for all open positions i.e.
+    # last item in 'open_trades'
+    latest_entry_dt = open_trades[-1].entry_datetime
 
-    # Randomly select row with 'exit_signal' == 'wait'; and convert to dictionary
-    random_idx = random.choice(list(df_wait.index))
-    record = df_wait.iloc[random_idx, :].to_dict()
+    # Filter entry datetime that is later than 'latest_entry_dt'
+    df_valid = df_sample.loc[df_sample["date"] > latest_entry_dt, :].reset_index(
+        drop=True
+    )
+
+    # Randomly select single record in df_valid
+    random_idx = random.choice(list(df_valid.index))
+    record = df_valid.iloc[random_idx, :].to_dict()
 
     # Set 'exit_signal' to desired value
     record["exit_signal"] = ex_sig
+
+    if ent_sig:
+        record["entry_signal"] = ent_sig
 
     return record
 
@@ -236,7 +272,7 @@ def cal_nearestloss_stop_price(
             maximum percentage loss allowable.
 
     Returns:
-        (Decimal): Stop price based on 'PercenLoss' method.
+        (Decimal): Stop price based on 'PercentLoss' method.
     """
 
     # Convert percent_loss to Decimal
@@ -279,7 +315,7 @@ def gen_check_stop_loss_completed_list(
         completed_list (CompletedTrades):
             List of dictionaries containing completed trades info.
         record (Record):
-            OHLCV info at end of trading period.
+            OHLCV info including entry and exit signal.
         percent_loss (float):
             maximum percentage loss allowable.
 
@@ -365,7 +401,7 @@ def gen_check_profit_completed_list(
         completed_list (CompletedTrades):
             List of dictionaries containing completed trades info.
         record (Record):
-            OHLCV info at end of trading period.
+            OHLCV info including entry and exit signal.
 
     Returns:
         expected_trades (OpenTrades):
@@ -386,3 +422,50 @@ def gen_check_profit_completed_list(
     completed_list.extend(expected_list)
 
     return expected_trades, completed_list
+
+
+def cal_trailing_price(
+    open_trades: OpenTrades, record: Record, trigger_trail: float = 0.05
+) -> Decimal:
+    """Compute trailing price based on 'FirstTrail' method given test open trades.
+
+    This function creates the expected trailing price that should result from
+    calling 'cal_trailing_profit' method with the given parameters. 'step' is set as
+    None to simplify calculation. Used for assertion comparisons in pytests.
+
+    Args:
+        open_trades (OpenTrades):
+            Deque list of 'StockTrade' pydantic objects representing open positions.
+        record (Record):
+            OHLCV info including entry and exit signal
+        trigger_trail (Decimal):
+            Percentage profit required to trigger trailing profit (Default: 0.05).
+
+    Returns:
+        (Decimal | None): If available, trailing price based on 'FirstTrail' method.
+    """
+
+    high = record["high"]
+    low = record["low"]
+    computed_trailing = None
+
+    # Use entry price for first open position as reference price
+    first_price = open_trades[0].entry_price
+
+    # Get standard 'entry_action' from 'self.open_trades'
+    entry_action = get_std_field(open_trades, "entry_action")
+
+    trigger_level = (
+        first_price * (1 + trigger_trail)
+        if entry_action == "buy"
+        else first_price * (1 - trigger_trail)
+    )
+
+    excess = high - trigger_level if entry_action == "buy" else trigger_level - low
+
+    if excess > 0:
+        computed_trailing = (
+            first_price + excess if entry_action == "buy" else first_price - excess
+        )
+
+    return computed_trailing

@@ -30,6 +30,7 @@ def risk_config():
         percent_loss=0.05,
         stop_method="no_stop",
         trail_method="no_trail",
+        trigger_trail=0.05,
         step=None,
     )
 
