@@ -9,11 +9,8 @@
 - test_check_profit
 - test_trailing_profit
 - test_check_trailing_profit
+- test_open_new_pos
 - test_append_info
-- test_iterate_df
-- test_open_new_pos
-- test_open_new_pos
-- test_open_trades
 - test_iterate_df
 """
 
@@ -26,6 +23,7 @@ import pytest
 from ..test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
+    create_new_pos,
     gen_check_profit_completed_list,
     gen_check_stop_loss_completed_list,
     gen_check_trailing_profit_completed_list,
@@ -192,7 +190,7 @@ def test_take_profit_no_action(
     """Test scenarios where 'take_profit' returns empty list."""
 
     # Generate record with desired 'exit_signal'
-    record = gen_record(sample_gen_trades, exit_sig)
+    record = gen_record(sample_gen_trades, exit_signal=exit_sig)
 
     dt = record["date"]
     ex_sig = record["exit_signal"]
@@ -250,7 +248,7 @@ def test_check_profit_no_action(
     """Test scenarios where 'check_profit' returns original 'completed_list'."""
 
     # Generate record with required exit signal
-    record = gen_record(sample_gen_trades, exit_sig)
+    record = gen_record(sample_gen_trades, exit_signal=exit_sig)
 
     # Set up 'open_trades'
     trades_input = deque() if open_trades_setup == "empty" else open_trades.copy()
@@ -280,7 +278,7 @@ def test_check_profit_fifoexit(
 
     # Get the latest record to ensure exit date will always be later than
     # entry date for open positions
-    record = gen_record(sample_gen_trades, exit_sig, entry_sig)
+    record = gen_record(sample_gen_trades, exit_signal=exit_sig, entry_signal=entry_sig)
 
     test_inst = gen_testgentrades_inst(
         trading_config,
@@ -415,3 +413,33 @@ def test_check_trailing_profit_firsttrail(
 
     assert computed_list == expected_list
     assert test_inst.trail_info_list == expected_trail_info_list
+
+
+def test_open_new_pos_no_action(trading_config, risk_config, sample_gen_trades):
+    """Test 'open_new_pos' for no action scenario."""
+
+    # Set 'entry_signal' to 'wait' in record
+    record = gen_record(sample_gen_trades, entry_signal="wait")
+
+    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+    test_inst.check_new_pos(record["ticker"], record.copy())
+
+    assert test_inst.open_trades is None
+
+
+def test_open_new_pos_multientry(
+    trading_config, risk_config, open_trades, sample_gen_trades
+):
+    """Test 'open_new_pos' for multiple entry."""
+
+    # Set 'entry_signal' to 'buy' in record
+    record = gen_record(sample_gen_trades, entry_signal="buy")
+
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, open_trades=open_trades.copy()
+    )
+    test_inst.check_new_pos(record["ticker"], record.copy())
+
+    assert test_inst.open_trades == create_new_pos(
+        record, trading_config.num_lots, open_trades.copy()
+    )

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import OpenTrades, PriceAction
-from strat_backtest.utils.pos_utils import get_std_field
+from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
 
 
 class EntryStruct(ABC):
@@ -97,8 +97,8 @@ class EntryStruct(ABC):
                 ticker=self._validate_ticker(open_trades, ticker),
                 entry_datetime=self._validate_entry_datetime(open_trades, dt),
                 entry_action=self._validate_entry_action(open_trades, ent_sig),
-                entry_lots=Decimal(str(entry_lots)),
-                entry_price=Decimal(str(entry_price)),
+                entry_lots=convert_to_decimal(entry_lots),
+                entry_price=convert_to_decimal(entry_price),
             )
 
         except ValidationError as e:

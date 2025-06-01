@@ -1,6 +1,6 @@
 """Utility functions used in test scripts."""
 
-import random
+from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from pprint import pformat
@@ -14,7 +14,6 @@ from strat_backtest.utils.constants import (
     ClosedPositionResult,
     CompletedTrades,
     OpenTrades,
-    PriceAction,
     Record,
 )
 from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
@@ -48,21 +47,15 @@ def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
     return df.loc[df["date"] == dt, :].to_dict(orient="records")[0]
 
 
-def gen_record(
-    df_sample: pd.DataFrame,
-    ex_sig: PriceAction,
-    ent_sig: PriceAction | None = None,
-) -> Record:
-    """Generate dictionary with selected 'exit_signal' and 'entry_signal'
+def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
+    """Generate dictionary with desired key-value pair to intialize 'Record'
     (if provided).
 
     Args:
         df_sample (pd.DataFrame):
             Sample of signals DataFrame, which contains 'exit_signal' column.
-        ex_sig (PriceAction):
-            Exit signal either 'buy', 'sell' or 'wait'.
-        ent_sig (PriceAction):
-            If provided, entry signal either 'buy', 'sell' or 'wait'.
+        **kwargs (Any):
+            Columns in 'df_sample' and its corresponding value.
 
     Returns:
         (dict[str, str | Decimal]):
@@ -72,11 +65,8 @@ def gen_record(
     # Get latest record from sample DataFrame
     record = get_latest_record(df_sample)
 
-    # Set 'exit_signal' to desired value
-    record["exit_signal"] = ex_sig
-
-    if ent_sig:
-        record["entry_signal"] = ent_sig
+    for col, value in kwargs.items():
+        record[col] = value
 
     return record
 
@@ -132,6 +122,30 @@ def update_open_pos(
     trade.exit_price = convert_to_decimal(exit_price)
 
     return trade
+
+
+def create_new_pos(
+    record: Record,
+    num_lots: int,
+    open_trades: OpenTrades = deque(),
+) -> OpenTrades:
+    """Update 'open_trades' with trade info from 'record'."""
+
+    dt = record["date"]
+    ent_sig = record["entry_signal"]
+    entry_price = record["close"]  # Assume create new position at closing price
+
+    new_pos = StockTrade(
+        ticker="AAPL",
+        entry_datetime=dt,
+        entry_action=ent_sig,
+        entry_lots=convert_to_decimal(num_lots),
+        entry_price=convert_to_decimal(entry_price),
+    )
+
+    open_trades.append(new_pos)
+
+    return open_trades
 
 
 def gen_takeallexit_completed_list(
