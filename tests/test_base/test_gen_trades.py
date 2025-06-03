@@ -20,6 +20,8 @@ from pprint import pformat
 
 import pytest
 
+from strat_backtest.utils.pos_utils import get_std_field
+
 from ..test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
@@ -432,8 +434,9 @@ def test_open_new_pos_multientry(
 ):
     """Test 'open_new_pos' for multiple entry."""
 
-    # Set 'entry_signal' to 'buy' in record
-    record = gen_record(sample_gen_trades, entry_signal="buy")
+    # Set 'entry_signal' based on 'open_trades'
+    entry_action = get_std_field(open_trades, "entry_action")
+    record = gen_record(sample_gen_trades, entry_signal=entry_action)
 
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, open_trades=open_trades.copy()
