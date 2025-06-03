@@ -18,6 +18,8 @@ from collections import deque
 from datetime import datetime
 from pprint import pformat
 
+import pandas as pd
+import pandas.testing as pdt
 import pytest
 
 from strat_backtest.utils.pos_utils import get_std_field
@@ -313,8 +315,9 @@ def test_check_profit_fifoexit(
     assert test_inst.open_trades == expected_trades
 
 
+@pytest.mark.parametrize("step", [None, 0.01])
 def test_cal_trailing_profit(
-    trading_config, risk_config, open_trades, sample_gen_trades
+    trading_config, risk_config, open_trades, sample_gen_trades, step
 ):
     """Test 'cal_trailing_profit' method for 'GenTrades' class."""
 
@@ -327,12 +330,13 @@ def test_cal_trailing_profit(
         risk_config,
         open_trades=open_trades.copy(),
         trail_method="FirstTrail",
+        step=step,
     )
 
     # Calculate expected and computed stop price
     computed_price = test_inst.cal_trailing_profit(record.copy())
     expected_price = cal_trailing_price(
-        open_trades.copy(), record.copy(), risk_config.trigger_trail, risk_config.step
+        open_trades.copy(), record.copy(), test_inst.trigger_trail, test_inst.step
     )
 
     assert computed_price == expected_price
@@ -446,3 +450,34 @@ def test_open_new_pos_multientry(
     assert test_inst.open_trades == create_new_pos(
         record, trading_config.num_lots, open_trades.copy()
     )
+
+
+def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_list):
+    """Test 'append_info' method in 'GenTrades'."""
+
+    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+
+    # Generate computed DataFrame after appending
+    computed_df = test_inst.append_info(sample_gen_trades, stop_info_list)
+
+    # Generate expected DataFrame after appending
+    df_stop = pd.DataFrame(stop_info_list)
+    expected_df = pd.merge(sample_gen_trades, df_stop, on="date", how="left")
+
+    pdt.assert_frame_equal(computed_df, expected_df)
+
+
+def test_iterate_df(trading_config, risk_config, sample_gen_trades):
+    """Test 'iterate_df' method in 'GenTrades'."""
+
+    # Generate generic test instance
+    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+
+    # Generate computed trades and signals
+    computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
+
+    # Get expected_trades
+    expected_trades = pd.read_parquet("./tests/data/sample_trades.parquet")
+
+    pdt.assert_frame_equal(computed_trades, expected_trades)
+    pdt.assert_frame_equal(computed_signals, sample_gen_trades)

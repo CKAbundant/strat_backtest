@@ -235,12 +235,17 @@ class GenTrades(ABC):
             print(f"len(self.open_trades) : {len(self.open_trades)}")
             display_open_trades(self.open_trades)
 
+            print(
+                f"\n\nself.stop_info_list : \n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
+            )
+
         # Append stop loss price and trailing price if available
         df_signals = self.append_info(df_signals, self.stop_info_list)
         df_signals = self.append_info(df_signals, self.trail_info_list)
 
         # Convert 'completed_list' to DataFrame; append 'ticker'
         df_trades = pd.DataFrame(completed_list)
+        df_trades.to_parquet("sample_trades.parquet", index=False)
 
         return df_trades, df_signals
 

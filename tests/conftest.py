@@ -103,3 +103,21 @@ def completed_list():
             "win": 0,
         }
     ]
+
+
+@pytest.fixture
+def stop_info_list():
+    """Generate sample 'stop_info_list' for testing 'append_info' method."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 10),
+            "stop_price": 195.5,
+            "stop_triggered": Decimal("1"),
+        },
+        {
+            "date": datetime(2025, 4, 14),
+            "stop_price": 199.2,
+            "stop_triggered": Decimal("0"),
+        },
+    ]
