@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from pprint import pformat
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -16,6 +17,8 @@ from strat_backtest.utils.constants import (
     ExitMethod,
     ExitType,
     PriceAction,
+    Record,
+    StopMethod,
     TrailMethod,
 )
 from strat_backtest.utils.file_utils import set_decimal_type
@@ -74,12 +77,11 @@ class GenTrades(ABC):
 
     Attributes:
         entry_struct (EntryMethod):
-            Whether to allow multiple open position ("mulitple") or single
-            open position at a time ("single").
+            Whether to allow multiple open position ("MultiEntry") or single
+            open position at a time ("SingleEntry").
         exit_struct (ExitMethod):
-            Whether to apply first-in-first-out ("fifo"), last-in-first-out ("lifo"),
-            take profit for half open positions repeatedly ("half_life") or
-            take profit for all open positions ("take_all").
+            Whether to apply "FIFOExit", "LIFOExit", "HalfFIFOExit", "HalfLIFOExit",
+            or "TakeAllExit".
         num_lots (int):
             Number of lots to initiate new position each time (Default: 1).
         monitor_close (bool):
@@ -96,18 +98,12 @@ class GenTrades(ABC):
         step (Decimal):
             If provided, percent profit increment to trail profit. If None,
             increment set to current high - trigger_trail_level.
-        entry_struct_path (str):
-            Relative path to 'entry_struct.py'
-        exit_struct_path (str):
-            Relative path to 'exit_struct.py'
-        stop_loss_path (str):
-            Relative path to 'stop_loss.py'.
-        trail_profit_path (str):
-            Relative path to 'trail_profit.py'.
+        module_paths(dict[str, str]):
+            Dictionary mapping name of concrete class to its module path.
         req_cols (list[str]):
             List of required columns to generate trades.
         open_trades (OpenTrades):
-            List of 'StockTrade' pydantic objects representing open positions.
+            Deque list of 'StockTrade' pydantic objects representing open positions.
         stop_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, stop price and whether stop price is triggered.
         trail_info_list (list[dict[str, datetime | str | Decimal]]):
@@ -137,12 +133,8 @@ class GenTrades(ABC):
         self.trigger_trail = convert_to_decimal(risk_cfg.trigger_trail)
         self.step = convert_to_decimal(risk_cfg.step)
 
-        # Required paths
-        path_dict = self._get_req_paths()
-        self.entry_struct_path = path_dict["entry_struct_path"]
-        self.exit_struct_path = path_dict["exit_struct_path"]
-        self.stop_loss_path = path_dict["stop_loss_path"]
-        self.trail_profit_path = path_dict["trail_profit_path"]
+        # Get dictionary mapping
+        self.module_paths = self._get_module_paths()
 
         # Others
         self.req_cols = [
@@ -243,19 +235,24 @@ class GenTrades(ABC):
             print(f"len(self.open_trades) : {len(self.open_trades)}")
             display_open_trades(self.open_trades)
 
+            print(
+                f"\n\nself.stop_info_list : \n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
+            )
+
         # Append stop loss price and trailing price if available
         df_signals = self.append_info(df_signals, self.stop_info_list)
         df_signals = self.append_info(df_signals, self.trail_info_list)
 
         # Convert 'completed_list' to DataFrame; append 'ticker'
         df_trades = pd.DataFrame(completed_list)
+        df_trades.to_parquet("sample_trades.parquet", index=False)
 
         return df_trades, df_signals
 
     def exit_all_end(
         self,
         completed_list: CompletedTrades,
-        record: dict[str, Decimal | datetime],
+        record: Record,
     ) -> CompletedTrades:
         """Exit all open positions at end of testing/trading period.
 
@@ -265,7 +262,7 @@ class GenTrades(ABC):
         Args:
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -285,14 +282,14 @@ class GenTrades(ABC):
     def check_stop_loss(
         self,
         completed_list: CompletedTrades,
-        record: dict[str, Decimal | datetime],
+        record: Record,
     ) -> CompletedTrades:
         """Check if stop loss condition met
 
         Args:
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -320,14 +317,14 @@ class GenTrades(ABC):
     def check_profit(
         self,
         completed_list: CompletedTrades,
-        record: dict[str, Decimal | datetime],
+        record: Record,
     ) -> CompletedTrades:
         """Check whether take profit condition is met and update completed_list.
 
         Args:
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -347,6 +344,11 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'
         entry_action = get_std_field(self.open_trades, "entry_action")
 
+        if ex_sig == entry_action:
+            raise ValueError(
+                f"Exit signal '{ex_sig}' is same as entry action '{entry_action}."
+            )
+
         # Exit all open position in order to flip position
         # If entry_action == 'buy', then ex_sig must be 'sell'
         # ex_sig != entry_action
@@ -360,14 +362,14 @@ class GenTrades(ABC):
     def check_trailing_profit(
         self,
         completed_list: CompletedTrades,
-        record: dict[str, Decimal | datetime],
+        record: Record,
     ) -> CompletedTrades:
         """Check if stop loss condition met
 
         Args:
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -381,7 +383,8 @@ class GenTrades(ABC):
             return completed_list
 
         # Update trailing profit
-        trail_price = self.cal_trailing_profit(record)
+        if (trail_price := self.cal_trailing_profit(record)) is None:
+            return completed_list
 
         # Check if trailing profit triggered; and update 'completed_list' accordingly
         completed_list, trigger_info = self._update_trigger_status(
@@ -396,14 +399,14 @@ class GenTrades(ABC):
     def check_new_pos(
         self,
         ticker: str,
-        record: dict[str, Decimal | datetime],
+        record: Record,
     ) -> None:
         """Create new open position based on 'self.entry_struct' method.
 
         Args:
             ticker (str):
                 Stock ticker to be traded.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
 
         Returns:
@@ -422,7 +425,9 @@ class GenTrades(ABC):
 
         # Get initialized instance of concrete class implementation
         entry_instance = get_class_instance(
-            self.entry_struct, self.entry_struct_path, num_lots=self.num_lots
+            self.entry_struct,
+            self.module_paths.get(self.entry_struct),
+            num_lots=self.num_lots,
         )
 
         # Update 'self.open_trades' with new open position
@@ -433,13 +438,13 @@ class GenTrades(ABC):
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
 
-    def cal_trailing_profit(self, record: dict[str, Decimal | datetime]) -> None:
+    def cal_trailing_profit(self, record: Record) -> None:
         """Compute trailing profit price to protect profit."""
 
         if self.trail_profit_inst is None:
             self.trail_profit_inst = get_class_instance(
                 self.trail_method,
-                self.trail_profit_path,
+                self.module_paths.get(self.trail_method),
                 trigger_trail=self.trigger_trail,
                 step=self.step,
             )
@@ -448,14 +453,14 @@ class GenTrades(ABC):
 
     def take_profit(
         self,
-        dt: datetime,
+        dt: datetime | pd.Timestamp,
         ex_sig: PriceAction,
         exit_price: float,
     ) -> CompletedTrades:
         """Close existing open positions based on 'self.exit_struct' method.
 
         Args:
-            dt (datetime):
+            dt (datetime | pd.Timestamp):
                 Trade datetime object.
             ex_sig (PriceAction):
                 Exit signal generated by 'ExitSignal' class either 'buy', 'sell'
@@ -471,14 +476,18 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'
         entry_action = get_std_field(self.open_trades, "entry_action")
 
-        if (ex_sig == "buy" and entry_action == "buy") or (
-            ex_sig == "sell" and entry_action == "sell"
+        if (
+            ex_sig == "wait"
+            or (ex_sig == "buy" and entry_action == "buy")
+            or (ex_sig == "sell" and entry_action == "sell")
         ):
             # No completed trades if exit signal is same as entry action
             return []
 
         # Get initialized instance of concrete class implementation
-        exit_instance = get_class_instance(self.exit_struct, self.exit_struct_path)
+        exit_instance = get_class_instance(
+            self.exit_struct, self.module_paths.get(self.exit_struct)
+        )
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = exit_instance.close_pos(
@@ -506,7 +515,9 @@ class GenTrades(ABC):
         """
 
         # Get initialized instance of concrete class implementation
-        take_all_exit = get_class_instance("TakeAllExit", self.exit_struct_path)
+        take_all_exit = get_class_instance(
+            "TakeAllExit", self.module_paths.get("TakeAllExit")
+        )
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = take_all_exit.close_pos(
@@ -526,7 +537,9 @@ class GenTrades(ABC):
 
         if self.stop_loss_inst is None:
             self.stop_loss_inst = get_class_instance(
-                self.stop_method, self.stop_loss_path, percent_loss=self.percent_loss
+                self.stop_method,
+                self.module_paths.get(self.stop_method),
+                percent_loss=self.percent_loss,
             )
 
         return self.stop_loss_inst.cal_exit_price(self.open_trades)
@@ -582,53 +595,73 @@ class GenTrades(ABC):
 
         return df
 
-    def _get_req_paths(self) -> dict[str, str]:
-        """Get relative file path to 'entry_struct.py', 'exit_struct.py'
-        and 'stop_method.py'.
+    def _get_module_paths(self, main_pkg: str = "strat_backtest") -> dict[str, str]:
+        """Convert file path to package path that can be used as input to importlib.
 
         Args:
-            None.
+            script_path (str):
+                Relative path to python script containig required module.
+            main_pkg (str):
+                Name of main package to generate module path (Default: "strat_backtest").
 
         Returns:
-            (dict[str, str]):
-                Dictionary containing 'entry_struct_path','exit_struct_path',
-                and 'stop_loss_path'.
+            module_info (dict[str, str]):
+                Dictionary mapping each concrete class to module path.
         """
 
-        # 'gen_trades.py' is in the same folder as 'entry_struct.py',
-        # 'exit_struct.py' and 'stop_method.py'
-        current_dir = Path(__file__).parent
-        file_list = [
-            "entry_struct.py",
-            "exit_struct.py",
-            "stop_loss.py",
-            "trail_profit.py",
+        # Get main package directory path
+        main_pkg_path = Path(__file__).parents[1]
+
+        # Get list of folder paths containin concrete implementation of 'EntryStruc',
+        # 'ExitStruct', 'StopLoss' and 'TrailProfit' abstract class.
+        folder_paths = [
+            rel_path
+            for rel_path in main_pkg_path.iterdir()
+            if rel_path.is_dir()
+            and rel_path.name not in {"base", "utils", "__pycache__"}
         ]
 
-        return {
-            f"{file.split('.', maxsplit=1)[0]}_path": current_dir.joinpath(file)
-            for file in file_list
-        }
+        module_info = {}
+
+        # Iterate through contents of each folder path
+        for folder in folder_paths:
+            # Get all python scripts inside folder
+            for file_path in folder.glob("*.py"):
+                file_name = file_path.stem
+                folder_name = folder.stem
+
+                # Ignore __init__.py
+                if file_name == "__init__":
+                    continue
+
+                # Get name of concrete class
+                class_name = "".join(
+                    part.upper() if part in {"fifo", "lifo"} else part.title()
+                    for part in file_name.split("_")
+                )
+
+                module_info[class_name] = f"{main_pkg}.{folder_name}.{file_name}"
+
+        return module_info
 
     def _update_trigger_status(
         self,
         completed_list: CompletedTrades,
-        record: dict[str, Decimal | datetime],
+        record: Record,
         trigger_price: Decimal,
         exit_type: ExitType,
-    ) -> tuple[bool, Decimal]:
+    ) -> tuple[CompletedTrades, dict[str, datetime | Decimal]]:
         """Check if either trailing profit or stop loss price is triggered.
 
         Args:
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
-            record (dict[str, Decimal | datetime]):
+            record (Record):
                 Dictionary mapping required attributes to its values.
             trigger_price (Decimal):
                 Either trailing profit or stop loss price.
             exit_type (ExitType):
-                Whether exit position due to stop loss or trailing profit
-                being triggered.
+                Either 'stop' or 'trail'.
 
         Returns:
             completed_list (CompletedTrades):
@@ -638,12 +671,17 @@ class GenTrades(ABC):
         """
 
         dt = record["date"]
-        close = record["close"]
-        low = record["low"]
-        high = record["high"]
+        close = convert_to_decimal(record["close"])
+        low = convert_to_decimal(record["low"])
+        high = convert_to_decimal(record["high"])
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
+
+        # print(f"\n\n\n{self.monitor_close=}")
+        # print(f"{entry_action=}")
+        # print(f"{close=}")
+        # print(f"{trigger_price=}")
 
         # List of exit conditions
         cond_list = [
@@ -659,11 +697,11 @@ class GenTrades(ABC):
 
         # Exit all open positions if any condition in 'cond_list' is true
         if any(cond_list):
-            exit_action = "sell" if entry_action == "buy" else "buy"
-            print(
-                f"\n{exit_type.title()} triggered -> "
-                f"{exit_action} @ {exit_type} price {trigger_price}\n"
-            )
+            # exit_action = "sell" if entry_action == "buy" else "buy"
+            # print(
+            #     f"\n{exit_type.title()} triggered -> "
+            #     f"{exit_action} @ {exit_type} price {trigger_price}\n"
+            # )
 
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")
@@ -672,7 +710,7 @@ class GenTrades(ABC):
             trigger_status = Decimal("0")
 
         trigger_info = {
-            "date": dt,
+            "date": dt.to_pydatetime() if isinstance(dt, pd.Timestamp) else dt,
             f"{exit_type}_price": trigger_price,
             f"{exit_type}_triggered": trigger_status,
         }

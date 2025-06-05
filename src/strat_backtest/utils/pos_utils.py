@@ -14,15 +14,13 @@ T = TypeVar("T")
 
 
 def get_class_instance(
-    class_name: str, script_path: str, **params: dict[str, Any]
+    class_name: str, module_path: str, **params: dict[str, Any]
 ) -> T:
     """Return instance of a class that is initialized with 'params'.
 
     Args:
-        class_name (str):
-            Name of class in python script.
-        script_path (str):
-            Relative file path to python script that contains the required class.
+        module_path (str):
+            Module path relative from main package e.g. strat_backtest.base.entry_struct..
         **params (dict[str, Any]):
             Arbitrary Keyword input arguments to initialize class instance.
 
@@ -30,14 +28,11 @@ def get_class_instance(
         (T): Initialized instance of class.
     """
 
-    # Convert script path to package path
-    module_path = convert_path_to_pkg(script_path)
-
     try:
         # Import python script at class path as python module
         module = importlib.import_module(module_path)
     except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Module not found in '{script_path}'.") from e
+        raise ModuleNotFoundError(f"Invalid module path : '{module_path}'") from e
 
     try:
         # Get class from module
@@ -47,16 +42,6 @@ def get_class_instance(
 
     # Intialize instance of class
     return req_class(**params)
-
-
-def convert_path_to_pkg(script_path: str) -> str:
-    """Convert file path to package path that can be used as input to importlib."""
-
-    # Remove suffix ".py"
-    script_path = Path(script_path).with_suffix("").as_posix()
-
-    # Convert to package format for use in 'importlib.import_module'
-    return script_path.replace("/", ".")
 
 
 def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:
@@ -118,7 +103,13 @@ def validate_completed_trades(stock_trade: StockTrade) -> bool:
 def convert_to_decimal(num: int | float | None) -> Decimal | None:
     """Convert 'num' to Decimal type if not None."""
 
-    return Decimal(str(num)) if num is not None else None
+    if num is None:
+        return None
+
+    if not isinstance(num, (int, float, Decimal)):
+        raise TypeError(f"'{num}' is not a numeric type.")
+
+    return Decimal(str(num))
 
 
 # Public Interface

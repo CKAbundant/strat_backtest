@@ -7,6 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+import pandas as pd
 from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
@@ -85,8 +86,11 @@ class ExitStruct(ABC):
             (StockTrade): StockTrade object updated with exit info
         """
 
-        # set exit_lots to be net entry and exit lots to ensure
         exit_lots = exit_lots or trade.entry_lots
+
+        # Convert 'dt' to datetime type
+        if isinstance(dt, pd.Timestamp):
+            dt = dt.to_pydatetime()
 
         # Get exit action to update position
         exit_action = "sell" if trade.entry_action == "buy" else "buy"
