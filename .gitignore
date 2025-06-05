@@ -30,4 +30,4 @@ env/
 Thumbs.db
 
 # Personal
-data/
+strat_backtest/data/
