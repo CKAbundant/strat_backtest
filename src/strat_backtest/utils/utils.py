@@ -19,7 +19,7 @@ def display_open_trades(open_trades: OpenTrades) -> None:
     for trade in open_trades:
         entry_date = trade.entry_datetime.strftime("%Y-%m-%d")
         exit_date = (
-            f"'{trade.exit_datetime.strftime("%Y-%m-%d")}'"
+            f"\"{trade.exit_datetime.strftime('%Y-%m-%d')}\""
             if trade.exit_datetime
             else "None"
         )
