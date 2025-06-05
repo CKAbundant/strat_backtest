@@ -430,7 +430,7 @@ def test_open_new_pos_no_action(trading_config, risk_config, sample_gen_trades):
     test_inst = gen_testgentrades_inst(trading_config, risk_config)
     test_inst.check_new_pos(record["ticker"], record.copy())
 
-    assert test_inst.open_trades is None
+    assert not test_inst.open_trades
 
 
 def test_open_new_pos_multientry(
