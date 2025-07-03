@@ -2,9 +2,10 @@
 meet certain conditions over multiple days."""
 
 from abc import ABC, abstractmethod
-from decimal import Decimal
+from collections import Counter
+from typing import Any
 
-from strat_backtest.utils.constants import Record
+from strat_backtest.utils.constants import PriceAction, Record
 
 
 class SignalEvaluator(ABC):
@@ -15,20 +16,17 @@ class SignalEvaluator(ABC):
     days if market trades above previous day high before creating new position.
 
     Attributes:
-        counter (int):
-            Counter to validate multiple entry/exit signals.
-        records (dict[str, Record]):
-            Dictionary mapping Record object, which contain OHLCV, entry signal,
-            exit signal and other relevant info.
+        records (list[Record]):
+            List containing Record objects, which contain OHLCV, entry signal,
+            exit signal and other relevant info
     """
 
     def __init__(self) -> None:
-        self.counter = 0
-        self.records = {}
+        self.records = []
 
     @abstractmethod
-    def evaluate(record: Record) -> Record:
-        """Return dictionary required to open new position or close existing
+    def evaluate(self, record: Record) -> tuple[Any]:
+        """Return tuple required to open new position or close existing
         position if conditions are met.
 
         Args:
@@ -37,10 +35,34 @@ class SignalEvaluator(ABC):
                 other relevant info.
 
         Returns:
-            (Record):
-                Updated dictionary containing required information to create new
-                position or close existing position i.e. ticker, datetime, entry
-                /exit signals and entry/exit price.
+            (tuple[Any]):
+                Tuple containing fields required to create new position or close
+                existing position.
         """
 
         ...
+
+    def _validate_ent_sig(self, ent_sig: PriceAction) -> None:
+        """Validate if entry signal is consistent with entry signals in 'records' list."""
+
+        # Return None if records is an empty list
+        if not self.records:
+            return None
+
+        if ent_sig not in {"buy", "sell", "wait"}:
+            raise ValueError(f"{ent_sig} is not a valid price action.")
+
+        # Get set containing unique entry signals
+        counter = Counter([record.get("entry_signal") for record in self.records])
+        ent_set = set(list(counter.keys()))
+
+        # Check if 'ent_sig' == "buy", then "sell" cannot appear in 'self.records'
+        # and vice versa
+        if (ent_sig == "buy" and "sell" in ent_set) or (
+            ent_sig == "sell" and "buy" in ent_set
+        ):
+            raise ValueError(
+                "entry signal is not consistent with that in 'self.records'."
+            )
+
+        return None

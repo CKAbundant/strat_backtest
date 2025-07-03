@@ -57,7 +57,7 @@ def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:
     )
 
 
-def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
+def get_std_field(open_trades: OpenTrades, std_field: str) -> Any:
     """Get standard field (i.e. 'ticker' or 'entry_action') from 'open_trades'."""
 
     counter = Counter([getattr(trade, std_field) for trade in open_trades])
@@ -65,7 +65,7 @@ def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
     if len(counter) > 1:
         raise ValueError(f"'{std_field}' field is not consistent.")
 
-    return "wait" if len(counter) == 0 else list(counter.keys())[0]
+    return list(counter.keys())[0]
 
 
 def gen_completed_trade(trade: StockTrade, lots_to_exit: Decimal) -> CompletedTrades:

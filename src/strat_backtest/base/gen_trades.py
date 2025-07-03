@@ -139,6 +139,7 @@ class GenTrades(ABC):
         # Others
         self.req_cols = [
             "date",
+            "open",
             "high",
             "low",
             "close",
@@ -193,7 +194,7 @@ class GenTrades(ABC):
                 DataFrame containing updated exit signals based on price-related stops.
         """
 
-        # Filter required columns i.e. date, high, low, close, entry and exit signal
+        # Filter required columns i.e. date, open, high, low, close, entry and exit signal
         df = df_signals.copy()
         df = df.loc[:, self.req_cols]
 
@@ -212,7 +213,7 @@ class GenTrades(ABC):
             ent_sig = info["entry_signal"]
             ex_sig = info["exit_signal"]
 
-            print(f"idx : {idx}")
+            print(f"\n\nidx : {idx}")
             print(f"dt : {dt}")
             print(f"close : {close}")
             print(f"ent_sig : {ent_sig}")
