@@ -19,7 +19,7 @@ from strat_backtest.utils.constants import (
 from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
 
 
-class TestGenTrades(GenTrades):
+class GenTradesTest(GenTrades):
     """Concrete implemenation for testing 'GenTrades' abstract class"""
 
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -73,8 +73,8 @@ def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
 
 def gen_testgentrades_inst(
     trading_cfg: TradingConfig, risk_cfg: RiskConfig, **kwargs: Any
-) -> TestGenTrades:
-    """Generate instance of 'TestGenTrades' class.
+) -> GenTradesTest:
+    """Generate instance of 'GenTradesTest' class.
 
     Args:
         trading_cfg (TradingConfig):
@@ -86,13 +86,13 @@ def gen_testgentrades_inst(
             created instance. Only existing attributes will be modified.
 
     Returns:
-        (TestGenTrades):
-            Instance of 'TestGenTrades' class with specified configuration and
+        (GenTradesTest):
+            Instance of 'GenTradesTest' class with specified configuration and
             any additional attributes set via kwargs.
     """
 
-    # Create instance of 'TestGenTrades' with provided trading and risk config
-    gen_trades = TestGenTrades(trading_cfg, risk_cfg)
+    # Create instance of 'GenTradesTest' with provided trading and risk config
+    gen_trades = GenTradesTest(trading_cfg, risk_cfg)
 
     # Set attributes for valid keyword arguments
     for field, attribute in kwargs.items():
@@ -309,7 +309,7 @@ def gen_check_stop_loss_completed_list(
 
     Args:
         params (dict[str, Any]):
-            Dictionary containing parameters to intialize 'TestGenTrades'.
+            Dictionary containing parameters to intialize 'GenTradesTest'.
         completed_list (CompletedTrades):
             List of dictionaries containing completed trades info.
         record (Record):
@@ -323,7 +323,7 @@ def gen_check_stop_loss_completed_list(
             Dictionary containing datetime, trigger price and whether triggered.
     """
 
-    # Generate instance of 'TestGenTrades' with 'stop_method' == 'NearestLoss'
+    # Generate instance of 'GenTradesTest' with 'stop_method' == 'NearestLoss'
     test_inst = gen_testgentrades_inst(**params)
 
     # Convert percent_loss to Decimal
@@ -497,7 +497,7 @@ def gen_check_trailing_profit_completed_list(
 
     Args:
         params (dict[str, Any]):
-            Dictionary containing parameters to intialize 'TestGenTrades'.
+            Dictionary containing parameters to intialize 'GenTradesTest'.
         open_trades (OpenTrades):
             Deque list of 'StockTrade' pydantic objects representing open positions.
         completed_list (CompletedTrades):
@@ -513,7 +513,7 @@ def gen_check_trailing_profit_completed_list(
             Dictionary containing datetime, trigger price and whether triggered.
     """
 
-    # Generate instance of 'TestGenTrades' with 'stop_method' == 'FirstTrail'
+    # Generate instance of 'GenTradesTest' with 'stop_method' == 'FirstTrail'
     test_inst = gen_testgentrades_inst(**params)
 
     # Generate expected 'completed_list

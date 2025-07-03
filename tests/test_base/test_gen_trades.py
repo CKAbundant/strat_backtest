@@ -24,7 +24,7 @@ import pytest
 
 from strat_backtest.utils.pos_utils import get_std_field
 
-from ..test_utils import (
+from tests.test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
     create_new_pos,
