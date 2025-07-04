@@ -124,9 +124,9 @@ def stop_info_list():
 
 
 @pytest.fixture
-def records():
-    """Generate sample 'records' list that is updated as an attribute to
-    'SignalEvaluator' class."""
+def long_records():
+    """Generate sample 'records' list, which contains 'buy' entry signal and
+    updated as an attribute to 'SignalEvaluator' class."""
 
     return [
         {
@@ -155,5 +155,77 @@ def records():
             "close": Decimal("202.25"),
             "entry_signal": "buy",
             "exit_signal": "sell",
+        },
+    ]
+
+
+@pytest.fixture
+def short_records():
+    """Generate sample 'records' list, which contains 'sell' entry signal and
+    updated as an attribute to 'SignalEvaluator' class."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 10),
+            "open": Decimal("188.82"),
+            "high": Decimal("194.52"),
+            "low": Decimal("182.76"),
+            "close": Decimal("190.17"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 11),
+            "open": Decimal("185.86"),
+            "high": Decimal("199.28"),
+            "low": Decimal("185.82"),
+            "close": Decimal("197.89"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 14),
+            "open": Decimal("211.16"),
+            "high": Decimal("212.66"),
+            "low": Decimal("200.90"),
+            "close": Decimal("202.25"),
+            "entry_signal": "wait",
+            "exit_signal": "buy",
+        },
+    ]
+
+
+@pytest.fixture
+def error_records():
+    """Generate sample 'records' list, which contains both 'buy' and 'sell'
+    entry signal and  updated as an attribute to 'SignalEvaluator' class."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 10),
+            "open": Decimal("188.82"),
+            "high": Decimal("194.52"),
+            "low": Decimal("182.76"),
+            "close": Decimal("190.17"),
+            "entry_signal": "buy",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 11),
+            "open": Decimal("185.86"),
+            "high": Decimal("199.28"),
+            "low": Decimal("185.82"),
+            "close": Decimal("197.89"),
+            "entry_signal": "wait",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 14),
+            "open": Decimal("211.16"),
+            "high": Decimal("212.66"),
+            "low": Decimal("200.90"),
+            "close": Decimal("202.25"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
         },
     ]
