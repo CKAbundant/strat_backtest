@@ -41,20 +41,20 @@ class BreakoutEntry(SignalEvaluator):
         """Return tuple (excluding ticker) required to open new position or close
         existing position if conditions are met."""
 
+        # Get datetime, high, low, close and entry signal from 'record'
+        dt = record.get("date")
+        high = record.get("high")
+        low = record.get("low")
+        ent_sig = record.get("entry_signal")
+
         # Validate if entry signal in 'record' matches with that in 'self.records'
-        self._validate_ent_sig(record["entry_signal"])
+        self._validate_ent_sig(ent_sig)
 
         # Check if self.records is empty i.e. no prior 'buy' or 'sell' entry signal
         if not self.records:
             if ent_sig != "wait":
                 self.records.append(record)
             return None
-
-        # Get datetime, high, low, close and entry signal from 'record'
-        dt = record.get("date")
-        high = record.get("high")
-        low = record.get("low")
-        ent_sig = record.get("entry_signal")
 
         # Get existing entry signal, high and low of last record in 'self.records'
         existing_ent_sig = self._get_existing_ent_sig()
@@ -101,16 +101,18 @@ class BreakoutEntry(SignalEvaluator):
         # Entry price is 0.01 (i.e. 1 bid higher) or (1 + self.trigger_percent) higher
         # for long position
         if ent_sig == "buy":
-            return (
+            entry_price = (
                 prev_high * (1 + self.trigger_percent)
                 if self.trigger_percent
                 else prev_high + Decimal("0.01")
             )
+            return round(entry_price, 2)
 
         # Entry price is 0.01 (i.e. 1 bid lower) or (1 - self.trigger_percent) lower
         # for short position
-        return (
+        entry_price = (
             prev_low * (1 - self.trigger_percent)
             if self.trigger_percent
             else prev_low - Decimal("0.01")
         )
+        return round(entry_price, 2)

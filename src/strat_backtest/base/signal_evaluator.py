@@ -78,4 +78,6 @@ class SignalEvaluator(ABC):
         if all(price_action in ent_set for price_action in {"buy", "sell"}):
             raise ValueError("Both buy and sell signals are present in 'self.records'.")
 
-        return ent_set - {"wait", None}
+        unique_list = list(ent_set - {"wait", None})
+
+        return unique_list[0] if unique_list else None
