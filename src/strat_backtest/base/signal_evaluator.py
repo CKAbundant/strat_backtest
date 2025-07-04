@@ -25,7 +25,7 @@ class SignalEvaluator(ABC):
         self.records = []
 
     @abstractmethod
-    def evaluate(self, record: Record) -> tuple[Any]:
+    def evaluate(self, record: Record) -> list[Any] | None:
         """Return tuple required to open new position or close existing
         position if conditions are met.
 
@@ -35,8 +35,8 @@ class SignalEvaluator(ABC):
                 other relevant info.
 
         Returns:
-            (tuple[Any]):
-                Tuple containing fields required to create new position or close
+            (list[Any] | None):
+                If avaiable, list containing fields required to create new position or close
                 existing position.
         """
 
@@ -45,24 +45,37 @@ class SignalEvaluator(ABC):
     def _validate_ent_sig(self, ent_sig: PriceAction) -> None:
         """Validate if entry signal is consistent with entry signals in 'records' list."""
 
+        if ent_sig not in {"buy", "sell", "wait"}:
+            raise ValueError(f"{ent_sig} is not a valid price action.")
+
+        # 'self.records' is empty list or entry signal == "wait"
+        if (
+            existing_ent_sig := self._get_existing_ent_sig()
+        ) is None or ent_sig == "wait":
+            return None
+
+        if ent_sig != existing_ent_sig:
+            raise ValueError(
+                f"entry signal ({ent_sig}) is not consistent with that in "
+                f"'self.records' ({existing_ent_sig})."
+            )
+
+        return None
+
+    def _get_existing_ent_sig(self) -> PriceAction | None:
+        """Get existing entry signal i.e. whether entry signal is 'buy' or 'sell'.
+        'wait' is not considered."""
+
         # Return None if records is an empty list
         if not self.records:
             return None
-
-        if ent_sig not in {"buy", "sell", "wait"}:
-            raise ValueError(f"{ent_sig} is not a valid price action.")
 
         # Get set containing unique entry signals
         counter = Counter([record.get("entry_signal") for record in self.records])
         ent_set = set(list(counter.keys()))
 
-        # Check if 'ent_sig' == "buy", then "sell" cannot appear in 'self.records'
-        # and vice versa
-        if (ent_sig == "buy" and "sell" in ent_set) or (
-            ent_sig == "sell" and "buy" in ent_set
-        ):
-            raise ValueError(
-                "entry signal is not consistent with that in 'self.records'."
-            )
+        # Both 'buy' and 'sell' should be present in 'self.records' concurrently
+        if all(price_action in ent_set for price_action in {"buy", "sell"}):
+            raise ValueError("Both buy and sell signals are present in 'self.records'.")
 
-        return None
+        return ent_set - {"wait", None}

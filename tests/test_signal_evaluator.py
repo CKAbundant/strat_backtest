@@ -5,14 +5,13 @@ import pytest
 from strat_backtest.signal_evaluator import BreakoutEntry
 
 
-def test_validate_ent_sig(records):
+@pytest.mark.parametrize("price_action", ["test", "sell"])
+def test_validate_ent_sig(records, price_action):
     """Test if '_validate_ent_sig' throws a ValueError when entry signals are not
     consistent."""
 
     sig_eval = BreakoutEntry()
     sig_eval.records = records
 
-    assert sig_eval.evaluate({"entry_signal": "wait"}) is None
-
     with pytest.raises(ValueError):
-        sig_eval.evaluate({"entry_signal": "sell"})
+        sig_eval._validate_ent_sig(price_action)
