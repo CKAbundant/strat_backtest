@@ -19,6 +19,8 @@ def get_class_instance(
     """Return instance of a class that is initialized with 'params'.
 
     Args:
+        class_name (str):
+            Name of class to create an instance.
         module_path (str):
             Module path relative from main package e.g. strat_backtest.base.entry_struct..
         **params (dict[str, Any]):

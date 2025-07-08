@@ -6,8 +6,12 @@ short when break below previous day low
 """
 
 from .breakout_evaluator import BreakoutEntry
+from .close_evaluator import CloseEntry
+from .open_evaluator import OpenEntry
 
 # Public interface
 __all__ = [
     "BreakoutEntry",
+    "CloseEntry",
+    "OpenEntry",
 ]

@@ -37,9 +37,9 @@ class BreakoutEntry(SignalEvaluator):
         super().__init__()
         self.trigger_percent = convert_to_decimal(trigger_percent)
 
-    def evaluate(self, record: Record) -> list[Any] | None:
-        """Return tuple (excluding ticker) required to open new position or close
-        existing position if conditions are met."""
+    def evaluate(self, record: Record) -> dict[str, Any] | None:
+        """Return dictionary (excluding ticker) required to open new position
+        if conditions are met."""
 
         # Get datetime, high, low, close and entry signal from 'record'
         dt = record.get("date")
@@ -67,7 +67,7 @@ class BreakoutEntry(SignalEvaluator):
         ):
             # Reset records as long signal is confirmed
             self.records = []
-            return [dt, existing_ent_sig, entry_price]
+            return {"dt": dt, "ent_sig": existing_ent_sig, "entry_price": entry_price}
 
         # Append record to 'self.records' as entry signal is not confirmed
         self.records.append(record)

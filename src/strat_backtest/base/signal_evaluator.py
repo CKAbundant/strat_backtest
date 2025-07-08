@@ -25,7 +25,7 @@ class SignalEvaluator(ABC):
         self.records = []
 
     @abstractmethod
-    def evaluate(self, record: Record) -> list[Any] | None:
+    def evaluate(self, record: Record) -> dict[str, Any] | None:
         """Return tuple required to open new position or close existing
         position if conditions are met.
 
@@ -35,9 +35,9 @@ class SignalEvaluator(ABC):
                 other relevant info.
 
         Returns:
-            (list[Any] | None):
-                If avaiable, list containing fields required to create new position or close
-                existing position.
+            (dict[str, Any] | None):
+                If avaiable, dictionary containing fields required to create new
+                position or close existing position.
         """
 
         ...

@@ -47,6 +47,11 @@ class ExitMethod(StrEnum):
     TAKE_ALL = "TakeAllExit"
 
 
+class SigEvalMethod(StrEnum):
+    BREAKOUT_ENTRY = "BreakoutEntry"
+    CLOSE_ENTRY = "CloseEntry"
+
+
 class TrailMethod(StrEnum):
     NO_TRAIL = "no_trail"
     FIRST_TRAIL = "FirstTrail"
@@ -72,6 +77,7 @@ __all__ = [
     "PriceAction",
     "EntryType",
     "ExitType",
+    "SigEvalMethod",
     "EntryMethod",
     "ExitMethod",
     "StopMethod",

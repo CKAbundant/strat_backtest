@@ -18,6 +18,7 @@ from strat_backtest.utils.constants import (
     ExitType,
     PriceAction,
     Record,
+    SigEvalMethod,
     StopMethod,
     TrailMethod,
 )
@@ -31,7 +32,7 @@ from strat_backtest.utils.pos_utils import (
 from strat_backtest.utils.utils import display_open_trades
 
 if TYPE_CHECKING:
-    from strat_backtest.base import StopLoss, TrailProfit
+    from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit
     from strat_backtest.utils import OpenTrades
 
 
@@ -49,6 +50,8 @@ class TradingConfig:
 class RiskConfig:
     """Risk management and stop loss configuration."""
 
+    sig_eval_method: SigEvalMethod = "CloseEntry"
+    trigger_percent: float | None = None
     percent_loss: float = 0.05
     stop_method: ExitMethod = "no_stop"
     trail_method: TrailMethod = "no_trail"
@@ -82,6 +85,10 @@ class GenTrades(ABC):
         exit_struct (ExitMethod):
             Whether to apply "FIFOExit", "LIFOExit", "HalfFIFOExit", "HalfLIFOExit",
             or "TakeAllExit".
+        sig_evaL_method (SigEvalMethod):
+            Whether to apply "CloseEntry", "BreakoutEntry".
+        trigger_percent (Decimal):
+            If provided, offset percentage for trade confirmation.
         num_lots (int):
             Number of lots to initiate new position each time (Default: 1).
         monitor_close (bool):
@@ -113,6 +120,8 @@ class GenTrades(ABC):
             Instance of 'StopLoss' class.
         trail_profit_inst (TrailProfit):
             Instance of 'TrailProfit' class.
+        sig_eval (SignalEvaluator):
+            Evaluate buying/selling signal for trade confirmation.
     """
 
     def __init__(
@@ -127,6 +136,8 @@ class GenTrades(ABC):
         self.monitor_close = trading_cfg.monitor_close
 
         # Risk configuration
+        self.sig_eval_method = risk_cfg.sig_eval_method
+        self.trigger_percent = convert_to_decimal(risk_cfg.trigger_percent)
         self.percent_loss = risk_cfg.percent_loss
         self.stop_method = risk_cfg.stop_method
         self.trail_method = risk_cfg.trail_method
@@ -151,6 +162,7 @@ class GenTrades(ABC):
         self.trail_info_list = []
         self.stop_loss_inst = None
         self.trail_profit_inst = None
+        self.sig_eval = self.init_sig_evaluator()
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -203,6 +215,9 @@ class GenTrades(ABC):
         completed_list = []
 
         for record in df.itertuples(index=True, name=None):
+            # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
+            self.sig_eval._reset_records(self.open_trades)
+
             # Create mapping for attribute to its values and check if end of DataFrame
             info = self.gen_mapping(record)
             is_end = info["idx"] >= len(df) - 1
@@ -414,15 +429,8 @@ class GenTrades(ABC):
             None.
         """
 
-        dt = record["date"]
-        ent_sig = record["entry_signal"]
-
-        # Set entry price as closing price
-        entry_price = record["close"]
-
-        if ent_sig not in {"buy", "sell"}:
-            # No entry signal
-            return
+        if (params := self.sig_eval.evaluate(record)) is None:
+            return None
 
         # Get initialized instance of concrete class implementation
         entry_instance = get_class_instance(
@@ -433,7 +441,7 @@ class GenTrades(ABC):
 
         # Update 'self.open_trades' with new open position
         self.open_trades = entry_instance.open_new_pos(
-            self.open_trades, ticker, dt, ent_sig, entry_price
+            self.open_trades, ticker, **params
         )
 
         if len(self.open_trades) == 0:
@@ -613,7 +621,7 @@ class GenTrades(ABC):
         # Get main package directory path
         main_pkg_path = Path(__file__).parents[1]
 
-        # Get list of folder paths containin concrete implementation of 'EntryStruc',
+        # Get list of folder paths containin concrete implementation of 'EntryStruct',
         # 'ExitStruct', 'StopLoss' and 'TrailProfit' abstract class.
         folder_paths = [
             rel_path
@@ -724,3 +732,19 @@ class GenTrades(ABC):
 
         if self.trail_profit_inst is not None:
             self.trail_profit_inst.reset_price_levels()
+
+    def init_sig_evaluator(self) -> SignalEvaluator:
+        """Initialize instance of concrete implementation of 'SignalEvaluator'
+        abstract class."""
+
+        match self.sig_eval_method:
+            case "CloseEntry":
+                params = {}
+            case "BreakoutEntry":
+                params = dict(trigger_percent=self.trigger_percent)
+
+        return get_class_instance(
+            self.sig_eval_method,
+            self.module_paths.get(self.sig_eval_method),
+            **params,
+        )
