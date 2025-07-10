@@ -1,4 +1,4 @@
-"""Implementation of BreakoutEvaluator class
+"""Implementation of BreakoutEntry class
 
 - Concrete implementation of 'SignalEvaluator' abstract class.
 - Enter long position or exit short position upon breaking out previous day high.
@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Any
 
 from strat_backtest.base import SignalEvaluator
-from strat_backtest.utils.constants import OpenTrades, PriceAction, Record
+from strat_backtest.utils.constants import PriceAction, Record
 from strat_backtest.utils.pos_utils import convert_to_decimal
 
 
@@ -73,13 +73,6 @@ class BreakoutEntry(SignalEvaluator):
         self.records.append(record)
 
         return None
-
-    def _reset_records(self, open_trades: OpenTrades) -> None:
-        """Set self.records to empty list if 'open_trades' is empty
-        i.e. no open positions."""
-
-        if len(open_trades) == 0:
-            self.records = []
 
     def _cal_entry_price(
         self, ent_sig: PriceAction, prev_high: Decimal, prev_low: Decimal

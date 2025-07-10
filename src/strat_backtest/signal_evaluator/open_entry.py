@@ -18,6 +18,8 @@ class OpenEntry(SignalEvaluator):
         """Return dictionary (excluding ticker) required to open new position
         if conditions met."""
 
+        print("Evaluating record via OpenEntry...")
+
         # Get datetime, high, low, close and entry signal from 'record'
         dt = record.get("date")
         ent_sig = record.get("entry_signal")
@@ -27,15 +29,17 @@ class OpenEntry(SignalEvaluator):
 
         # Check if self.records is empty i.e. no prior 'buy' or 'sell' entry signal
         if not self.records:
+            print("self.records is empty")
             if ent_sig != "wait":
                 self.records.append(record)
+                print(f"Updated 'self.records' : {self.records}")
             return None
 
         # Get existing entry signal, high and low of last record in 'self.records'
         existing_ent_sig = self._get_existing_ent_sig()
         entry_price = record.get("open")
 
-        # Append record to 'self.records' as entry signal is not confirmed
-        self.records = []
+        # Reset 'records' to empty list if 'ent_sig' != "wait"
+        self.records = [record] if ent_sig != "wait" else []
 
         return {"dt": dt, "ent_sig": existing_ent_sig, "entry_price": entry_price}

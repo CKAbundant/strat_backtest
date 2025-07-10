@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Any
 
-from strat_backtest.utils.constants import PriceAction, Record
+from strat_backtest.utils.constants import OpenTrades, PriceAction, Record
 
 
 class SignalEvaluator(ABC):
@@ -81,3 +81,10 @@ class SignalEvaluator(ABC):
         unique_list = list(ent_set - {"wait", None})
 
         return unique_list[0] if unique_list else None
+
+    def _reset_records(self, open_trades: OpenTrades) -> None:
+        """Set self.records to empty list if 'open_trades' is empty
+        i.e. no open positions."""
+
+        if len(open_trades) == 0:
+            self.records = []

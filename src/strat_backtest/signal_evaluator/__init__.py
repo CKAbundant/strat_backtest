@@ -5,9 +5,9 @@ at 'signal_evaluator' sub-package.
 short when break below previous day low
 """
 
-from .breakout_evaluator import BreakoutEntry
-from .close_evaluator import CloseEntry
-from .open_evaluator import OpenEntry
+from .breakout_entry import BreakoutEntry
+from .close_entry import CloseEntry
+from .open_entry import OpenEntry
 
 # Public interface
 __all__ = [

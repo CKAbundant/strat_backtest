@@ -136,7 +136,9 @@ class GenTrades(ABC):
         self.monitor_close = trading_cfg.monitor_close
 
         # Risk configuration
-        self.sig_eval_method = risk_cfg.sig_eval_method
+        self.sig_eval_method = (
+            risk_cfg.sig_eval_method if risk_cfg.sig_eval_method else "OpenEntry"
+        )
         self.trigger_percent = convert_to_decimal(risk_cfg.trigger_percent)
         self.percent_loss = risk_cfg.percent_loss
         self.stop_method = risk_cfg.stop_method
@@ -162,7 +164,7 @@ class GenTrades(ABC):
         self.trail_info_list = []
         self.stop_loss_inst = None
         self.trail_profit_inst = None
-        self.sig_eval = self.init_sig_evaluator()
+        self.sig_eval = None
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -214,25 +216,26 @@ class GenTrades(ABC):
         df = set_decimal_type(df)
         completed_list = []
 
-        for record in df.itertuples(index=True, name=None):
-            # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
-            self.sig_eval._reset_records(self.open_trades)
+        # Initialize 'self.sig_eval'
+        self.sig_eval = self.init_sig_evaluator()
 
+        for record in df.itertuples(index=True, name=None):
             # Create mapping for attribute to its values and check if end of DataFrame
             info = self.gen_mapping(record)
             is_end = info["idx"] >= len(df) - 1
 
             idx = info["idx"]
             dt = info["date"]
-            close = info["close"]
-            ent_sig = info["entry_signal"]
-            ex_sig = info["exit_signal"]
+            # close = info["close"]
+            # ent_sig = info["entry_signal"]
+            # ex_sig = info["exit_signal"]
 
             print(f"\n\nidx : {idx}")
             print(f"dt : {dt}")
-            print(f"close : {close}")
-            print(f"ent_sig : {ent_sig}")
-            print(f"ex_sig : {ex_sig}")
+            print(f"self.sig_eval.records : {self.sig_eval.records}")
+            # print(f"close : {close}")
+            # print(f"ent_sig : {ent_sig}")
+            # print(f"ex_sig : {ex_sig}")
             print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Close off all open positions at end of trading period
@@ -251,9 +254,9 @@ class GenTrades(ABC):
             print(f"len(self.open_trades) : {len(self.open_trades)}")
             display_open_trades(self.open_trades)
 
-            print(
-                f"\n\nself.stop_info_list : \n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
-            )
+            # print(
+            #     f"\n\nself.stop_info_list : \n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
+            # )
 
         # Append stop loss price and trailing price if available
         df_signals = self.append_info(df_signals, self.stop_info_list)
@@ -429,6 +432,8 @@ class GenTrades(ABC):
             None.
         """
 
+        print(f"{self.sig_eval=}")
+
         if (params := self.sig_eval.evaluate(record)) is None:
             return None
 
@@ -503,6 +508,9 @@ class GenTrades(ABC):
             self.open_trades, dt, exit_price
         )
 
+        # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
+        self.sig_eval._reset_records(self.open_trades)
+
         return completed_list
 
     def exit_all(
@@ -538,6 +546,9 @@ class GenTrades(ABC):
 
         # Reset trailing profit attribute in 'self.trail_profit_inst
         self.reset_price_levels()
+
+        # Reset 'records' attributes for 'sig_eval' since 'open_trades' is empty
+        self.sig_eval._reset_records(self.open_trades)
 
         return completed_list
 
@@ -738,10 +749,10 @@ class GenTrades(ABC):
         abstract class."""
 
         match self.sig_eval_method:
-            case "CloseEntry":
-                params = {}
             case "BreakoutEntry":
                 params = dict(trigger_percent=self.trigger_percent)
+            case "CloseEntry" | "OpenEntry":
+                params = {}
 
         return get_class_instance(
             self.sig_eval_method,

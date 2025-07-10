@@ -27,6 +27,8 @@ def trading_config():
 @pytest.fixture
 def risk_config():
     return RiskConfig(
+        sig_eval_method="CloseEntry",
+        trigger_percent=None,
         percent_loss=0.05,
         stop_method="no_stop",
         trail_method="no_trail",
