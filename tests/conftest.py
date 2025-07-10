@@ -154,7 +154,7 @@ def long_records():
             "low": Decimal("168.99"),
             "close": Decimal("172.19"),
             "entry_signal": "buy",
-            "exit_signal": "sell",
+            "exit_signal": "wait",
         },
     ]
 
@@ -180,7 +180,7 @@ def short_records():
             "high": Decimal("199.28"),
             "low": Decimal("185.82"),
             "close": Decimal("197.89"),
-            "entry_signal": "sell",
+            "entry_signal": "wait",
             "exit_signal": "wait",
         },
         {
@@ -189,8 +189,8 @@ def short_records():
             "high": Decimal("212.66"),
             "low": Decimal("200.90"),
             "close": Decimal("202.25"),
-            "entry_signal": "wait",
-            "exit_signal": "buy",
+            "entry_signal": "sell",
+            "exit_signal": "wait",
         },
     ]
 

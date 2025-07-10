@@ -75,7 +75,7 @@ def test_validate_ent_sig(records, price_action, request):
     ],
 )
 def test_breakoutentry_success(records, next_day, trigger_percent, expected, request):
-    """Test if 'evaluate' method for 'BreakoutEntry' class generate the correct list
+    """Test if 'evaluate' method for 'BreakoutEntry' class generate the correct dictionary
     to be used to generate new position."""
 
     sig_eval = BreakoutEntry(trigger_percent=trigger_percent)
@@ -148,3 +148,74 @@ def test_closeentry(next_day, expected, request):
 
     assert sig_eval.records == []
     assert output == expected
+
+
+@pytest.mark.parametrize(
+    "records, next_day, expected",
+    [
+        (
+            "long_records",
+            "long_success",
+            {
+                "dt": datetime(2025, 4, 9),
+                "ent_sig": "buy",
+                "entry_price": Decimal("171.72"),
+            },
+        ),
+        (
+            "short_records",
+            "short_success",
+            {
+                "dt": datetime(2025, 4, 15),
+                "ent_sig": "sell",
+                "entry_price": Decimal("201.6"),
+            },
+        ),
+    ],
+)
+def test_openentry_success(records, next_day, expected, request):
+    """Test if 'evaluate' method for 'OpenEntry' class generate the correct dictionary
+    to be used to generate new position."""
+
+    sig_eval = OpenEntry()
+    next_day_record = request.getfixturevalue(next_day)
+
+    # Update records attribute
+    sig_eval.records = request.getfixturevalue(records)
+
+    print(f"\n\nsig_eval.records : {pformat(sig_eval.records, sort_dicts=False)}")
+    print(f"\nnext_day_record : {pformat(next_day_record, sort_dicts=False)}")
+
+    output = sig_eval.evaluate(next_day_record)
+    print(f"\n\n{output=}")
+    print(f"{expected=}")
+    print(f"sig_eval.records after update : {sig_eval.records}")
+
+    assert sig_eval.records == []
+    assert output == expected
+
+
+@pytest.mark.parametrize(
+    "next_day", ["long_success", "long_fail", "short_success", "short_fail"]
+)
+def test_openentry_empty(next_day, request):
+    """Test if 'evaluate' method for 'BreakoutEntry' class returns None if
+    'self.records' is empty list."""
+
+    sig_eval = OpenEntry()
+    next_day_record = request.getfixturevalue(next_day)
+
+    output = sig_eval.evaluate(next_day_record)
+    print(f"\n\n{output=}")
+    print(f"\n{sig_eval.records=}")
+
+    assert output is None
+    assert sig_eval.records == [next_day_record]
+
+    # Amend 'entry_signal' in 'next_day_record' to 'wait'
+    # Reset 'self.records' to empty list
+    next_day_record["entry_signal"] = "wait"
+    sig_eval.records = []
+
+    _ = sig_eval.evaluate(next_day_record)
+    assert sig_eval.records == []
