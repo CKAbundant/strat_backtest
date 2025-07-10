@@ -33,7 +33,7 @@ class OpenEntry(SignalEvaluator):
 
         # Get existing entry signal, high and low of last record in 'self.records'
         existing_ent_sig = self._get_existing_ent_sig()
-        entry_price = self.records[-1].get("open")
+        entry_price = record.get("open")
 
         # Append record to 'self.records' as entry signal is not confirmed
         self.records = []

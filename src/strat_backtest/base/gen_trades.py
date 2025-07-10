@@ -733,7 +733,7 @@ class GenTrades(ABC):
         if self.trail_profit_inst is not None:
             self.trail_profit_inst.reset_price_levels()
 
-    def init_sig_evaluator(self) -> SignalEvaluator:
+    def init_sig_evaluator(self) -> "SignalEvaluator":
         """Initialize instance of concrete implementation of 'SignalEvaluator'
         abstract class."""
 

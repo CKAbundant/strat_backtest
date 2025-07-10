@@ -289,3 +289,18 @@ def short_fail():
         "entry_signal": "sell",
         "exit_signal": "wait",
     }
+
+
+@pytest.fixture
+def no_entry():
+    """Next day record for with no entry signal."""
+
+    return {
+        "date": datetime(2025, 4, 9),
+        "open": Decimal("171.72"),
+        "high": Decimal("200.35"),
+        "low": Decimal("171.66"),
+        "close": Decimal("198.59"),
+        "entry_signal": "wait",
+        "exit_signal": "wait",
+    }

@@ -6,7 +6,7 @@ from pprint import pformat
 
 import pytest
 
-from strat_backtest.signal_evaluator import BreakoutEntry
+from strat_backtest.signal_evaluator import BreakoutEntry, CloseEntry, OpenEntry
 
 
 @pytest.mark.parametrize(
@@ -36,25 +36,41 @@ def test_validate_ent_sig(records, price_action, request):
             "long_records",
             "long_success",
             None,
-            [datetime(2025, 4, 9), "buy", Decimal("190.10")],
+            {
+                "dt": datetime(2025, 4, 9),
+                "ent_sig": "buy",
+                "entry_price": Decimal("190.10"),
+            },
         ),
         (
             "long_records",
             "long_success",
             0.002,
-            [datetime(2025, 4, 9), "buy", Decimal("190.47")],
+            {
+                "dt": datetime(2025, 4, 9),
+                "ent_sig": "buy",
+                "entry_price": Decimal("190.47"),
+            },
         ),
         (
             "short_records",
             "short_success",
             None,
-            [datetime(2025, 4, 15), "sell", Decimal("200.89")],
+            {
+                "dt": datetime(2025, 4, 15),
+                "ent_sig": "sell",
+                "entry_price": Decimal("200.89"),
+            },
         ),
         (
             "short_records",
             "short_success",
             0.002,
-            [datetime(2025, 4, 15), "sell", Decimal("200.5")],
+            {
+                "dt": datetime(2025, 4, 15),
+                "ent_sig": "sell",
+                "entry_price": Decimal("200.5"),
+            },
         ),
     ],
 )
@@ -102,3 +118,33 @@ def test_breakoutentry_empty(next_day, request):
 
     _ = sig_eval.evaluate(next_day_record)
     assert sig_eval.records == []
+
+
+@pytest.mark.parametrize(
+    "next_day, expected",
+    [
+        (
+            "long_success",
+            {
+                "dt": datetime(2025, 4, 9),
+                "ent_sig": "buy",
+                "entry_price": Decimal("198.59"),
+            },
+        ),
+        ("no_entry", None),
+    ],
+)
+def test_closeentry(next_day, expected, request):
+    """Test if 'evaluate' method for 'CloseEntry' class returns None if no
+    entry signal; and returns entry price == closing price if entry signal."""
+
+    sig_eval = CloseEntry()
+    next_day_record = request.getfixturevalue(next_day)
+
+    output = sig_eval.evaluate(next_day_record)
+    print(f"\n\n{output=}")
+    print(f"{expected=}")
+    print(f"\n{sig_eval.records=}")
+
+    assert sig_eval.records == []
+    assert output == expected
