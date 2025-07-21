@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Any
 
-from strat_backtest.utils.constants import OpenTrades, PriceAction, Record
+from strat_backtest.utils.constants import OpenTrades, PriceAction, Record, SigType
 
 
 class SignalEvaluator(ABC):
@@ -15,13 +15,20 @@ class SignalEvaluator(ABC):
     - Example if buy signal is met, SignalEvaluator will check over next few
     days if market trades above previous day high before creating new position.
 
+    Args:
+        sig_type (SigType):
+            Either 'entry_signal' or 'exit_signal'.
+
     Attributes:
+        sig_type (SigType):
+            Either 'entry_signal' or 'exit_signal'.
         records (list[Record]):
             List containing Record objects, which contain OHLCV, entry signal,
             exit signal and other relevant info
     """
 
-    def __init__(self) -> None:
+    def __init__(self, sig_type: SigType) -> None:
+        self.sig_type = sig_type
         self.records = []
 
     @abstractmethod

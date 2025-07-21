@@ -471,12 +471,21 @@ def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_l
     pdt.assert_frame_equal(computed_df, expected_df)
 
 
-def test_iterate_df(trading_config, risk_config, sample_gen_trades):
+@pytest.mark.parametrize(
+    "sig_evaluator, parquet_path",
+    [
+        ("OpenEvaluator", "open_eval_trades.parquet"),
+        ("BreakoutEvaluator", "breakout_eval_trades.parquet"),
+    ],
+)
+def test_iterate_df(
+    trading_config, risk_config, sample_gen_trades, sig_evaluator, parquet_path
+):
     """Test 'iterate_df' method in 'GenTrades'."""
 
     # Generate generic test instance
     test_inst = gen_testgentrades_inst(
-        trading_config, risk_config, sig_eval_method="OpenEvaluator"
+        trading_config, risk_config, sig_eval_method=sig_evaluator
     )
 
     print(f"{test_inst.sig_eval_method=}")
@@ -484,11 +493,13 @@ def test_iterate_df(trading_config, risk_config, sample_gen_trades):
     # Generate computed trades and signals
     computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
 
-    # # Get expected_trades
-    # expected_trades = pd.read_parquet("./tests/data/sample_trades.parquet")
+    # Get expected_trades
+    expected_trades = pd.read_parquet(f"./tests/data/{parquet_path}")
 
-    # pdt.assert_frame_equal(computed_trades, expected_trades)
-    # pdt.assert_frame_equal(computed_signals, sample_gen_trades)
-
-    print(f"\n\ncomputed_trades : \n\n{computed_trades}\n")
     print(f"computed_signals : \n\n{computed_signals}\n")
+    print(f"sample_gen_trades : \n\n{sample_gen_trades}\n")
+    print(f"\n\ncomputed_trades : \n\n{computed_trades}\n")
+    print(f"expected_trades : \n\n{expected_trades}\n")
+
+    pdt.assert_frame_equal(computed_trades, expected_trades)
+    pdt.assert_frame_equal(computed_signals, sample_gen_trades)

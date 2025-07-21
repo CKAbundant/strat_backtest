@@ -758,17 +758,15 @@ class GenTrades(ABC):
         return completed_list, trigger_info
 
     def init_sig_evaluator(self) -> "SignalEvaluator":
-        """Initialize instance of concrete implementation of 'SignalEvaluator'
-        abstract class."""
+        """Saved instance of concrete implementation of 'SignalEvaluator'
+        abstract class to 'self.inst_cache' if not available."""
 
-        # Initialize entry signal evaluator instance
-        # if "sig_ent_eval" not in self.inst_cache:
-        #     self.inst_cache["sig_ent_eval"] =
-
-        for key, sig_type in {
+        params = {
             "sig_ent_eval": "entry_signal",
             "sig_ex_eval": "exit_signal",
-        }.items():
+        }
+
+        for key, sig_type in params.items():
             if key not in self.inst_cache:
                 params = dict(sig_type=sig_type)
 
