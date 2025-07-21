@@ -19,6 +19,7 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
     SigEvalMethod,
+    SigType,
     StopMethod,
     TrailMethod,
 )
@@ -86,7 +87,8 @@ class GenTrades(ABC):
             Whether to apply "FIFOExit", "LIFOExit", "HalfFIFOExit", "HalfLIFOExit",
             or "TakeAllExit".
         sig_evaL_method (SigEvalMethod):
-            Whether to apply "CloseEntry", "BreakoutEntry".
+            Whether to apply "CloseEvaluator", "OpenEvaluator", "BreakoutEntry", or
+            "BreakoutExit".
         trigger_percent (Decimal):
             If provided, offset percentage for trade confirmation.
         num_lots (int):
@@ -116,12 +118,8 @@ class GenTrades(ABC):
         trail_info_list (list[dict[str, datetime | str | Decimal]]):
             List to record datetime, trail profit price and whether trailing profit
             is triggered.
-        stop_loss_inst (StopLoss):
-            Instance of 'StopLoss' class.
-        trail_profit_inst (TrailProfit):
-            Instance of 'TrailProfit' class.
-        sig_eval (SignalEvaluator):
-            Evaluate buying/selling signal for trade confirmation.
+        inst_cache (dict[str, Any]):
+            Dictionary to cache instances of class imported dynamically via importlib.
     """
 
     def __init__(
@@ -136,9 +134,7 @@ class GenTrades(ABC):
         self.monitor_close = trading_cfg.monitor_close
 
         # Risk configuration
-        self.sig_eval_method = (
-            risk_cfg.sig_eval_method if risk_cfg.sig_eval_method else "OpenEntry"
-        )
+        self.sig_eval_method = risk_cfg.sig_eval_method or "OpenEntry"
         self.trigger_percent = convert_to_decimal(risk_cfg.trigger_percent)
         self.percent_loss = risk_cfg.percent_loss
         self.stop_method = risk_cfg.stop_method
@@ -162,9 +158,7 @@ class GenTrades(ABC):
         self.open_trades = deque()
         self.stop_info_list = []
         self.trail_info_list = []
-        self.stop_loss_inst = None
-        self.trail_profit_inst = None
-        self.sig_eval = None
+        self.inst_cache = {}
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -216,8 +210,10 @@ class GenTrades(ABC):
         df = set_decimal_type(df)
         completed_list = []
 
-        # Initialize 'self.sig_eval'
-        self.sig_eval = self.init_sig_evaluator()
+        # Intialize entry and exit signal evaluator if None
+        self.init_sig_evaluator()
+        sig_ent_eval = self.inst_cache.get("sig_ent_eval")
+        sig_ex_eval = self.inst_cache.get("sig_ex_eval")
 
         for record in df.itertuples(index=True, name=None):
             # Create mapping for attribute to its values and check if end of DataFrame
@@ -227,15 +223,16 @@ class GenTrades(ABC):
             idx = info["idx"]
             dt = info["date"]
             # close = info["close"]
-            # ent_sig = info["entry_signal"]
-            # ex_sig = info["exit_signal"]
+            # entry_signal = info["entry_signal"]
+            # exit_signal = info["exit_signal"]
 
             print(f"\n\nidx : {idx}")
             print(f"dt : {dt}")
-            print(f"self.sig_eval.records : {self.sig_eval.records}")
+            print(f"sig_ent_eval.records : {sig_ent_eval.records}")
+            print(f"sig_ex_eval.records : {sig_ex_eval.records}")
             # print(f"close : {close}")
-            # print(f"ent_sig : {ent_sig}")
-            # print(f"ex_sig : {ex_sig}")
+            # print(f"entry_signal : {entry_signal}")
+            # print(f"exit_signal : {exit_signal}")
             print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Close off all open positions at end of trading period
@@ -275,7 +272,7 @@ class GenTrades(ABC):
     ) -> CompletedTrades:
         """Exit all open positions at end of testing/trading period.
 
-        - Close off all position if end of testing period.
+        - Close off all position @ market closing if end of testing period.
         - No new postiion at end of testing period.
 
         Args:
@@ -316,6 +313,8 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
+        print("Checking stop loss...")
+
         # Return 'completed_list' unamended if no net position or no stop loss set
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
             return completed_list
@@ -351,30 +350,31 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        ent_sig = record["entry_signal"]
-        ex_sig = record["exit_signal"]
-        dt = record["date"]
-        close = record["close"]
+        entry_signal = record["entry_signal"]
+        exit_signal = record["exit_signal"]
 
-        # Return 'completed_list' unamended if no open position or not exit signals
-        if len(self.open_trades) == 0 or ex_sig not in {"sell", "buy"}:
+        # Return 'completed_list' unamended if no open position or not exit conditions met
+        if (
+            len(self.open_trades) == 0
+            or (params := self.inst_cache["sig_ex_eval"].evaluate(record)) is None
+        ):
             return completed_list
 
         # Get standard 'entry_action' from 'self.open_trades'
         entry_action = get_std_field(self.open_trades, "entry_action")
 
-        if ex_sig == entry_action:
+        if exit_signal == entry_action:
             raise ValueError(
-                f"Exit signal '{ex_sig}' is same as entry action '{entry_action}."
+                f"Exit signal '{exit_signal}' is same as entry action '{entry_action}."
             )
 
         # Exit all open position in order to flip position
-        # If entry_action == 'buy', then ex_sig must be 'sell'
-        # ex_sig != entry_action
-        if ex_sig == ent_sig and ex_sig != entry_action:
-            completed_list.extend(self.exit_all(dt, close))
+        # If entry_action == 'buy', then exit_signal must be 'sell'
+        # exit_signal != entry_action and != "wait"
+        if exit_signal == entry_signal and exit_signal != "wait":
+            completed_list.extend(self.exit_all(params["dt"], params["exit_price"]))
         else:
-            completed_list.extend(self.take_profit(dt, ex_sig, close))
+            completed_list.extend(self.take_profit(**params))
 
         return completed_list
 
@@ -395,6 +395,8 @@ class GenTrades(ABC):
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
+
+        print("Checking trailing profit...")
 
         # Return 'completed_list' unamended if no net position or
         # no trailing method set
@@ -432,17 +434,22 @@ class GenTrades(ABC):
             None.
         """
 
-        print(f"{self.sig_eval=}")
+        print("Checking new position...")
 
-        if (params := self.sig_eval.evaluate(record)) is None:
+        # Evaluate incoming record and return parameters to create new position
+        # if condition met
+        if (params := self.inst_cache["sig_ent_eval"].evaluate(record)) is None:
             return None
 
-        # Get initialized instance of concrete class implementation
-        entry_instance = get_class_instance(
-            self.entry_struct,
-            self.module_paths.get(self.entry_struct),
-            num_lots=self.num_lots,
-        )
+        if self.entry_struct not in self.inst_cache:
+            # Get initialized instance of concrete class implementation
+            self.inst_cache[self.entry_struct] = get_class_instance(
+                self.entry_struct,
+                self.module_paths.get(self.entry_struct),
+                num_lots=self.num_lots,
+            )
+
+        entry_instance = self.inst_cache.get(self.entry_struct)
 
         # Update 'self.open_trades' with new open position
         self.open_trades = entry_instance.open_new_pos(
@@ -455,20 +462,22 @@ class GenTrades(ABC):
     def cal_trailing_profit(self, record: Record) -> None:
         """Compute trailing profit price to protect profit."""
 
-        if self.trail_profit_inst is None:
-            self.trail_profit_inst = get_class_instance(
+        if self.trail_method not in self.inst_cache:
+            self.inst_cache[self.trail_method] = get_class_instance(
                 self.trail_method,
                 self.module_paths.get(self.trail_method),
                 trigger_trail=self.trigger_trail,
                 step=self.step,
             )
 
-        return self.trail_profit_inst.cal_trail_price(self.open_trades, record)
+        trail_profit_inst = self.inst_cache.get(self.trail_method)
+
+        return trail_profit_inst.cal_trail_price(self.open_trades, record)
 
     def take_profit(
         self,
         dt: datetime | pd.Timestamp,
-        ex_sig: PriceAction,
+        exit_signal: PriceAction,
         exit_price: float,
     ) -> CompletedTrades:
         """Close existing open positions based on 'self.exit_struct' method.
@@ -476,7 +485,7 @@ class GenTrades(ABC):
         Args:
             dt (datetime | pd.Timestamp):
                 Trade datetime object.
-            ex_sig (PriceAction):
+            exit_signal (PriceAction):
                 Exit signal generated by 'ExitSignal' class either 'buy', 'sell'
                 or 'wait'.
             exit_price (float):
@@ -491,17 +500,20 @@ class GenTrades(ABC):
         entry_action = get_std_field(self.open_trades, "entry_action")
 
         if (
-            ex_sig == "wait"
-            or (ex_sig == "buy" and entry_action == "buy")
-            or (ex_sig == "sell" and entry_action == "sell")
+            exit_signal == "wait"
+            or (exit_signal == "buy" and entry_action == "buy")
+            or (exit_signal == "sell" and entry_action == "sell")
         ):
             # No completed trades if exit signal is same as entry action
             return []
 
         # Get initialized instance of concrete class implementation
-        exit_instance = get_class_instance(
-            self.exit_struct, self.module_paths.get(self.exit_struct)
-        )
+        if self.exit_struct not in self.inst_cache:
+            self.inst_cache[self.exit_struct] = get_class_instance(
+                self.exit_struct, self.module_paths.get(self.exit_struct)
+            )
+
+        exit_instance = self.inst_cache.get(self.exit_struct)
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = exit_instance.close_pos(
@@ -509,7 +521,8 @@ class GenTrades(ABC):
         )
 
         # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
-        self.sig_eval._reset_records(self.open_trades)
+        self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+        self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
 
         return completed_list
 
@@ -531,10 +544,13 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        # Get initialized instance of concrete class implementation
-        take_all_exit = get_class_instance(
-            "TakeAllExit", self.module_paths.get("TakeAllExit")
-        )
+        if "TakeAllExit" not in self.inst_cache:
+            # Get initialized instance of concrete class implementation
+            self.inst_cache["TakeAllExit"] = get_class_instance(
+                "TakeAllExit", self.module_paths.get("TakeAllExit")
+            )
+
+        take_all_exit = self.inst_cache.get("TakeAllExit")
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = take_all_exit.close_pos(
@@ -544,25 +560,29 @@ class GenTrades(ABC):
         if len(self.open_trades) != 0:
             raise ValueError("Open positions are not closed completely.")
 
-        # Reset trailing profit attribute in 'self.trail_profit_inst
-        self.reset_price_levels()
+        # Reset trailing profit attribute in self.inst_cache['trail_profit_inst']
+        if self.trail_method in self.inst_cache:
+            self.inst_cache[self.trail_method].reset_price_levels()
 
         # Reset 'records' attributes for 'sig_eval' since 'open_trades' is empty
-        self.sig_eval._reset_records(self.open_trades)
+        self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+        self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
 
         return completed_list
 
     def cal_stop_price(self) -> Decimal:
         """Compute price to trigger stop loss."""
 
-        if self.stop_loss_inst is None:
-            self.stop_loss_inst = get_class_instance(
+        if self.stop_method not in self.inst_cache:
+            self.inst_cache[self.stop_method] = get_class_instance(
                 self.stop_method,
                 self.module_paths.get(self.stop_method),
                 percent_loss=self.percent_loss,
             )
 
-        return self.stop_loss_inst.cal_exit_price(self.open_trades)
+        stop_loss_inst = self.inst_cache.get(self.stop_method)
+
+        return stop_loss_inst.cal_exit_price(self.open_trades)
 
     def append_info(
         self,
@@ -737,25 +757,26 @@ class GenTrades(ABC):
 
         return completed_list, trigger_info
 
-    def reset_price_levels(self) -> None:
-        """Set 'trailing_profit' and 'ref_price' attribute for 'self.trail_profit_inst'
-        to None if applicable."""
-
-        if self.trail_profit_inst is not None:
-            self.trail_profit_inst.reset_price_levels()
-
     def init_sig_evaluator(self) -> "SignalEvaluator":
         """Initialize instance of concrete implementation of 'SignalEvaluator'
         abstract class."""
 
-        match self.sig_eval_method:
-            case "BreakoutEntry":
-                params = dict(trigger_percent=self.trigger_percent)
-            case "CloseEntry" | "OpenEntry":
-                params = {}
+        # Initialize entry signal evaluator instance
+        # if "sig_ent_eval" not in self.inst_cache:
+        #     self.inst_cache["sig_ent_eval"] =
 
-        return get_class_instance(
-            self.sig_eval_method,
-            self.module_paths.get(self.sig_eval_method),
-            **params,
-        )
+        for key, sig_type in {
+            "sig_ent_eval": "entry_signal",
+            "sig_ex_eval": "exit_signal",
+        }.items():
+            if key not in self.inst_cache:
+                params = dict(sig_type=sig_type)
+
+                if self.sig_eval_method == "BreakoutEvaluator":
+                    params.update(dict(trigger_percent=self.trigger_percent))
+
+                self.inst_cache[key] = get_class_instance(
+                    self.sig_eval_method,
+                    self.module_paths.get(self.sig_eval_method),
+                    **params,
+                )

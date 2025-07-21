@@ -20,13 +20,13 @@ class CloseEntry(SignalEvaluator):
         # Get datetime, entry price (i.e. close) and entry signal from 'record'
         dt = record.get("date")
         entry_price = record.get("close")
-        ent_sig = record.get("entry_signal")
+        entry_signal = record.get("entry_signal")
 
         # Ensure 'self.records' is empty list
         self.records = []
 
-        if ent_sig not in {"buy", "sell"}:
+        if entry_signal not in {"buy", "sell"}:
             # Exit since no entry signal no entry signal
             return None
 
-        return {"dt": dt, "ent_sig": ent_sig, "entry_price": entry_price}
+        return {"dt": dt, "entry_signal": entry_signal, "entry_price": entry_price}

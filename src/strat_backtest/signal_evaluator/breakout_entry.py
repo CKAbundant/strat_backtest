@@ -45,29 +45,33 @@ class BreakoutEntry(SignalEvaluator):
         dt = record.get("date")
         high = record.get("high")
         low = record.get("low")
-        ent_sig = record.get("entry_signal")
+        entry_signal = record.get("entry_signal")
 
         # Validate if entry signal in 'record' matches with that in 'self.records'
-        self._validate_ent_sig(ent_sig)
+        self._validate_sig(entry_signal, "entry_signal")
 
         # Check if self.records is empty i.e. no prior 'buy' or 'sell' entry signal
         if not self.records:
-            if ent_sig != "wait":
+            if entry_signal != "wait":
                 self.records.append(record)
             return None
 
         # Get existing entry signal, high and low of last record in 'self.records'
-        existing_ent_sig = self._get_existing_ent_sig()
+        existing_entry_signal = self._get_existing_sig("entry_signal")
         prev_high = self.records[-1].get("high")
         prev_low = self.records[-1].get("low")
-        entry_price = self._cal_entry_price(existing_ent_sig, prev_high, prev_low)
+        entry_price = self._cal_entry_price(existing_entry_signal, prev_high, prev_low)
 
-        if (existing_ent_sig == "buy" and high > prev_high) or (
-            existing_ent_sig == "sell" and low < prev_low
+        if (existing_entry_signal == "buy" and high > prev_high) or (
+            existing_entry_signal == "sell" and low < prev_low
         ):
             # Reset records as long signal is confirmed
             self.records = []
-            return {"dt": dt, "ent_sig": existing_ent_sig, "entry_price": entry_price}
+            return {
+                "dt": dt,
+                "entry_signal": existing_entry_signal,
+                "entry_price": entry_price,
+            }
 
         # Append record to 'self.records' as entry signal is not confirmed
         self.records.append(record)
@@ -75,12 +79,12 @@ class BreakoutEntry(SignalEvaluator):
         return None
 
     def _cal_entry_price(
-        self, ent_sig: PriceAction, prev_high: Decimal, prev_low: Decimal
+        self, entry_signal: PriceAction, prev_high: Decimal, prev_low: Decimal
     ) -> Decimal:
         """Calculate entry price based on 'breakout' and 'self.trigger_percent'.
 
         Args:
-            ent_sig (PriceAction):
+            entry_signal (PriceAction):
                 Either "buy" to enter long or "sell" to enter short position.
             prev_high (Decimal):
                 Previous day high.
@@ -93,7 +97,7 @@ class BreakoutEntry(SignalEvaluator):
 
         # Entry price is 0.01 (i.e. 1 bid higher) or (1 + self.trigger_percent) higher
         # for long position
-        if ent_sig == "buy":
+        if entry_signal == "buy":
             entry_price = (
                 prev_high * (1 + self.trigger_percent)
                 if self.trigger_percent

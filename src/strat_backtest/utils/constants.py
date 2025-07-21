@@ -30,6 +30,7 @@ else:
 PriceAction = Literal["buy", "sell", "wait"]
 EntryType = Literal["long", "short", "longshort"]
 ExitType = Literal["stop", "trail"]
+SigType = Literal["entry_signal", "exit_signal"]
 
 
 # Dynamic variables
@@ -77,6 +78,7 @@ __all__ = [
     "PriceAction",
     "EntryType",
     "ExitType",
+    "SigType",
     "SigEvalMethod",
     "EntryMethod",
     "ExitMethod",

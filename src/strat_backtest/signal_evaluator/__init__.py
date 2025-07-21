@@ -7,11 +7,11 @@ short when break below previous day low
 
 from .breakout_entry import BreakoutEntry
 from .close_entry import CloseEntry
-from .open_entry import OpenEntry
+from .open_evaluator import OpenEvaluator
 
 # Public interface
 __all__ = [
     "BreakoutEntry",
     "CloseEntry",
-    "OpenEntry",
+    "OpenEvaluator",
 ]

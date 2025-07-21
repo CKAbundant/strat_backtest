@@ -42,28 +42,34 @@ class SignalEvaluator(ABC):
 
         ...
 
-    def _validate_ent_sig(self, ent_sig: PriceAction) -> None:
-        """Validate if entry signal is consistent with entry signals in 'records' list."""
+    def _validate_sig(self, sig: PriceAction, sig_type: str) -> None:
+        """Validate if entry signal is consistent with entry signals in 'records' list.
 
-        if ent_sig not in {"buy", "sell", "wait"}:
-            raise ValueError(f"{ent_sig} is not a valid price action.")
+        Args:
+            sig (PriceAction): Either 'buy', 'sell' or 'wait'
+            sig_type (str): Either 'entry_signal' or 'exit_signal'.
+
+        Returns:
+            None.
+        """
+
+        if sig not in {"buy", "sell", "wait"}:
+            raise ValueError(f"{existing_sig} is not a valid price action.")
 
         # 'self.records' is empty list or entry signal == "wait"
-        if (
-            existing_ent_sig := self._get_existing_ent_sig()
-        ) is None or ent_sig == "wait":
+        if (existing_sig := self._get_existing_sig(sig_type)) is None or sig == "wait":
             return None
 
-        if ent_sig != existing_ent_sig:
+        if sig != existing_sig:
             raise ValueError(
-                f"entry signal ({ent_sig}) is not consistent with that in "
-                f"'self.records' ({existing_ent_sig})."
+                f"{sig_type} ({sig}) is not consistent with that in "
+                f"'self.records' ({existing_sig})."
             )
 
         return None
 
-    def _get_existing_ent_sig(self) -> PriceAction | None:
-        """Get existing entry signal i.e. whether entry signal is 'buy' or 'sell'.
+    def _get_existing_sig(self, sig_type: str) -> PriceAction | None:
+        """Get existing entry or exit signal i.e. whether signal is 'buy' or 'sell'.
         'wait' is not considered."""
 
         # Return None if records is an empty list
@@ -71,14 +77,14 @@ class SignalEvaluator(ABC):
             return None
 
         # Get set containing unique entry signals
-        counter = Counter([record.get("entry_signal") for record in self.records])
-        ent_set = set(list(counter.keys()))
+        counter = Counter([record.get(sig_type) for record in self.records])
+        sig_set = set(list(counter.keys()))
 
         # Both 'buy' and 'sell' should be present in 'self.records' concurrently
-        if all(price_action in ent_set for price_action in {"buy", "sell"}):
+        if all(price_action in sig_set for price_action in {"buy", "sell"}):
             raise ValueError("Both buy and sell signals are present in 'self.records'.")
 
-        unique_list = list(ent_set - {"wait", None})
+        unique_list = list(sig_set - {"wait", None})
 
         return unique_list[0] if unique_list else None
 

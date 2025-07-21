@@ -196,14 +196,14 @@ def test_take_profit_no_action(
     record = gen_record(sample_gen_trades, exit_signal=exit_sig)
 
     dt = record["date"]
-    ex_sig = record["exit_signal"]
+    exit_signal = record["exit_signal"]
     exit_price = record["close"]  # Assume position closed at closing
 
     # Generate generic test instance
     test_inst = gen_testgentrades_inst(trading_config, risk_config)
 
     # Generate computed 'completed_list'
-    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+    computed_list = test_inst.take_profit(dt, exit_signal, exit_price)
 
     assert computed_list == []
 
@@ -217,7 +217,7 @@ def test_take_profit_fifoexit(
     record = get_date_record(sample_gen_trades, "2025-04-15")
 
     dt = record["date"]
-    ex_sig = record["exit_signal"]
+    exit_signal = record["exit_signal"]
     exit_price = record["close"]  # Assume position closed at closing
 
     # Generate test instance with 'exit_method' == 'FIFOExit'
@@ -226,7 +226,7 @@ def test_take_profit_fifoexit(
     )
 
     # Generate computed and expected 'completed_list'
-    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+    computed_list = test_inst.take_profit(dt, exit_signal, exit_price)
     expected_open_trades, expected_list = gen_take_profit_completed_list(
         open_trades.copy(), dt, exit_price
     )
@@ -476,7 +476,7 @@ def test_iterate_df(trading_config, risk_config, sample_gen_trades):
 
     # Generate generic test instance
     test_inst = gen_testgentrades_inst(
-        trading_config, risk_config, sig_eval_method="OpenEntry"
+        trading_config, risk_config, sig_eval_method="OpenEvaluator"
     )
 
     print(f"{test_inst.sig_eval_method=}")

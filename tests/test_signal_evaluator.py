@@ -6,7 +6,7 @@ from pprint import pformat
 
 import pytest
 
-from strat_backtest.signal_evaluator import BreakoutEntry, CloseEntry, OpenEntry
+from strat_backtest.signal_evaluator import BreakoutEntry, CloseEntry, OpenEvaluator
 
 
 @pytest.mark.parametrize(
@@ -18,15 +18,15 @@ from strat_backtest.signal_evaluator import BreakoutEntry, CloseEntry, OpenEntry
         ("error_records", "buy"),
     ],
 )
-def test_validate_ent_sig(records, price_action, request):
-    """Test if '_validate_ent_sig' throws a ValueError when entry signals are not
+def test_validate_sig(records, price_action, request):
+    """Test if '_validate_entry_signal' throws a ValueError when entry signals are not
     consistent."""
 
     sig_eval = BreakoutEntry()
     sig_eval.records = request.getfixturevalue(records)
 
     with pytest.raises(ValueError):
-        sig_eval._validate_ent_sig(price_action)
+        sig_eval._validate_sig(price_action, "entry_signal")
 
 
 @pytest.mark.parametrize(
@@ -38,7 +38,7 @@ def test_validate_ent_sig(records, price_action, request):
             None,
             {
                 "dt": datetime(2025, 4, 9),
-                "ent_sig": "buy",
+                "entry_signal": "buy",
                 "entry_price": Decimal("190.10"),
             },
         ),
@@ -48,7 +48,7 @@ def test_validate_ent_sig(records, price_action, request):
             0.002,
             {
                 "dt": datetime(2025, 4, 9),
-                "ent_sig": "buy",
+                "entry_signal": "buy",
                 "entry_price": Decimal("190.47"),
             },
         ),
@@ -58,7 +58,7 @@ def test_validate_ent_sig(records, price_action, request):
             None,
             {
                 "dt": datetime(2025, 4, 15),
-                "ent_sig": "sell",
+                "entry_signal": "sell",
                 "entry_price": Decimal("200.89"),
             },
         ),
@@ -68,7 +68,7 @@ def test_validate_ent_sig(records, price_action, request):
             0.002,
             {
                 "dt": datetime(2025, 4, 15),
-                "ent_sig": "sell",
+                "entry_signal": "sell",
                 "entry_price": Decimal("200.5"),
             },
         ),
@@ -127,7 +127,7 @@ def test_breakoutentry_empty(next_day, request):
             "long_success",
             {
                 "dt": datetime(2025, 4, 9),
-                "ent_sig": "buy",
+                "entry_signal": "buy",
                 "entry_price": Decimal("198.59"),
             },
         ),
@@ -158,7 +158,7 @@ def test_closeentry(next_day, expected, request):
             "long_success",
             {
                 "dt": datetime(2025, 4, 9),
-                "ent_sig": "buy",
+                "entry_signal": "buy",
                 "entry_price": Decimal("171.72"),
             },
         ),
@@ -167,7 +167,7 @@ def test_closeentry(next_day, expected, request):
             "short_success",
             {
                 "dt": datetime(2025, 4, 15),
-                "ent_sig": "sell",
+                "entry_signal": "sell",
                 "entry_price": Decimal("201.6"),
             },
         ),
@@ -177,7 +177,7 @@ def test_openentry_success(records, next_day, expected, request):
     """Test if 'evaluate' method for 'OpenEntry' class generate the correct dictionary
     to be used to generate new position."""
 
-    sig_eval = OpenEntry()
+    sig_eval = OpenEvaluator(sig_type="entry_signal")
     next_day_record = request.getfixturevalue(next_day)
 
     # Update records attribute
@@ -191,8 +191,13 @@ def test_openentry_success(records, next_day, expected, request):
     print(f"{expected=}")
     print(f"sig_eval.records after update : {sig_eval.records}")
 
-    assert sig_eval.records == []
+    # If any entry/exit signal for next day record, 'sig_eval.records' = [record] else None
+    expected_records = (
+        [next_day_record] if next_day_record.get("entry_signal") != "wait" else []
+    )
+
     assert output == expected
+    assert sig_eval.records == expected_records
 
 
 @pytest.mark.parametrize(
@@ -202,7 +207,7 @@ def test_openentry_empty(next_day, request):
     """Test if 'evaluate' method for 'BreakoutEntry' class returns None if
     'self.records' is empty list."""
 
-    sig_eval = OpenEntry()
+    sig_eval = OpenEvaluator(sig_type="entry_signal")
     next_day_record = request.getfixturevalue(next_day)
 
     output = sig_eval.evaluate(next_day_record)

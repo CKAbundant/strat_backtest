@@ -132,13 +132,13 @@ def create_new_pos(
     """Update 'open_trades' with trade info from 'record'."""
 
     dt = record["date"]
-    ent_sig = record["entry_signal"]
+    entry_signal = record["entry_signal"]
     entry_price = record["close"]  # Assume create new position at closing price
 
     new_pos = StockTrade(
         ticker="AAPL",
         entry_datetime=dt,
-        entry_action=ent_sig,
+        entry_action=entry_signal,
         entry_lots=convert_to_decimal(num_lots),
         entry_price=convert_to_decimal(entry_price),
     )
