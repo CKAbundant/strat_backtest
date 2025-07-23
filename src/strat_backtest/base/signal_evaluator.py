@@ -61,7 +61,7 @@ class SignalEvaluator(ABC):
         """
 
         if sig not in {"buy", "sell", "wait"}:
-            raise ValueError(f"{existing_sig} is not a valid price action.")
+            raise ValueError(f"{sig} is not a valid price action.")
 
         # 'self.records' is empty list or entry signal == "wait"
         if (existing_sig := self._get_existing_sig(sig_type)) is None or sig == "wait":

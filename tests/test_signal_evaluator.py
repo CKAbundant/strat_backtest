@@ -22,11 +22,12 @@ def test_validate_sig(records, price_action, request):
     """Test if '_validate_entry_signal' throws a ValueError when entry signals are not
     consistent."""
 
-    sig_eval = BreakoutEvaluator()
+    sig_type = "entry_signal"
+    sig_eval = BreakoutEvaluator(sig_type=sig_type)
     sig_eval.records = request.getfixturevalue(records)
 
     with pytest.raises(ValueError):
-        sig_eval._validate_sig(price_action, "entry_signal")
+        sig_eval._validate_sig(price_action, sig_type)
 
 
 @pytest.mark.parametrize(
@@ -80,19 +81,28 @@ def test_breakoutevaluator_success(
     """Test if 'evaluate' method for 'BreakoutEvaluator' class generate the correct dictionary
     to be used to generate new position."""
 
-    sig_eval = BreakoutEvaluator(trigger_percent=trigger_percent)
+    sig_type = "entry_signal"
+    sig_eval = BreakoutEvaluator(trigger_percent=trigger_percent, sig_type=sig_type)
     sig_eval.records = request.getfixturevalue(records)
+    next_day_record = request.getfixturevalue(next_day)
+
     print(f"\n\nsig_eval.records : {pformat(sig_eval.records, sort_dicts=False)}")
     print(f"\nsig_eval.trigger_percent : {sig_eval.trigger_percent}")
+    print(f"next_day_record : {pformat(next_day_record, sort_dicts=False)}")
 
     output = sig_eval.evaluate(request.getfixturevalue(next_day))
+
     print(f"\noutput : {output}")
-    print(f"expected output : {expected}")
+    print(f"expected : {expected}")
     print(
         f"\nsig_eval.records after trade confirmation : {pformat(sig_eval.records, sort_dicts=False)}\n\n"
     )
 
-    assert sig_eval.records == []
+    assert (
+        sig_eval.records == [next_day_record]
+        if next_day_record["entry_signal"] != "wait"
+        else []
+    )
     assert output == expected
 
 
@@ -103,7 +113,8 @@ def test_breakoutevaluator_empty(next_day, request):
     """Test if 'evaluate' method for 'BreakoutEvaluator' class returns None if
     'self.records' is empty list."""
 
-    sig_eval = BreakoutEvaluator()
+    sig_type = "entry_signal"
+    sig_eval = BreakoutEvaluator(sig_type=sig_type)
     next_day_record = request.getfixturevalue(next_day)
 
     output = sig_eval.evaluate(next_day_record)
@@ -145,7 +156,7 @@ def test_breakoutevaluator_empty(next_day, request):
         ),
     ],
 )
-def test_openentry_success(records, next_day, expected, request):
+def test_openevaluator_success(records, next_day, expected, request):
     """Test if 'evaluate' method for 'OpenEntry' class generate the correct dictionary
     to be used to generate new position."""
 
@@ -175,7 +186,7 @@ def test_openentry_success(records, next_day, expected, request):
 @pytest.mark.parametrize(
     "next_day", ["long_success", "long_fail", "short_success", "short_fail"]
 )
-def test_openentry_empty(next_day, request):
+def test_openevaluator_empty(next_day, request):
     """Test if 'evaluate' method for 'BreakoutEvaluator' class returns None if
     'self.records' is empty list."""
 
