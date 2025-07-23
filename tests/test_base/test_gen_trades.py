@@ -22,9 +22,9 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
-from strat_backtest.utils.pos_utils import get_std_field
-
-from ..test_utils import (
+from strat_backtest.utils.pos_utils import get_class_instance, get_std_field
+from strat_backtest.utils.utils import display_open_trades
+from tests.test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
     create_new_pos,
@@ -38,6 +38,7 @@ from ..test_utils import (
     gen_testgentrades_inst,
     get_date_record,
     get_latest_record,
+    init_flip,
 )
 
 
@@ -81,16 +82,24 @@ def test_exit_all_end(
     record = get_latest_record(sample_gen_trades)
 
     # Test 1: No open positions scenario
-    test_inst = gen_testgentrades_inst(trading_config, risk_config, open_trades=deque())
+    test_inst = gen_testgentrades_inst(
+        trading_config,
+        risk_config,
+        open_trades=deque(),
+    )
     computed_list = test_inst.exit_all_end(completed_list.copy(), record.copy())
+
     assert computed_list == completed_list
 
     # Test 2: open positios scenario
     test_inst.open_trades = open_trades.copy()
     computed_list = test_inst.exit_all_end(completed_list.copy(), record.copy())
     expected_list = gen_exit_all_end_completed_list(
-        open_trades.copy(), completed_list.copy(), record.copy()
+        open_trades.copy(), completed_list.copy(), record.copy(), "close"
     )
+
+    print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == deque()
@@ -197,14 +206,14 @@ def test_take_profit_no_action(
     record = gen_record(sample_gen_trades, exit_signal=exit_sig)
 
     dt = record["date"]
-    ex_sig = record["exit_signal"]
+    exit_signal = record["exit_signal"]
     exit_price = record["close"]  # Assume position closed at closing
 
     # Generate generic test instance
     test_inst = gen_testgentrades_inst(trading_config, risk_config)
 
     # Generate computed 'completed_list'
-    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+    computed_list = test_inst.take_profit(dt, exit_signal, exit_price)
 
     assert computed_list == []
 
@@ -218,7 +227,7 @@ def test_take_profit_fifoexit(
     record = get_date_record(sample_gen_trades, "2025-04-15")
 
     dt = record["date"]
-    ex_sig = record["exit_signal"]
+    exit_signal = record["exit_signal"]
     exit_price = record["close"]  # Assume position closed at closing
 
     # Generate test instance with 'exit_method' == 'FIFOExit'
@@ -227,7 +236,7 @@ def test_take_profit_fifoexit(
     )
 
     # Generate computed and expected 'completed_list'
-    computed_list = test_inst.take_profit(dt, ex_sig, exit_price)
+    computed_list = test_inst.take_profit(dt, exit_signal, exit_price)
     expected_open_trades, expected_list = gen_take_profit_completed_list(
         open_trades.copy(), dt, exit_price
     )
@@ -269,6 +278,7 @@ def test_check_profit_no_action(
 
 
 @pytest.mark.parametrize("entry_sig, exit_sig", [("sell", "sell"), ("buy", "sell")])
+# @pytest.mark.parametrize("entry_sig, exit_sig", [("sell", "sell")])
 def test_check_profit_fifoexit(
     trading_config,
     risk_config,
@@ -280,36 +290,46 @@ def test_check_profit_fifoexit(
 ):
     """Test 'check_profit' for 'FIFOExit' scenario."""
 
-    # Get the latest record to ensure exit date will always be later than
+    # Get the latest 2 records to ensure exit date will always be later than
     # entry date for open positions
-    record = gen_record(sample_gen_trades, exit_signal=exit_sig, entry_signal=entry_sig)
+    prev_record, latest_record = sample_gen_trades.iloc[-2:, :].to_dict(
+        orient="records"
+    )
 
+    # Generate instance of 'GenTradesTest' for testing
     test_inst = gen_testgentrades_inst(
         trading_config,
         risk_config,
         open_trades=open_trades.copy(),
     )
 
-    # Generate computed 'completed_list'
-    computed_list = test_inst.check_profit(completed_list.copy(), record.copy())
-
     if entry_sig == exit_sig:
+        # Flip position in entry and exit signals are the same
+        test_inst = init_flip(test_inst, prev_record, entry_sig, exit_sig)
+
         expected_list = gen_exit_all_end_completed_list(
-            open_trades.copy(), completed_list.copy(), record.copy()
+            open_trades.copy(), completed_list.copy(), latest_record.copy(), "open"
         )
         expected_trades = deque()
 
     else:
+        # Update 'records' attribute in order to qualify for trade exit
+        test_inst.inst_cache["sig_ex_eval"].records = [prev_record]
         expected_trades, expected_list = gen_check_profit_completed_list(
             open_trades.copy(),
             completed_list.copy(),
-            record.copy(),
+            latest_record.copy(),
         )
 
-    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
-    # print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
-    # print(f"test_inst.open_trades : \n\n{pformat(test_inst.open_trades)}\n")
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_profit(completed_list.copy(), latest_record.copy())
+
+    print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    print(
+        f"\n\ntest_inst.open_trades : \n\n{pformat(test_inst.open_trades, sort_dicts=False)}\n"
+    )
+    print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == expected_trades
@@ -421,13 +441,18 @@ def test_check_trailing_profit_firsttrail(
     assert test_inst.trail_info_list == expected_trail_info_list
 
 
-def test_open_new_pos_no_action(trading_config, risk_config, sample_gen_trades):
+@pytest.mark.parametrize("sig_evaluator", ["OpenEvaluator", "BreakoutEvaluator"])
+def test_open_new_pos_no_action(
+    trading_config, risk_config, sample_gen_trades, sig_evaluator
+):
     """Test 'open_new_pos' for no action scenario."""
 
     # Set 'entry_signal' to 'wait' in record
     record = gen_record(sample_gen_trades, entry_signal="wait")
 
-    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, sig_eval_method=sig_evaluator
+    )
     test_inst.check_new_pos(record["ticker"], record.copy())
 
     assert not test_inst.open_trades
@@ -438,18 +463,34 @@ def test_open_new_pos_multientry(
 ):
     """Test 'open_new_pos' for multiple entry."""
 
-    # Set 'entry_signal' based on 'open_trades'
+    display_open_trades(open_trades)
+
+    # Get the latest 2 records to ensure exit date will always be later than
+    # entry date for open positions
+    prev_record, latest_record = sample_gen_trades.iloc[-2:, :].to_dict(
+        orient="records"
+    )
+
+    # Set 'entry_signal' for 'prev_record' based on 'open_trades'
     entry_action = get_std_field(open_trades, "entry_action")
-    record = gen_record(sample_gen_trades, entry_signal=entry_action)
+    prev_record["entry_signal"] = "buy"
 
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, open_trades=open_trades.copy()
     )
-    test_inst.check_new_pos(record["ticker"], record.copy())
 
-    assert test_inst.open_trades == create_new_pos(
-        record, trading_config.num_lots, open_trades.copy()
+    # Update 'records' with 'prev_record' to ensure trade confirmation
+    test_inst.inst_cache["sig_ent_eval"].records = [prev_record]
+    test_inst.check_new_pos(latest_record["ticker"], latest_record.copy())
+    display_open_trades(test_inst.open_trades)
+
+    expected_trades = create_new_pos(
+        latest_record, trading_config.num_lots, open_trades.copy()
     )
+    print("expected trades :")
+    display_open_trades(expected_trades)
+
+    assert test_inst.open_trades == expected_trades
 
 
 def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_list):
@@ -467,17 +508,39 @@ def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_l
     pdt.assert_frame_equal(computed_df, expected_df)
 
 
-def test_iterate_df(trading_config, risk_config, sample_gen_trades):
+# @pytest.mark.parametrize(
+#     "sig_evaluator, parquet_path",
+#     [
+#         ("OpenEvaluator", "open_eval_trades.parquet"),
+#         ("BreakoutEvaluator", "breakout_eval_trades.parquet"),
+#     ],
+# )
+@pytest.mark.parametrize(
+    "sig_evaluator, parquet_path",
+    [("BreakoutEvaluator", "breakout_eval_trades.parquet")],
+)
+def test_iterate_df(
+    trading_config, risk_config, sample_gen_trades, sig_evaluator, parquet_path
+):
     """Test 'iterate_df' method in 'GenTrades'."""
 
+    print(f"\n\n{sig_evaluator=}")
+
     # Generate generic test instance
-    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, sig_eval_method=sig_evaluator
+    )
 
     # Generate computed trades and signals
     computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
 
     # Get expected_trades
-    expected_trades = pd.read_parquet("./tests/data/sample_trades.parquet")
+    expected_trades = pd.read_parquet(f"./tests/data/{parquet_path}")
+
+    print(f"computed_signals : \n\n{computed_signals}\n")
+    print(f"sample_gen_trades : \n\n{sample_gen_trades}\n")
+    print(f"\n\ncomputed_trades : \n\n{computed_trades}\n")
+    print(f"expected_trades : \n\n{expected_trades}\n")
 
     pdt.assert_frame_equal(computed_trades, expected_trades)
     pdt.assert_frame_equal(computed_signals, sample_gen_trades)

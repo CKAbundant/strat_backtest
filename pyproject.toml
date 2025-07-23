@@ -17,13 +17,7 @@ dependencies = [
     "pydantic>=2.11.4",
     "numpy>=2.2.6",
     "ta-lib>=0.6.3",
-]
-
-[project.optional-dependencies]
-dev = [
-    "black",
-    "pylint",
-    "pytest",
+    "ipywidgets>=8.1.7",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -46,3 +40,10 @@ max-positional-arguments = 8
 
 [tool.pylint.FORMAT]
 max-line-length = 88  # Match Black's default
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.7",
+    "pytest>=8.3.5",
+    "black",
+]

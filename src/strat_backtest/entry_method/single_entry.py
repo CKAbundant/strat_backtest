@@ -22,10 +22,10 @@ class SingleEntry(EntryStruct):
         >>> ticker = "AAPL"
         >>> dt = datetime(2025, 4, 11)
         >>> entry_price = 200.0
-        >>> ent_sig = "buy"
+        >>> entry_signal = "buy"
         >>> single_entry = SingleEntry(num_lots=1)
         >>> open_trades = single_entry.open_new_pos(
-                open_trades, ticker, dt, entry_price, ent_sig
+                open_trades, ticker, dt, entry_price, entry_signal
             )
     """
 
@@ -34,7 +34,7 @@ class SingleEntry(EntryStruct):
         open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
-        ent_sig: PriceAction,
+        entry_signal: PriceAction,
         entry_price: float,
     ):
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
@@ -47,7 +47,7 @@ class SingleEntry(EntryStruct):
                 Stock ticker to be traded.
             dt (datetime | str):
                 Trade datetime object or string in "YYYY-MM-DD" format.
-            ent_sig (PriceAction):
+            entry_signal (PriceAction):
                 Entry signal i.e. "buy", "sell" or "wait" to create new position.
             entry_price (float):
                 Entry price for stock ticker.
@@ -62,9 +62,9 @@ class SingleEntry(EntryStruct):
             return open_trades
 
         # Create StockTrade object to record new long/short position
-        # based on 'ent_sig'
+        # based on 'entry_signal'
         if stock_trade := self._create_new(
-            open_trades, ticker, dt, ent_sig, entry_price
+            open_trades, ticker, dt, entry_signal, entry_price
         ):
             open_trades.append(stock_trade)
             self._validate_open_trades(open_trades)

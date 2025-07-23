@@ -19,7 +19,7 @@ class TradingStrategy:
         >>> strategy.run()
 
     Args:
-        entry_sig (EntrySignal):
+        entry_signal (EntrySignal):
             Class instance of concrete implementation of 'EntrySignal' abstract class.
         exit_sig (ExitSignal):
             Class instance of concrete implementation of 'ExitSignal'
@@ -28,7 +28,7 @@ class TradingStrategy:
             Class instance of concrete implementation of 'GetTrades' abstract class.
 
     Attributes:
-        entry_sig (EntrySignal):
+        entry_signal (EntrySignal):
             Class instance of concrete implementation of 'EntrySignal' abstract class.
         exit_sig (ExitSignal):
             Class instance of concrete implementation of 'ExitSignal' abstract class.
@@ -38,11 +38,11 @@ class TradingStrategy:
 
     def __init__(
         self,
-        entry_sig: EntrySignal,
+        entry_signal: EntrySignal,
         exit_sig: ExitSignal,
         trades: GenTrades,
     ) -> None:
-        self.entry_sig = entry_sig
+        self.entry_signal = entry_signal
         self.exit_sig = exit_sig
         self.trades = trades
 
@@ -63,7 +63,7 @@ class TradingStrategy:
         """
 
         # Append entry and exit signal
-        df_pa = self.entry_sig.gen_entry_signal(df_ohlcv)
+        df_pa = self.entry_signal.gen_entry_signalnal(df_ohlcv)
         df_pa = self.exit_sig.gen_exit_signal(df_pa)
 
         # Generate trades

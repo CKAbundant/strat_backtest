@@ -3,7 +3,6 @@
 import importlib
 from collections import Counter
 from decimal import Decimal
-from pathlib import Path
 from typing import Any, Type, TypeVar
 
 from strat_backtest.base.stock_trade import StockTrade
@@ -19,8 +18,11 @@ def get_class_instance(
     """Return instance of a class that is initialized with 'params'.
 
     Args:
+        class_name (str):
+            Name of class to create an instance.
         module_path (str):
-            Module path relative from main package e.g. strat_backtest.base.entry_struct..
+            Module path relative from main package e.g.
+            strat_backtest.base.entry_struct.
         **params (dict[str, Any]):
             Arbitrary Keyword input arguments to initialize class instance.
 
@@ -57,7 +59,7 @@ def get_net_pos(open_trades: tuple[StockTrade] | OpenTrades) -> int:
     )
 
 
-def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
+def get_std_field(open_trades: OpenTrades, std_field: str) -> Any:
     """Get standard field (i.e. 'ticker' or 'entry_action') from 'open_trades'."""
 
     counter = Counter([getattr(trade, std_field) for trade in open_trades])
@@ -65,7 +67,7 @@ def get_std_field(open_trades: OpenTrades, std_field: str) -> str:
     if len(counter) > 1:
         raise ValueError(f"'{std_field}' field is not consistent.")
 
-    return "wait" if len(counter) == 0 else list(counter.keys())[0]
+    return list(counter.keys())[0] if len(open_trades) > 0 else None
 
 
 def gen_completed_trade(trade: StockTrade, lots_to_exit: Decimal) -> CompletedTrades:

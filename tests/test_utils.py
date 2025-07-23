@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from pprint import pformat
-from typing import Any
+from typing import Any, TypeVar
 
 import pandas as pd
 
@@ -14,12 +14,20 @@ from strat_backtest.utils.constants import (
     ClosedPositionResult,
     CompletedTrades,
     OpenTrades,
+    PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
+from strat_backtest.utils.pos_utils import (
+    convert_to_decimal,
+    get_class_instance,
+    get_std_field,
+)
+
+# Create generic type variable 'T'
+T = TypeVar("T")
 
 
-class TestGenTrades(GenTrades):
+class GenTradesTest(GenTrades):
     """Concrete implemenation for testing 'GenTrades' abstract class"""
 
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -73,8 +81,8 @@ def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
 
 def gen_testgentrades_inst(
     trading_cfg: TradingConfig, risk_cfg: RiskConfig, **kwargs: Any
-) -> TestGenTrades:
-    """Generate instance of 'TestGenTrades' class.
+) -> GenTradesTest:
+    """Generate instance of 'GenTradesTest' class.
 
     Args:
         trading_cfg (TradingConfig):
@@ -86,13 +94,13 @@ def gen_testgentrades_inst(
             created instance. Only existing attributes will be modified.
 
     Returns:
-        (TestGenTrades):
-            Instance of 'TestGenTrades' class with specified configuration and
+        (GenTradesTest):
+            Instance of 'GenTradesTest' class with specified configuration and
             any additional attributes set via kwargs.
     """
 
-    # Create instance of 'TestGenTrades' with provided trading and risk config
-    gen_trades = TestGenTrades(trading_cfg, risk_cfg)
+    # Create instance of 'GenTradesTest' with provided trading and risk config
+    gen_trades = GenTradesTest(trading_cfg, risk_cfg)
 
     # Set attributes for valid keyword arguments
     for field, attribute in kwargs.items():
@@ -100,6 +108,10 @@ def gen_testgentrades_inst(
             raise AttributeError(f"'{field}' is not a valid attribute for 'GenTrades'.")
 
         setattr(gen_trades, field, attribute)
+
+    if "sig_eval_method" in kwargs:
+        # Re-intialize 'sig_ent_eval' and 'sig_ex_eval' since 'sig_eval_method' has changed
+        gen_trades.init_sig_evaluator()
 
     return gen_trades
 
@@ -132,13 +144,13 @@ def create_new_pos(
     """Update 'open_trades' with trade info from 'record'."""
 
     dt = record["date"]
-    ent_sig = record["entry_signal"]
-    entry_price = record["close"]  # Assume create new position at closing price
+    entry_signal = record["entry_signal"]
+    entry_price = record["open"]  # Assume create new position at open price
 
     new_pos = StockTrade(
         ticker="AAPL",
         entry_datetime=dt,
-        entry_action=ent_sig,
+        entry_action=entry_signal,
         entry_lots=convert_to_decimal(num_lots),
         entry_price=convert_to_decimal(entry_price),
     )
@@ -187,6 +199,7 @@ def gen_exit_all_end_completed_list(
     open_trades: OpenTrades,
     completed_list: CompletedTrades,
     record: Record,
+    price_type: str,
 ) -> CompletedTrades:
     """Generate expected 'completed_list' via 'exit_all_end" method
     at end of trading period.
@@ -203,6 +216,8 @@ def gen_exit_all_end_completed_list(
             before end of trading period.
         record (Record):
             OHLCV info at end of trading period.
+        price (str):
+            Either "open" or "close" price.
 
     Returns:
         expected_list (CompletedTrades):
@@ -210,8 +225,10 @@ def gen_exit_all_end_completed_list(
             trading period.
     """
 
+    # Assume exit signal is confirmed on previous trading day and close all positions at
+    # current trading day open price
     completed_list.extend(
-        gen_takeallexit_completed_list(open_trades, record["date"], record["close"])
+        gen_takeallexit_completed_list(open_trades, record["date"], record[price_type])
     )
 
     return completed_list
@@ -309,7 +326,7 @@ def gen_check_stop_loss_completed_list(
 
     Args:
         params (dict[str, Any]):
-            Dictionary containing parameters to intialize 'TestGenTrades'.
+            Dictionary containing parameters to intialize 'GenTradesTest'.
         completed_list (CompletedTrades):
             List of dictionaries containing completed trades info.
         record (Record):
@@ -323,7 +340,7 @@ def gen_check_stop_loss_completed_list(
             Dictionary containing datetime, trigger price and whether triggered.
     """
 
-    # Generate instance of 'TestGenTrades' with 'stop_method' == 'NearestLoss'
+    # Generate instance of 'GenTradesTest' with 'stop_method' == 'NearestLoss'
     test_inst = gen_testgentrades_inst(**params)
 
     # Convert percent_loss to Decimal
@@ -403,8 +420,10 @@ def gen_check_profit_completed_list(
             trading period.
     """
 
+    # Assume exit signal occurs previous trading day and open position exited at opening
+    # of current trading day
     dt = record["date"]
-    exit_price = record["close"]  # Assume exit position at closing
+    exit_price = record["open"]
 
     expected_trades, expected_list = gen_take_profit_completed_list(
         open_trades, dt, exit_price
@@ -497,7 +516,7 @@ def gen_check_trailing_profit_completed_list(
 
     Args:
         params (dict[str, Any]):
-            Dictionary containing parameters to intialize 'TestGenTrades'.
+            Dictionary containing parameters to intialize 'GenTradesTest'.
         open_trades (OpenTrades):
             Deque list of 'StockTrade' pydantic objects representing open positions.
         completed_list (CompletedTrades):
@@ -513,7 +532,7 @@ def gen_check_trailing_profit_completed_list(
             Dictionary containing datetime, trigger price and whether triggered.
     """
 
-    # Generate instance of 'TestGenTrades' with 'stop_method' == 'FirstTrail'
+    # Generate instance of 'GenTradesTest' with 'stop_method' == 'FirstTrail'
     test_inst = gen_testgentrades_inst(**params)
 
     # Generate expected 'completed_list
@@ -529,3 +548,52 @@ def gen_check_trailing_profit_completed_list(
     return test_inst._update_trigger_status(
         completed_list, record, trailing_price, exit_type="trail"
     )
+
+
+def init_flip(
+    test_inst: T,
+    prev_record: Record,
+    entry_sig: PriceAction,
+    exit_sig: PriceAction,
+) -> T:
+    """Setup instance of 'OpenEvaluator' class in 'test_inst' class instance to flip position.
+
+    - set 'flip' attribute to True
+    - Create instance of 'OpenEvaluator' class and update to 'inst_cache' attribute
+    - Update 'records' attribute for 'OpenEvaluator' instance.
+
+    Args:
+        test_inst (T):
+            Class instance of 'GenTradesTest'.
+        sample_gen_trades (pd.DataFrame):
+            Sample DataFrame used for testing.
+        entry_sig (PriceAction):
+            Either 'buy' or 'sell' for 'entry_signal' in 'records' attribute.
+        exit_sig (PriceAction):
+            Either 'buy' or 'sell' for 'entry_signal' in 'records' attribute.
+
+    Returns:
+        test_inst (T):
+            Class instance with updated 'OpenEvaluator' instance in
+            'inst_cache' attribute.
+    """
+
+    # Set entry and exit signal for 'prev_record' to 'entry_sig' and 'exit_sig'
+    # respectively
+    prev_record["entry_signal"] = entry_sig
+    prev_record["exit_signal"] = exit_sig
+
+    # Set 'flip' flag to True
+    test_inst.flip = True
+
+    # Create instance of 'OpenEvaluator' class and update to 'inst_cache' attribute
+    test_inst.inst_cache["OpenEvaluator"] = get_class_instance(
+        "OpenEvaluator",
+        test_inst.module_paths.get("OpenEvaluator"),
+        sig_type="exit_signal",
+    )
+
+    # Update 'records' attribute of 'OpenEvaluator' instance
+    test_inst.inst_cache["OpenEvaluator"].records = [prev_record]
+
+    return test_inst

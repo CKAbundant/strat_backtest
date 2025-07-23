@@ -27,6 +27,8 @@ def trading_config():
 @pytest.fixture
 def risk_config():
     return RiskConfig(
+        sig_eval_method="OpenEvaluator",
+        trigger_percent=None,
         percent_loss=0.05,
         stop_method="no_stop",
         trail_method="no_trail",
@@ -121,3 +123,186 @@ def stop_info_list():
             "stop_triggered": Decimal("0"),
         },
     ]
+
+
+@pytest.fixture
+def long_records():
+    """Generate sample 'records' list, which contains 'buy' entry signal and
+    updated as an attribute to 'SignalEvaluator' class."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 4),
+            "open": Decimal("193.64"),
+            "high": Decimal("199.62"),
+            "low": Decimal("187.09"),
+            "close": Decimal("188.13"),
+            "entry_signal": "buy",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 7),
+            "open": Decimal("176.97"),
+            "high": Decimal("193.9"),
+            "low": Decimal("174.39"),
+            "close": Decimal("181.22"),
+            "entry_signal": "wait",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 8),
+            "open": Decimal("186.46"),
+            "high": Decimal("190.09"),
+            "low": Decimal("168.99"),
+            "close": Decimal("172.19"),
+            "entry_signal": "buy",
+            "exit_signal": "wait",
+        },
+    ]
+
+
+@pytest.fixture
+def short_records():
+    """Generate sample 'records' list, which contains 'sell' entry signal and
+    updated as an attribute to 'SignalEvaluator' class."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 10),
+            "open": Decimal("188.82"),
+            "high": Decimal("194.52"),
+            "low": Decimal("182.76"),
+            "close": Decimal("190.17"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 11),
+            "open": Decimal("185.86"),
+            "high": Decimal("199.28"),
+            "low": Decimal("185.82"),
+            "close": Decimal("197.89"),
+            "entry_signal": "wait",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 14),
+            "open": Decimal("211.16"),
+            "high": Decimal("212.66"),
+            "low": Decimal("200.90"),
+            "close": Decimal("202.25"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
+        },
+    ]
+
+
+@pytest.fixture
+def error_records():
+    """Generate sample 'records' list, which contains both 'buy' and 'sell'
+    entry signal and  updated as an attribute to 'SignalEvaluator' class."""
+
+    return [
+        {
+            "date": datetime(2025, 4, 10),
+            "open": Decimal("188.82"),
+            "high": Decimal("194.52"),
+            "low": Decimal("182.76"),
+            "close": Decimal("190.17"),
+            "entry_signal": "buy",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 11),
+            "open": Decimal("185.86"),
+            "high": Decimal("199.28"),
+            "low": Decimal("185.82"),
+            "close": Decimal("197.89"),
+            "entry_signal": "wait",
+            "exit_signal": "wait",
+        },
+        {
+            "date": datetime(2025, 4, 14),
+            "open": Decimal("211.16"),
+            "high": Decimal("212.66"),
+            "low": Decimal("200.90"),
+            "close": Decimal("202.25"),
+            "entry_signal": "sell",
+            "exit_signal": "wait",
+        },
+    ]
+
+
+@pytest.fixture
+def long_success():
+    """Next day record for 'long_records' and high above previous high."""
+
+    return {
+        "date": datetime(2025, 4, 9),
+        "open": Decimal("171.72"),
+        "high": Decimal("200.35"),
+        "low": Decimal("171.66"),
+        "close": Decimal("198.59"),
+        "entry_signal": "buy",
+        "exit_signal": "wait",
+    }
+
+
+@pytest.fixture
+def long_fail():
+    """Next day record for 'long_records' and high below previous high."""
+
+    return {
+        "date": datetime(2025, 4, 9),
+        "open": Decimal("171.72"),
+        "high": Decimal("190.09"),
+        "low": Decimal("171.66"),
+        "close": Decimal("189.59"),
+        "entry_signal": "buy",
+        "exit_signal": "wait",
+    }
+
+
+@pytest.fixture
+def short_success():
+    """Next day record for 'short_records'."""
+
+    return {
+        "date": datetime(2025, 4, 15),
+        "open": Decimal("201.6"),
+        "high": Decimal("203.24"),
+        "low": Decimal("199.54"),
+        "close": Decimal("201.88"),
+        "entry_signal": "sell",
+        "exit_signal": "wait",
+    }
+
+
+@pytest.fixture
+def short_fail():
+    """Next day record for 'short_records'."""
+
+    return {
+        "date": datetime(2025, 4, 15),
+        "open": Decimal("201.6"),
+        "high": Decimal("203.24"),
+        "low": Decimal("200.9"),
+        "close": Decimal("201.88"),
+        "entry_signal": "sell",
+        "exit_signal": "wait",
+    }
+
+
+@pytest.fixture
+def no_entry():
+    """Next day record for with no entry signal."""
+
+    return {
+        "date": datetime(2025, 4, 9),
+        "open": Decimal("171.72"),
+        "high": Decimal("200.35"),
+        "low": Decimal("171.66"),
+        "close": Decimal("198.59"),
+        "entry_signal": "wait",
+        "exit_signal": "wait",
+    }

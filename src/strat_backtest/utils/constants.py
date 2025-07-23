@@ -30,6 +30,7 @@ else:
 PriceAction = Literal["buy", "sell", "wait"]
 EntryType = Literal["long", "short", "longshort"]
 ExitType = Literal["stop", "trail"]
+SigType = Literal["entry_signal", "exit_signal"]
 
 
 # Dynamic variables
@@ -45,6 +46,11 @@ class ExitMethod(StrEnum):
     HALF_FIFO = "HalfFIFOExit"
     HALF_LIFO = "HalfLIFOExit"
     TAKE_ALL = "TakeAllExit"
+
+
+class SigEvalMethod(StrEnum):
+    BREAKOUT_ENTRY = "BreakoutEntry"
+    CLOSE_ENTRY = "CloseEntry"
 
 
 class TrailMethod(StrEnum):
@@ -72,6 +78,8 @@ __all__ = [
     "PriceAction",
     "EntryType",
     "ExitType",
+    "SigType",
+    "SigEvalMethod",
     "EntryMethod",
     "ExitMethod",
     "StopMethod",

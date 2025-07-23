@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import ValidationError
 
@@ -35,7 +34,7 @@ class EntryStruct(ABC):
         open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
-        ent_sig: PriceAction,
+        entry_signal: PriceAction,
         entry_price: float,
     ) -> OpenTrades:
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
@@ -48,7 +47,7 @@ class EntryStruct(ABC):
                 Stock ticker to be traded.
             dt (datetime | str):
                 Trade datetime object or string in "YYYY-MM-DD" format.
-            ent_sig (PriceAction):
+            entry_signal (PriceAction):
                 Entry signal i.e. "buy", "sell" or "wait" to create new position.
             entry_price (float):
                 Entry price for stock ticker.
@@ -65,7 +64,7 @@ class EntryStruct(ABC):
         open_trades: OpenTrades,
         ticker: str,
         dt: datetime | str,
-        ent_sig: PriceAction,
+        entry_signal: PriceAction,
         entry_price: float,
         entry_lots: int | None = None,
     ) -> "StockTrade" | None:
@@ -79,7 +78,7 @@ class EntryStruct(ABC):
                 Stock ticker to be traded.
             dt (datetime | str):
                 Trade datetime object or string in "YYYY-MM-DD" format.
-            ent_sig (PriceAction):
+            entry_signal (PriceAction):
                 Entry signal i.e. "buy", "sell" or "wait" to create new position.
             entry_price (float):
                 Entry price for stock ticker.
@@ -96,7 +95,7 @@ class EntryStruct(ABC):
             return StockTrade(
                 ticker=self._validate_ticker(open_trades, ticker),
                 entry_datetime=self._validate_entry_datetime(open_trades, dt),
-                entry_action=self._validate_entry_action(open_trades, ent_sig),
+                entry_action=self._validate_entry_action(open_trades, entry_signal),
                 entry_lots=convert_to_decimal(entry_lots),
                 entry_price=convert_to_decimal(entry_price),
             )
