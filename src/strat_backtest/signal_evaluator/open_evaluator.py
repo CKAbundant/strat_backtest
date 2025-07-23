@@ -40,8 +40,8 @@ class OpenEvaluator(SignalEvaluator):
         open_price = record.get("open")
         price = f"{self.sig_type.split('_')[0]}_price"
 
-        # Reset 'records' to empty list if 'entry_signal' != "wait" else update to
-        # latest record
+        # Reset 'records' to empty list if entry or exit signal != "wait" else update
+        # to latest record
         self.records = [record] if sig != "wait" else []
 
         return {"dt": dt, self.sig_type: existing_sig, price: open_price}

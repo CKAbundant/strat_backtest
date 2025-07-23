@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from pprint import pformat
-from typing import Any
+from typing import Any, TypeVar
 
 import pandas as pd
 
@@ -14,9 +14,17 @@ from strat_backtest.utils.constants import (
     ClosedPositionResult,
     CompletedTrades,
     OpenTrades,
+    PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
+from strat_backtest.utils.pos_utils import (
+    convert_to_decimal,
+    get_class_instance,
+    get_std_field,
+)
+
+# Create generic type variable 'T'
+T = TypeVar("T")
 
 
 class GenTradesTest(GenTrades):
@@ -210,8 +218,10 @@ def gen_exit_all_end_completed_list(
             trading period.
     """
 
+    # Assume exit signal is confirmed on previous trading day and close all positions at
+    # current trading day open price
     completed_list.extend(
-        gen_takeallexit_completed_list(open_trades, record["date"], record["close"])
+        gen_takeallexit_completed_list(open_trades, record["date"], record["open"])
     )
 
     return completed_list
@@ -403,8 +413,10 @@ def gen_check_profit_completed_list(
             trading period.
     """
 
+    # Assume exit signal occurs previous trading day and open position exited at opening
+    # of current trading day
     dt = record["date"]
-    exit_price = record["close"]  # Assume exit position at closing
+    exit_price = record["open"]
 
     expected_trades, expected_list = gen_take_profit_completed_list(
         open_trades, dt, exit_price
@@ -529,3 +541,52 @@ def gen_check_trailing_profit_completed_list(
     return test_inst._update_trigger_status(
         completed_list, record, trailing_price, exit_type="trail"
     )
+
+
+def init_flip(
+    test_inst: T,
+    prev_record: Record,
+    entry_sig: PriceAction,
+    exit_sig: PriceAction,
+) -> T:
+    """Setup instance of 'OpenEvaluator' class in 'test_inst' class instance to flip position.
+
+    - set 'flip' attribute to True
+    - Create instance of 'OpenEvaluator' class and update to 'inst_cache' attribute
+    - Update 'records' attribute for 'OpenEvaluator' instance.
+
+    Args:
+        test_inst (T):
+            Class instance of 'GenTradesTest'.
+        sample_gen_trades (pd.DataFrame):
+            Sample DataFrame used for testing.
+        entry_sig (PriceAction):
+            Either 'buy' or 'sell' for 'entry_signal' in 'records' attribute.
+        exit_sig (PriceAction):
+            Either 'buy' or 'sell' for 'entry_signal' in 'records' attribute.
+
+    Returns:
+        test_inst (T):
+            Class instance with updated 'OpenEvaluator' instance in
+            'inst_cache' attribute.
+    """
+
+    # Set entry and exit signal for 'prev_record' to 'entry_sig' and 'exit_sig'
+    # respectively
+    prev_record["entry_signal"] = entry_sig
+    prev_record["exit_signal"] = exit_sig
+
+    # Set 'flip' flag to True
+    test_inst.flip = True
+
+    # Create instance of 'OpenEvaluator' class and update to 'inst_cache' attribute
+    test_inst.inst_cache["OpenEvaluator"] = get_class_instance(
+        "OpenEvaluator",
+        test_inst.module_paths.get("OpenEvaluator"),
+        sig_type="exit_signal",
+    )
+
+    # Update 'records' attribute of 'OpenEvaluator' instance
+    test_inst.inst_cache["OpenEvaluator"].records = [prev_record]
+
+    return test_inst

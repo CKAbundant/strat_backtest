@@ -120,6 +120,8 @@ class GenTrades(ABC):
             is triggered.
         inst_cache (dict[str, Any]):
             Dictionary to cache instances of class imported dynamically via importlib.
+        flip (bool):
+            Whether to flip position (Default: False).
     """
 
     def __init__(
@@ -134,7 +136,7 @@ class GenTrades(ABC):
         self.monitor_close = trading_cfg.monitor_close
 
         # Risk configuration
-        self.sig_eval_method = risk_cfg.sig_eval_method or "OpenEntry"
+        self.sig_eval_method = risk_cfg.sig_eval_method or "OpenEvaluator"
         self.trigger_percent = convert_to_decimal(risk_cfg.trigger_percent)
         self.percent_loss = risk_cfg.percent_loss
         self.stop_method = risk_cfg.stop_method
@@ -159,6 +161,8 @@ class GenTrades(ABC):
         self.stop_info_list = []
         self.trail_info_list = []
         self.inst_cache = {}
+        self.flip = False
+        self.init_sig_evaluator()
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -211,7 +215,6 @@ class GenTrades(ABC):
         completed_list = []
 
         # Intialize entry and exit signal evaluator if None
-        self.init_sig_evaluator()
         sig_ent_eval = self.inst_cache.get("sig_ent_eval")
         sig_ex_eval = self.inst_cache.get("sig_ex_eval")
 
@@ -350,13 +353,16 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
+        # self.init_sig_evaluator()
         entry_signal = record["entry_signal"]
         exit_signal = record["exit_signal"]
+
+        ex_sig_eval = "OpenEvaluator" if self.flip else "sig_ex_eval"
 
         # Return 'completed_list' unamended if no open position or not exit conditions met
         if (
             len(self.open_trades) == 0
-            or (params := self.inst_cache["sig_ex_eval"].evaluate(record)) is None
+            or (params := self.inst_cache[ex_sig_eval].evaluate(record)) is None
         ):
             return completed_list
 
@@ -368,13 +374,21 @@ class GenTrades(ABC):
                 f"Exit signal '{exit_signal}' is same as entry action '{entry_action}."
             )
 
-        # Exit all open position in order to flip position
-        # If entry_action == 'buy', then exit_signal must be 'sell'
-        # exit_signal != entry_action and != "wait"
-        if exit_signal == entry_signal and exit_signal != "wait":
+        if self.flip:
             completed_list.extend(self.exit_all(params["dt"], params["exit_price"]))
         else:
             completed_list.extend(self.take_profit(**params))
+
+        # Set 'self.flip' flag to true if exit and entry signal are same and not 'wait'
+        if exit_signal == entry_signal and exit_signal != "wait":
+            self.flip = True
+
+            if "OpenEvaluator" not in self.inst_cache:
+                self.inst_cache["OpenEvaluator"] = get_class_instance(
+                    "OpenEvaluator",
+                    self.module_paths.get("OpenEvaluator"),
+                    sig_type="exit_signal",
+                )
 
         return completed_list
 
@@ -500,7 +514,8 @@ class GenTrades(ABC):
         entry_action = get_std_field(self.open_trades, "entry_action")
 
         if (
-            exit_signal == "wait"
+            entry_action is None
+            or exit_signal == "wait"
             or (exit_signal == "buy" and entry_action == "buy")
             or (exit_signal == "sell" and entry_action == "sell")
         ):
@@ -521,8 +536,10 @@ class GenTrades(ABC):
         )
 
         # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
-        self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
-        self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
+        if "sig_ent_eval" in self.inst_cache:
+            self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+        if "sig_ex_eval" in self.inst_cache:
+            self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
 
         return completed_list
 
@@ -565,8 +582,14 @@ class GenTrades(ABC):
             self.inst_cache[self.trail_method].reset_price_levels()
 
         # Reset 'records' attributes for 'sig_eval' since 'open_trades' is empty
-        self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
-        self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
+        if "sig_ent_eval" in self.inst_cache:
+            self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+        if "sig_ex_eval" in self.inst_cache:
+            self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
+
+        # Reset 'self.flip' to False
+        if "OpenEvaluator" in self.inst_cache:
+            self.flip = False
 
         return completed_list
 
@@ -761,6 +784,8 @@ class GenTrades(ABC):
         """Saved instance of concrete implementation of 'SignalEvaluator'
         abstract class to 'self.inst_cache' if not available."""
 
+        print(f"\n\n{self.sig_eval_method=}\n")
+
         params = {
             "sig_ent_eval": "entry_signal",
             "sig_ex_eval": "exit_signal",
@@ -768,13 +793,13 @@ class GenTrades(ABC):
 
         for key, sig_type in params.items():
             if key not in self.inst_cache:
-                params = dict(sig_type=sig_type)
+                input_params = dict(sig_type=sig_type)
 
                 if self.sig_eval_method == "BreakoutEvaluator":
-                    params.update(dict(trigger_percent=self.trigger_percent))
+                    input_params.update(dict(trigger_percent=self.trigger_percent))
 
                 self.inst_cache[key] = get_class_instance(
                     self.sig_eval_method,
                     self.module_paths.get(self.sig_eval_method),
-                    **params,
+                    **input_params,
                 )

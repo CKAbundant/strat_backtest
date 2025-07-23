@@ -67,7 +67,7 @@ def get_std_field(open_trades: OpenTrades, std_field: str) -> Any:
     if len(counter) > 1:
         raise ValueError(f"'{std_field}' field is not consistent.")
 
-    return list(counter.keys())[0]
+    return list(counter.keys())[0] if len(open_trades) > 0 else None
 
 
 def gen_completed_trade(trade: StockTrade, lots_to_exit: Decimal) -> CompletedTrades:

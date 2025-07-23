@@ -22,7 +22,8 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
-from strat_backtest.utils.pos_utils import get_std_field
+from strat_backtest.utils.pos_utils import get_class_instance, get_std_field
+from strat_backtest.utils.utils import display_open_trades
 from tests.test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
@@ -37,6 +38,7 @@ from tests.test_utils import (
     gen_testgentrades_inst,
     get_date_record,
     get_latest_record,
+    init_flip,
 )
 
 
@@ -268,6 +270,7 @@ def test_check_profit_no_action(
 
 
 @pytest.mark.parametrize("entry_sig, exit_sig", [("sell", "sell"), ("buy", "sell")])
+# @pytest.mark.parametrize("entry_sig, exit_sig", [("sell", "sell")])
 def test_check_profit_fifoexit(
     trading_config,
     risk_config,
@@ -279,36 +282,46 @@ def test_check_profit_fifoexit(
 ):
     """Test 'check_profit' for 'FIFOExit' scenario."""
 
-    # Get the latest record to ensure exit date will always be later than
+    # Get the latest 2 records to ensure exit date will always be later than
     # entry date for open positions
-    record = gen_record(sample_gen_trades, exit_signal=exit_sig, entry_signal=entry_sig)
+    prev_record, latest_record = sample_gen_trades.iloc[-2:, :].to_dict(
+        orient="records"
+    )
 
+    # Generate instance of 'GenTradesTest' for testing
     test_inst = gen_testgentrades_inst(
         trading_config,
         risk_config,
         open_trades=open_trades.copy(),
     )
 
-    # Generate computed 'completed_list'
-    computed_list = test_inst.check_profit(completed_list.copy(), record.copy())
-
     if entry_sig == exit_sig:
+        # Flip position in entry and exit signals are the same
+        test_inst = init_flip(test_inst, prev_record, entry_sig, exit_sig)
+
         expected_list = gen_exit_all_end_completed_list(
-            open_trades.copy(), completed_list.copy(), record.copy()
+            open_trades.copy(), completed_list.copy(), latest_record.copy()
         )
         expected_trades = deque()
 
     else:
+        # Update 'records' attribute in order to qualify for trade exit
+        test_inst.inst_cache["sig_ex_eval"].records = [prev_record]
         expected_trades, expected_list = gen_check_profit_completed_list(
             open_trades.copy(),
             completed_list.copy(),
-            record.copy(),
+            latest_record.copy(),
         )
 
-    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
-    # print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
-    # print(f"test_inst.open_trades : \n\n{pformat(test_inst.open_trades)}\n")
+    # Generate computed 'completed_list'
+    computed_list = test_inst.check_profit(completed_list.copy(), latest_record.copy())
+
+    print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+    print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    print(
+        f"\n\ntest_inst.open_trades : \n\n{pformat(test_inst.open_trades, sort_dicts=False)}\n"
+    )
+    print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == expected_trades
@@ -420,7 +433,7 @@ def test_check_trailing_profit_firsttrail(
     assert test_inst.trail_info_list == expected_trail_info_list
 
 
-@pytest.mark.parametrize("sig_evaluator", ["CloseEntry", "OpenEntry", "BreakoutEntry"])
+@pytest.mark.parametrize("sig_evaluator", ["OpenEvaluator", "BreakoutEvaluator"])
 def test_open_new_pos_no_action(
     trading_config, risk_config, sample_gen_trades, sig_evaluator
 ):
@@ -503,3 +516,12 @@ def test_iterate_df(
 
     pdt.assert_frame_equal(computed_trades, expected_trades)
     pdt.assert_frame_equal(computed_signals, sample_gen_trades)
+
+
+def test_init_sig_evaluator(trading_config, risk_config):
+    # Generate generic test instance
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, sig_eval_method="BreakoutEvaluator"
+    )
+
+    test_inst.init_sig_evaluator()
