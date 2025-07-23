@@ -109,6 +109,10 @@ def gen_testgentrades_inst(
 
         setattr(gen_trades, field, attribute)
 
+    if "sig_eval_method" in kwargs:
+        # Re-intialize 'sig_ent_eval' and 'sig_ex_eval' since 'sig_eval_method' has changed
+        gen_trades.init_sig_evaluator()
+
     return gen_trades
 
 
@@ -141,7 +145,7 @@ def create_new_pos(
 
     dt = record["date"]
     entry_signal = record["entry_signal"]
-    entry_price = record["close"]  # Assume create new position at closing price
+    entry_price = record["open"]  # Assume create new position at open price
 
     new_pos = StockTrade(
         ticker="AAPL",
@@ -195,6 +199,7 @@ def gen_exit_all_end_completed_list(
     open_trades: OpenTrades,
     completed_list: CompletedTrades,
     record: Record,
+    price_type: str,
 ) -> CompletedTrades:
     """Generate expected 'completed_list' via 'exit_all_end" method
     at end of trading period.
@@ -211,6 +216,8 @@ def gen_exit_all_end_completed_list(
             before end of trading period.
         record (Record):
             OHLCV info at end of trading period.
+        price (str):
+            Either "open" or "close" price.
 
     Returns:
         expected_list (CompletedTrades):
@@ -221,7 +228,7 @@ def gen_exit_all_end_completed_list(
     # Assume exit signal is confirmed on previous trading day and close all positions at
     # current trading day open price
     completed_list.extend(
-        gen_takeallexit_completed_list(open_trades, record["date"], record["open"])
+        gen_takeallexit_completed_list(open_trades, record["date"], record[price_type])
     )
 
     return completed_list

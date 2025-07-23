@@ -215,8 +215,8 @@ class GenTrades(ABC):
         completed_list = []
 
         # Intialize entry and exit signal evaluator if None
-        sig_ent_eval = self.inst_cache.get("sig_ent_eval")
-        sig_ex_eval = self.inst_cache.get("sig_ex_eval")
+        sig_ent_eval = self.inst_cache["sig_ent_eval"]
+        sig_ex_eval = self.inst_cache["sig_ex_eval"]
 
         for record in df.itertuples(index=True, name=None):
             # Create mapping for attribute to its values and check if end of DataFrame
@@ -225,17 +225,12 @@ class GenTrades(ABC):
 
             idx = info["idx"]
             dt = info["date"]
-            # close = info["close"]
-            # entry_signal = info["entry_signal"]
-            # exit_signal = info["exit_signal"]
 
             print(f"\n\nidx : {idx}")
             print(f"dt : {dt}")
             print(f"sig_ent_eval.records : {sig_ent_eval.records}")
             print(f"sig_ex_eval.records : {sig_ex_eval.records}")
-            # print(f"close : {close}")
-            # print(f"entry_signal : {entry_signal}")
-            # print(f"exit_signal : {exit_signal}")
+
             print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Close off all open positions at end of trading period
@@ -353,7 +348,6 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        # self.init_sig_evaluator()
         entry_signal = record["entry_signal"]
         exit_signal = record["exit_signal"]
 
@@ -449,6 +443,7 @@ class GenTrades(ABC):
         """
 
         print("Checking new position...")
+        print(f"self.inst_cache : \n\n{self.inst_cache}\n")
 
         # Evaluate incoming record and return parameters to create new position
         # if condition met
@@ -780,11 +775,9 @@ class GenTrades(ABC):
 
         return completed_list, trigger_info
 
-    def init_sig_evaluator(self) -> "SignalEvaluator":
+    def init_sig_evaluator(self) -> None:
         """Saved instance of concrete implementation of 'SignalEvaluator'
         abstract class to 'self.inst_cache' if not available."""
-
-        print(f"\n\n{self.sig_eval_method=}\n")
 
         params = {
             "sig_ent_eval": "entry_signal",
@@ -792,14 +785,13 @@ class GenTrades(ABC):
         }
 
         for key, sig_type in params.items():
-            if key not in self.inst_cache:
-                input_params = dict(sig_type=sig_type)
+            input_params = dict(sig_type=sig_type)
 
-                if self.sig_eval_method == "BreakoutEvaluator":
-                    input_params.update(dict(trigger_percent=self.trigger_percent))
+            if self.sig_eval_method == "BreakoutEvaluator":
+                input_params.update(dict(trigger_percent=self.trigger_percent))
 
-                self.inst_cache[key] = get_class_instance(
-                    self.sig_eval_method,
-                    self.module_paths.get(self.sig_eval_method),
-                    **input_params,
-                )
+            self.inst_cache[key] = get_class_instance(
+                self.sig_eval_method,
+                self.module_paths.get(self.sig_eval_method),
+                **input_params,
+            )
