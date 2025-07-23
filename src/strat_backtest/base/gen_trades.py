@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from pprint import pformat
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -19,8 +18,6 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
     SigEvalMethod,
-    SigType,
-    StopMethod,
     TrailMethod,
 )
 from strat_backtest.utils.file_utils import set_decimal_type
@@ -206,7 +203,8 @@ class GenTrades(ABC):
                 DataFrame containing updated exit signals based on price-related stops.
         """
 
-        # Filter required columns i.e. date, open, high, low, close, entry and exit signal
+        # Filter required columns i.e. date, open, high, low, close, entry
+        # and exit signal
         df = df_signals.copy()
         df = df.loc[:, self.req_cols]
 
@@ -250,7 +248,8 @@ class GenTrades(ABC):
             display_open_trades(self.open_trades)
 
             # print(
-            #     f"\n\nself.stop_info_list : \n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
+            #     "\n\nself.stop_info_list : "
+            #     f"\n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
             # )
 
         # Append stop loss price and trailing price if available
@@ -353,7 +352,8 @@ class GenTrades(ABC):
 
         ex_sig_eval = "OpenEvaluator" if self.flip else "sig_ex_eval"
 
-        # Return 'completed_list' unamended if no open position or not exit conditions met
+        # Return 'completed_list' unamended if no open position or not exit
+        # conditions met
         if (
             len(self.open_trades) == 0
             or (params := self.inst_cache[ex_sig_eval].evaluate(record)) is None
@@ -468,7 +468,9 @@ class GenTrades(ABC):
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
 
-    def cal_trailing_profit(self, record: Record) -> None:
+        return None
+
+    def cal_trailing_profit(self, record: Record) -> Decimal | None:
         """Compute trailing profit price to protect profit."""
 
         if self.trail_method not in self.inst_cache:
@@ -511,8 +513,7 @@ class GenTrades(ABC):
         if (
             entry_action is None
             or exit_signal == "wait"
-            or (exit_signal == "buy" and entry_action == "buy")
-            or (exit_signal == "sell" and entry_action == "sell")
+            or (exit_signal in {"buy", "sell"} and exit_signal == entry_action)
         ):
             # No completed trades if exit signal is same as entry action
             return []
@@ -532,9 +533,9 @@ class GenTrades(ABC):
 
         # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
         if "sig_ent_eval" in self.inst_cache:
-            self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+            self.inst_cache["sig_ent_eval"].reset_records(self.open_trades)
         if "sig_ex_eval" in self.inst_cache:
-            self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
+            self.inst_cache["sig_ex_eval"].reset_records(self.open_trades)
 
         return completed_list
 
@@ -578,9 +579,9 @@ class GenTrades(ABC):
 
         # Reset 'records' attributes for 'sig_eval' since 'open_trades' is empty
         if "sig_ent_eval" in self.inst_cache:
-            self.inst_cache["sig_ent_eval"]._reset_records(self.open_trades)
+            self.inst_cache["sig_ent_eval"].reset_records(self.open_trades)
         if "sig_ex_eval" in self.inst_cache:
-            self.inst_cache["sig_ex_eval"]._reset_records(self.open_trades)
+            self.inst_cache["sig_ex_eval"].reset_records(self.open_trades)
 
         # Reset 'self.flip' to False
         if "OpenEvaluator" in self.inst_cache:
@@ -660,7 +661,8 @@ class GenTrades(ABC):
             script_path (str):
                 Relative path to python script containig required module.
             main_pkg (str):
-                Name of main package to generate module path (Default: "strat_backtest").
+                Name of main package to generate module path
+                (Default: "strat_backtest").
 
         Returns:
             module_info (dict[str, str]):
@@ -785,10 +787,10 @@ class GenTrades(ABC):
         }
 
         for key, sig_type in params.items():
-            input_params = dict(sig_type=sig_type)
+            input_params = {"sig_type": sig_type}
 
             if self.sig_eval_method == "BreakoutEvaluator":
-                input_params.update(dict(trigger_percent=self.trigger_percent))
+                input_params.update({"trigger_percent": self.trigger_percent})
 
             self.inst_cache[key] = get_class_instance(
                 self.sig_eval_method,

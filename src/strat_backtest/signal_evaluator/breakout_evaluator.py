@@ -47,7 +47,7 @@ class BreakoutEvaluator(SignalEvaluator):
 
         # Get datetime, high, low, close and entry signal from 'record'
         dt = record.get("date")
-        open = record.get("open")
+        op = record.get("open")
         high = record.get("high")
         low = record.get("low")
         sig = record.get(self.sig_type)
@@ -61,14 +61,15 @@ class BreakoutEvaluator(SignalEvaluator):
                 self.records.append(record)
             return None
 
-        # Get existing entry or exit signal, high and low of last record in 'self.records'
+        # Get existing entry or exit signal, high and low of last record in
+        # 'self.records'
         existing_sig = self._get_existing_sig(self.sig_type)
         prev_high = self.records[-1].get("high")
         prev_low = self.records[-1].get("low")
 
         # Compute price to take action
         price = f"{self.sig_type.split('_')[0]}_price"
-        action_price = self._cal_action_price(existing_sig, prev_high, prev_low, open)
+        action_price = self._cal_action_price(existing_sig, prev_high, prev_low, op)
 
         if (existing_sig == "buy" and high > prev_high) or (
             existing_sig == "sell" and low < prev_low

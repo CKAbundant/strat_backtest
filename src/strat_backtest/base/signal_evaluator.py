@@ -88,14 +88,29 @@ class SignalEvaluator(ABC):
         sig_set = set(list(counter.keys()))
 
         # Both 'buy' and 'sell' should be present in 'self.records' concurrently
-        if all(price_action in sig_set for price_action in {"buy", "sell"}):
+        if all(price_action in sig_set for price_action in ["buy", "sell"]):
             raise ValueError("Both buy and sell signals are present in 'self.records'.")
 
         unique_list = list(sig_set - {"wait", None})
 
         return unique_list[0] if unique_list else None
 
-    def _reset_records(self, open_trades: OpenTrades) -> None:
+    def _validate_empty_records(self, sig: SigType, record: Record) -> bool:
+        """Return True if 'records' is empty list. Append 'record' to 'records'
+        if 'records' is not empty."""
+
+        # Validate if entry signal in 'record' matches with that in 'self.records'
+        self._validate_sig(sig, self.sig_type)
+
+        # Check if self.records is empty i.e. no prior 'buy' or 'sell' entry signal
+        if not self.records:
+            if sig != "wait":
+                self.records.append(record)
+            return True
+
+        return False
+
+    def reset_records(self, open_trades: OpenTrades) -> None:
         """Set self.records to empty list if 'open_trades' is empty
         i.e. no open positions."""
 

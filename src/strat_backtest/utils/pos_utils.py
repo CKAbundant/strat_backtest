@@ -3,7 +3,6 @@
 import importlib
 from collections import Counter
 from decimal import Decimal
-from pathlib import Path
 from typing import Any, Type, TypeVar
 
 from strat_backtest.base.stock_trade import StockTrade
@@ -22,7 +21,8 @@ def get_class_instance(
         class_name (str):
             Name of class to create an instance.
         module_path (str):
-            Module path relative from main package e.g. strat_backtest.base.entry_struct..
+            Module path relative from main package e.g.
+            strat_backtest.base.entry_struct.
         **params (dict[str, Any]):
             Arbitrary Keyword input arguments to initialize class instance.
 

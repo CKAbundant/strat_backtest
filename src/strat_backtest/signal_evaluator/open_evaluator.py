@@ -7,16 +7,13 @@
 from typing import Any
 
 from strat_backtest.base import SignalEvaluator
-from strat_backtest.utils.constants import Record, SigType
+from strat_backtest.utils.constants import Record
 
 
 class OpenEvaluator(SignalEvaluator):
     """Open a new position or close existing opn position at
     market opening on next trading day.
     """
-
-    def __init__(self, sig_type: SigType) -> None:
-        super().__init__(sig_type)
 
     def evaluate(self, record: Record) -> dict[str, Any] | None:
         """Return dictionary (excluding ticker) required to open new position
@@ -26,13 +23,8 @@ class OpenEvaluator(SignalEvaluator):
         dt = record.get("date")
         sig = record.get(self.sig_type)
 
-        # Validate if entry signal in 'record' matches with that in 'self.records'
-        self._validate_sig(sig, self.sig_type)
-
-        # Check if self.records is empty i.e. no prior 'buy' or 'sell' entry signal
-        if not self.records:
-            if sig != "wait":
-                self.records.append(record)
+        # Validate empty records
+        if self._validate_empty_records(sig, record):
             return None
 
         # Get existing entry or exit signal, opening price and entry or exit price
