@@ -508,16 +508,12 @@ def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_l
     pdt.assert_frame_equal(computed_df, expected_df)
 
 
-# @pytest.mark.parametrize(
-#     "sig_evaluator, parquet_path",
-#     [
-#         ("OpenEvaluator", "open_eval_trades.parquet"),
-#         ("BreakoutEvaluator", "breakout_eval_trades.parquet"),
-#     ],
-# )
 @pytest.mark.parametrize(
     "sig_evaluator, parquet_path",
-    [("BreakoutEvaluator", "breakout_eval_trades.parquet")],
+    [
+        ("OpenEvaluator", "open_eval_trades.parquet"),
+        ("BreakoutEvaluator", "breakout_eval_trades.parquet"),
+    ],
 )
 def test_iterate_df(
     trading_config, risk_config, sample_gen_trades, sig_evaluator, parquet_path
