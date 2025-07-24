@@ -29,6 +29,7 @@ class HalfLIFOExit(HalfExitStruct):
         open_trades: OpenTrades,
         dt: datetime,
         exit_price: float,
+        _entry_dt: datetime | None = None,
     ) -> ClosedPositionResult:
         """Update existing StockTrade objects (still open); and remove completed
         StockTrade objects in 'open_trades'.
@@ -40,6 +41,8 @@ class HalfLIFOExit(HalfExitStruct):
                 Trade datetime object.
             exit_price (float):
                 Exit price of stock ticker.
+            _entry_dt (datetime | None):
+                If provided, datetime when position is opened.
 
         Returns:
             open_trades (OpenTrades):

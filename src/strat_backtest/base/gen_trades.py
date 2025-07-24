@@ -18,6 +18,7 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
     SigEvalMethod,
+    StopMethod,
     TrailMethod,
 )
 from strat_backtest.utils.file_utils import set_decimal_type
@@ -31,6 +32,7 @@ from strat_backtest.utils.utils import display_open_trades
 
 if TYPE_CHECKING:
     from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit
+    from strat_backtest.base.stock_trade import StockTrade
     from strat_backtest.utils import OpenTrades
 
 
@@ -51,7 +53,7 @@ class RiskConfig:
     sig_eval_method: SigEvalMethod = "CloseEntry"
     trigger_percent: float | None = None
     percent_loss: float = 0.05
-    stop_method: ExitMethod = "no_stop"
+    stop_method: StopMethod = "no_stop"
     trail_method: TrailMethod = "no_trail"
     trigger_trail: float = 0.2
     step: float | None = None
@@ -84,8 +86,7 @@ class GenTrades(ABC):
             Whether to apply "FIFOExit", "LIFOExit", "HalfFIFOExit", "HalfLIFOExit",
             or "TakeAllExit".
         sig_evaL_method (SigEvalMethod):
-            Whether to apply "CloseEvaluator", "OpenEvaluator", "BreakoutEntry", or
-            "BreakoutExit".
+            Whether to apply "OpenEvaluator", or "BreakoutEvaluator".
         trigger_percent (Decimal):
             If provided, offset percentage for trade confirmation.
         num_lots (int):
@@ -95,7 +96,7 @@ class GenTrades(ABC):
             (Default: True).
         percent_loss (float):
             Percentage loss allowed for investment (Default: 0.05).
-        stop_method (ExitMethod):
+        stop_method (StopMethod):
             Exit method to generate stop price (Default: "no_stop").
         trail_method (TrailMethod):
             Exit method to generate trailing profit price (Default: "no_trail").
@@ -161,6 +162,12 @@ class GenTrades(ABC):
         self.flip = False
         self.init_sig_evaluator()
 
+        # Create instance of 'FixedLoss' class if 'self.exit_struct' == 'FixedLoss'
+        if self.exit_struct == "FixedExit":
+            self.inst_cache[self.exit_struct] = get_class_instance(
+                self.exit_struct, self.module_paths.get(self.exit_struct)
+            )
+
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Generate DataFrame containing completed trades for given strategy.
@@ -206,7 +213,7 @@ class GenTrades(ABC):
         # Filter required columns i.e. date, open, high, low, close, entry
         # and exit signal
         df = df_signals.copy()
-        df = df.loc[:, self.req_cols]
+        df = self._validate_req_cols(df)
 
         # Convert numeric type to Decimal
         df = set_decimal_type(df)
@@ -316,6 +323,13 @@ class GenTrades(ABC):
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
             return completed_list
 
+        if self.exit_struct == "FixedExit":
+            fixed_exit = self.inst_cache.get("FixedExit")
+            self.open_trades, completed_list = fixed_exit.check_all_stop(
+                self.open_trades, completed_list, record
+            )
+            return completed_list
+
         # Compute stop loss price based on 'self.stop_method'
         stop_price = self.cal_stop_price()
 
@@ -346,6 +360,15 @@ class GenTrades(ABC):
             completed_list (CompletedTrades):
                 List of dictionary containing required fields to generate DataFrame.
         """
+
+        # No flipping of position for 'FixedExit' cos 'exit_signal' is always 'wait' i.e.
+        # Exit position based strictly on pre-determined target profit
+        if self.exit_struct == "FixedExit":
+            fixed_exit = self.inst_cache.get("FixedExit")
+            self.open_trades, completed_list = fixed_exit.check_all_profit(
+                self.open_trades, completed_list, record
+            )
+            return completed_list
 
         entry_signal = record["entry_signal"]
         exit_signal = record["exit_signal"]
@@ -464,6 +487,13 @@ class GenTrades(ABC):
         self.open_trades = entry_instance.open_new_pos(
             self.open_trades, ticker, **params
         )
+
+        # Update profit and stop level for open position based on entry date
+        if self.exit_struct == "FixedExit":
+            fixed_exit = self.inst_cache.get(self.exit_struct)
+            fixed_exit.update_exit_levels(
+                params["dt"], record["profit"], record["stop"]
+            )
 
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
@@ -738,11 +768,6 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
 
-        # print(f"\n\n\n{self.monitor_close=}")
-        # print(f"{entry_action=}")
-        # print(f"{close=}")
-        # print(f"{trigger_price=}")
-
         # List of exit conditions
         cond_list = [
             self.monitor_close and entry_action == "buy" and close < trigger_price,
@@ -757,12 +782,6 @@ class GenTrades(ABC):
 
         # Exit all open positions if any condition in 'cond_list' is true
         if any(cond_list):
-            # exit_action = "sell" if entry_action == "buy" else "buy"
-            # print(
-            #     f"\n{exit_type.title()} triggered -> "
-            #     f"{exit_action} @ {exit_type} price {trigger_price}\n"
-            # )
-
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")
 
@@ -797,3 +816,18 @@ class GenTrades(ABC):
                 self.module_paths.get(self.sig_eval_method),
                 **input_params,
             )
+
+    def _validate_req_cols(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Ensure all columns in 'self.req_cols' are present in DataFrame; and return
+        filtered DataFrame based on 'self.req_cols' columns."""
+
+        # 'profit' and 'stop' columns are required if exit_struct is 'FixedExit'
+        if self.exit_struct == "FixedExit":
+            self.req_cols.append(["profit", "stop"])
+
+        not_available = [col for col in self.req_cols if col not in df.columns]
+
+        if not_available:
+            raise KeyError(f"{not_available} are not found in DataFrame.")
+
+        return df.loc[:, self.req_cols]
