@@ -4,13 +4,22 @@
 - Closed specific position based on 'entry_dt' i.e. datetime when position is opened.
 """
 
+from __future__ import annotations
+
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from strat_backtest.base import ExitStruct
-from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades, Record
+from strat_backtest.utils.constants import (
+    ClosedPositionResult,
+    OpenTrades,
+    PriceAction,
+    Record,
+)
 from strat_backtest.utils.pos_utils import (
     convert_to_decimal,
     get_std_field,
@@ -33,6 +42,7 @@ class FixedExit(ExitStruct):
     Args:
         monitor_close (bool):
             Whether to monitor close price ("close") or both high and low price
+            (Default: False).
 
     Attributes:
         monitor_close (bool):
@@ -46,7 +56,7 @@ class FixedExit(ExitStruct):
 
     """
 
-    def __init__(self, monitor_close: bool) -> None:
+    def __init__(self, monitor_close: bool = False) -> None:
         self.monitor_close = monitor_close
         self.pos_dict = {}
         self.exit_levels = {}
@@ -101,9 +111,29 @@ class FixedExit(ExitStruct):
         return open_trades, completed_trades
 
     def update_exit_levels(
-        self, entry_dt: datetime, profit_level: Decimal, stop_level: Decimal
+        self,
+        entry_dt: datetime | pd.Timestamp,
+        entry_price: Decimal,
+        stop_level: Decimal,
     ) -> None:
-        """Update fixed profit and stop level when new position is created."""
+        """Update fixed profit and stop level when new position is created.
+
+        Args:
+            entry_dt (datetime | pd.Timestamp): Datetime when position is opened.
+            entry_price (Decimal): Entry price.
+            stop_level (Decimal): User defined stop loss level.
+
+        Returns:
+            None.
+        """
+
+        # 1:1 risk profit
+        profit_level = 2 * entry_price - stop_level
+
+        # Ensure entry_dt is datetime type
+        entry_dt = (
+            entry_dt.to_pydatetime() if isinstance(entry_dt, pd.Timestamp) else entry_dt
+        )
 
         self.exit_levels[entry_dt] = (profit_level, stop_level)
 
@@ -192,7 +222,6 @@ class FixedExit(ExitStruct):
             return deque(), completed_list
 
         dt = record["date"]
-        close = convert_to_decimal(record["close"])
         low = convert_to_decimal(record["low"])
         high = convert_to_decimal(record["high"])
 
@@ -220,19 +249,3 @@ class FixedExit(ExitStruct):
                 self.exit_levels.pop(entry_dt)
 
         return open_trades, completed_list
-
-    def _validate(entry_action, profit_level, stop_level) -> None:
-        """Ensure that profit level is higher than stop level for long position;
-        and vice versa for short positions."""
-
-        if entry_action == "buy" and profit_level < stop_level:
-            raise ValueError(
-                f"profit level ({profit_level}) < stop level ({stop_level}) "
-                "for long position"
-            )
-
-        if entry_action == "sell" and profit_level > stop_level:
-            raise ValueError(
-                f"profit level ({profit_level}) > stop level ({stop_level}) "
-                "for short position"
-            )
