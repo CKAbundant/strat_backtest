@@ -243,8 +243,9 @@ class FixedExit(ExitStruct):
             return deque(), completed_list
 
         dt = record["date"]
-        low = convert_to_decimal(record["low"])
+        open = convert_to_decimal(record["open"])
         high = convert_to_decimal(record["high"])
+        low = convert_to_decimal(record["low"])
         updated_levels = {}
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
@@ -254,14 +255,25 @@ class FixedExit(ExitStruct):
             # Validate profit and stop level
             self._validate_level(entry_action, profit_level, stop_level)
 
-            # List of profit conditions
-            profit_cond_list = [
-                entry_action == "buy" and high >= profit_level,
-                entry_action == "sell" and low <= profit_level,
-            ]
+            # Check if profit conditions met upon market opening
+            if (
+                entry_action == "buy"
+                and open >= profit_level
+                or entry_action == "sell"
+                and open <= profit_level
+            ):
+                open_trades, updated_list = self.close_pos(
+                    open_trades, dt, open, entry_dt
+                )
+                completed_list.extend(updated_list)
 
             # Exit position if any profit conditions are met
-            if any(profit_cond_list):
+            elif (
+                entry_action == "buy"
+                and high >= profit_level
+                or entry_action == "sell"
+                and low <= profit_level
+            ):
                 open_trades, updated_list = self.close_pos(
                     open_trades, dt, profit_level, entry_dt
                 )
