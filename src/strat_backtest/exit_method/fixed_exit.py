@@ -164,34 +164,55 @@ class FixedExit(ExitStruct):
             return deque(), completed_list
 
         dt = record["date"]
+        open = convert_to_decimal(record["open"])
         close = convert_to_decimal(record["close"])
         low = convert_to_decimal(record["low"])
         high = convert_to_decimal(record["high"])
+        updated_levels = {}
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(open_trades, "entry_action")
 
-        for entry_dt, (profit_level, stop_level) in self.exit_levels:
+        for entry_dt, (profit_level, stop_level) in self.exit_levels.items():
             # Validate profit and stop level
-            self._validate(entry_action, profit_level, stop_level)
+            self._validate_level(entry_action, profit_level, stop_level)
+
+            # Check if stop loss triggered upon market opening
+            check_open_cond = (
+                entry_action == "buy"
+                and open <= stop_level
+                or entry_action == "sell"
+                and open >= stop_level
+            )
 
             # List of stop loss conditions
             stop_cond_list = [
-                self.monitor_close and entry_action == "buy" and close < stop_level,
-                self.monitor_close and entry_action == "sell" and close > stop_level,
-                not self.monitor_close and entry_action == "buy" and low < stop_level,
-                not self.monitor_close and entry_action == "sell" and high > stop_level,
+                self.monitor_close and entry_action == "buy" and close <= stop_level,
+                self.monitor_close and entry_action == "sell" and close >= stop_level,
+                not self.monitor_close and entry_action == "buy" and low <= stop_level,
+                not self.monitor_close
+                and entry_action == "sell"
+                and high >= stop_level,
             ]
 
             # Ensure position is exited first as long any stop loss conditions are met
-            if any(stop_cond_list):
+            if check_open_cond:
+                open_trades, updated_list = self.close_pos(
+                    open_trades, dt, open, entry_dt
+                )
+                completed_list.extend(updated_list)
+
+            elif any(stop_cond_list):
                 open_trades, updated_list = self.close_pos(
                     open_trades, dt, stop_level, entry_dt
                 )
                 completed_list.extend(updated_list)
 
-                # Remove profit and stop level once position is closed
-                self.exit_levels.pop(entry_dt)
+            else:
+                updated_levels[entry_dt] = (profit_level, stop_level)
+
+        # Update 'exit_levels' to include only entry dates with open position
+        self.exit_levels = updated_levels
 
         return open_trades, completed_list
 
@@ -224,18 +245,19 @@ class FixedExit(ExitStruct):
         dt = record["date"]
         low = convert_to_decimal(record["low"])
         high = convert_to_decimal(record["high"])
+        updated_levels = {}
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(open_trades, "entry_action")
 
-        for entry_dt, (profit_level, stop_level) in self.exit_levels:
+        for entry_dt, (profit_level, stop_level) in self.exit_levels.items():
             # Validate profit and stop level
-            self._validate(entry_action, profit_level, stop_level)
+            self._validate_level(entry_action, profit_level, stop_level)
 
             # List of profit conditions
             profit_cond_list = [
-                entry_action == "buy" and high > profit_level,
-                entry_action == "sell" and low < profit_level,
+                entry_action == "buy" and high >= profit_level,
+                entry_action == "sell" and low <= profit_level,
             ]
 
             # Exit position if any profit conditions are met
@@ -245,7 +267,28 @@ class FixedExit(ExitStruct):
                 )
                 completed_list.extend(updated_list)
 
-                # Remove profit and stop level once position is closed
-                self.exit_levels.pop(entry_dt)
+            else:
+                updated_levels[entry_dt] = (profit_level, stop_level)
+
+        # Update 'exit_levels' to include only entry dates with open position
+        self.exit_levels = updated_levels
 
         return open_trades, completed_list
+
+    def _validate_level(
+        self, entry_action: PriceAction, profit_level: Decimal, stop_level: Decimal
+    ) -> None:
+        """ "Ensure profit level > stop level for long position; and vice versa
+        for short position."""
+
+        if profit_level < stop_level and entry_action == "buy":
+            raise ValueError(
+                f"Target profit ({profit_level}) is below stop loss "
+                f"({stop_level}) for long position."
+            )
+
+        if profit_level > stop_level and entry_action == "sell":
+            raise ValueError(
+                f"Target profit ({profit_level}) is above stop loss "
+                f"({stop_level}) for short position."
+            )

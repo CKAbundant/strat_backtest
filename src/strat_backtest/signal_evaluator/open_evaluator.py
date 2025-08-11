@@ -28,6 +28,7 @@ class OpenEvaluator(SignalEvaluator):
             return None
 
         # Get existing entry or exit signal, opening price and entry or exit price
+        # in 'records' attribute
         existing_sig = self._get_existing_sig(self.sig_type)
         open_price = record.get("open")
         price = f"{self.sig_type.split('_')[0]}_price"

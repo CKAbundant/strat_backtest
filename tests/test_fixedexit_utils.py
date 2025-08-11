@@ -1,17 +1,20 @@
 """Helper function to run testing for 'FixedExit' class."""
 
-import numpy as np
+from datetime import datetime
+from decimal import Decimal
+
 import pandas as pd
 
+from strat_backtest.utils.constants import OpenTrades
 from tests.test_utils import convert_to_decimal
 
 
-def gen_test_df(data: pd.DataFrame, stop_level: float) -> pd.DataFrame:
+def gen_test_df(data: pd.DataFrame, risk: float) -> pd.DataFrame:
     """Append 'entry_date', 'entry_price' and 'stop' column to OHLCV DataFrame.
 
     Args:
         data (pd.DataFrame): DataFrame containing OHLCV data.
-        stop_level (float): Amount of allowable loss per stock.
+        risk (float): Amount of allowable loss per stock.
 
     Returns:
         df (pd.DataFrame): DataFrame with appended 'stop' column.
@@ -30,9 +33,7 @@ def gen_test_df(data: pd.DataFrame, stop_level: float) -> pd.DataFrame:
     df["entry_price"] = df["open"].shift(periods=-1, fill_value=last_close)
 
     # Append 'stop' column; and shift 1 row down i.e. stop level is meant for next trading day
-    df["stop"] = (
-        df["low"] - stop_level if entry_action == "buy" else df["high"] + stop_level
-    )
+    df["stop"] = df["low"] - risk if entry_action == "buy" else df["high"] + risk
 
     first_stop = df.at[0, "stop"]
     df["stop"] = df["stop"].shift(periods=1, fill_value=first_stop)
@@ -58,3 +59,38 @@ def get_std_entry_action(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Standard entry signal is neither 'buy' nor 'sell'.")
 
     return entry_action
+
+
+def gen_exit_levels(
+    open_trades: OpenTrades, percent_risk: float
+) -> dict[datetime, tuple[Decimal, Decimal]]:
+    """Generate exit levels based on fixed 'risk'.
+
+    Args:
+        open_trades (OpenTrades): Deque list of open positions.
+        percent_risk (float): Percentage allowable loss per stock.
+
+    Returns:
+        exit_levels (dict[datetime, tuple[Decimal, Decimal]]):
+            dictionary containing profit and stop loss level.
+    """
+
+    exit_levels = {}
+    percent_risk = convert_to_decimal(percent_risk)
+
+    for trade in open_trades:
+        entry_date = trade.entry_datetime
+        entry_price = trade.entry_price
+        entry_action = trade.entry_action
+
+        stop_level = (
+            (1 - percent_risk) * entry_price
+            if entry_action == "buy"
+            else (1 + percent_risk) * entry_price
+        )
+
+        profit_level = 2 * entry_price - stop_level
+
+        exit_levels[entry_date] = (round(profit_level, 2), round(stop_level, 2))
+
+    return exit_levels

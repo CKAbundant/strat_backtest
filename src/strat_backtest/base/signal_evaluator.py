@@ -76,8 +76,8 @@ class SignalEvaluator(ABC):
         return None
 
     def _get_existing_sig(self, sig_type: str) -> PriceAction | None:
-        """Get existing entry or exit signal i.e. whether signal is 'buy' or 'sell'.
-        'wait' is not considered."""
+        """Get existing entry or exit signal in 'records' attribute i.e. whether
+        signal is 'buy' or 'sell'. 'wait' is not considered."""
 
         # Return None if records is an empty list
         if not self.records:

@@ -397,6 +397,8 @@ class GenTrades(ABC):
             completed_list.extend(self.take_profit(**params))
 
         # Set 'self.flip' flag to true if exit and entry signal are same and not 'wait'
+        # Note that entry and exit signals are only available at end of trading day. Hence
+        # action can only be taken next trading day
         if exit_signal == entry_signal and exit_signal != "wait":
             self.flip = True
 
@@ -490,6 +492,11 @@ class GenTrades(ABC):
 
         # Update profit and stop level for open position based on entry date
         if self.exit_struct == "FixedExit":
+            if self.exit_struct not in self.inst_cache:
+                self.inst_cache[self.exit_struct] = get_class_instance(
+                    self.exit_struct, self.module_paths.get(self.exit_struct)
+                )
+
             fixed_exit = self.inst_cache.get(self.exit_struct)
             fixed_exit.update_exit_levels(
                 params["dt"], record["profit"], record["stop"]
@@ -761,6 +768,7 @@ class GenTrades(ABC):
         """
 
         dt = record["date"]
+        open = convert_to_decimal(record["open"])
         close = convert_to_decimal(record["close"])
         low = convert_to_decimal(record["low"])
         high = convert_to_decimal(record["high"])
@@ -768,20 +776,32 @@ class GenTrades(ABC):
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
 
+        check_open_cond = (
+            entry_action == "buy"
+            and open <= trigger_price
+            or entry_action == "sell"
+            and open >= trigger_price
+        )
+
         # List of exit conditions
         cond_list = [
-            self.monitor_close and entry_action == "buy" and close < trigger_price,
-            self.monitor_close and entry_action == "sell" and close > trigger_price,
-            not self.monitor_close and entry_action == "buy" and low < trigger_price,
-            not self.monitor_close and entry_action == "sell" and high > trigger_price,
+            self.monitor_close and entry_action == "buy" and close <= trigger_price,
+            self.monitor_close and entry_action == "sell" and close >= trigger_price,
+            not self.monitor_close and entry_action == "buy" and low <= trigger_price,
+            not self.monitor_close and entry_action == "sell" and high >= trigger_price,
         ]
 
-        # Actual exit price is closing price if monitor based on closing price
-        # else exit price
-        exit_price = close if self.monitor_close else trigger_price
+        # Check if price triggered upon market opening
+        if check_open_cond:
+            completed_list.extend(self.exit_all(dt, open))
+            trigger_status = Decimal("1")
 
         # Exit all open positions if any condition in 'cond_list' is true
-        if any(cond_list):
+        elif any(cond_list):
+            # Actual exit price is closing price if monitor based on closing price
+            # else trigger price
+            exit_price = close if self.monitor_close else trigger_price
+
             completed_list.extend(self.exit_all(dt, exit_price))
             trigger_status = Decimal("1")
 

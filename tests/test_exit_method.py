@@ -11,7 +11,7 @@ import pytest
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.exit_method import FixedExit
 from strat_backtest.utils.utils import display_open_trades
-from tests.test_fixedexit_utils import gen_test_df
+from tests.test_fixedexit_utils import gen_exit_levels, gen_test_df
 from tests.test_utils import get_latest_record
 
 
@@ -125,6 +125,121 @@ def test_close_pos(sample_gen_trades, open_trades):
 
     print(f"Expected trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
     print(f"Expected list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+
+    assert computed_trades == expected_trades
+    assert computed_list == expected_list
+
+
+def test_check_all_stop_no_action(sample_gen_trades, completed_list):
+    """Test ifm'check_all_stop' will close position correctly."""
+
+    record = get_latest_record(sample_gen_trades)
+    print(f"record : \n\n{pformat(record, sort_dicts=False)}\n")
+    print(f"completed_list : \n\n{pformat(completed_list, sort_dicts=False)}\n")
+
+    # Intialize instance of FixedExit
+    fixed_exit = FixedExit()
+    computed_trades, computed_list = fixed_exit.check_all_stop(
+        deque(), completed_list, record
+    )
+
+    assert computed_trades == deque()
+    assert computed_list == completed_list
+
+
+def test_check_all_stop(open_trades, completed_list):
+    """Test if 'check_all_stop' correctly exit open position if stop conditions met."""
+
+    record = {
+        "date": datetime(2025, 4, 17),
+        "open": Decimal("185.11"),
+        "high": Decimal("186"),
+        "low": Decimal("180.55"),
+        "close": Decimal("183.22"),
+        "entry_signal": "sell",
+        "exit_signal": "wait",
+    }
+    print(f"\n\nrecord : {pformat(record, sort_dicts=False)}\n")
+    display_open_trades(open_trades)
+
+    # Generate 'exit_levels' dictionary
+    percent_risk = 0.005
+    exit_levels = gen_exit_levels(open_trades, percent_risk)
+    print(f"exit_levels : \n\n{pformat(exit_levels, sort_dicts=False)}\n")
+
+    # Intialize instance of FixedExit
+    fixed_exit = FixedExit()
+    fixed_exit.exit_levels = exit_levels
+
+    computed_trades, computed_list = fixed_exit.check_all_stop(
+        open_trades, completed_list, record
+    )
+
+    print(f"Computed trades : \n\n{pformat(computed_trades, sort_dicts=False)}\n")
+    print(f"Computed list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+
+    expected_trades = deque(
+        [
+            StockTrade(
+                ticker="AAPL",
+                entry_datetime=datetime(2025, 4, 8, tzinfo=None),
+                entry_action="buy",
+                entry_lots=10,
+                entry_price=172.42,
+            ),
+        ]
+    )
+
+    expected_list = [
+        {
+            "ticker": "AAPL",
+            "entry_datetime": datetime(2025, 3, 25, 0, 0),
+            "entry_action": "buy",
+            "entry_lots": Decimal("10"),
+            "entry_price": Decimal("223.75"),
+            "exit_datetime": datetime(2025, 3, 28, 0, 0),
+            "exit_action": "sell",
+            "exit_lots": Decimal("10"),
+            "exit_price": Decimal("217.9"),
+            "days_held": 3,
+            "profit_loss": Decimal("-5.85"),
+            "percent_ret": Decimal("-0.026145"),
+            "daily_ret": Decimal("-0.008792"),
+            "win": 0,
+        },
+        {
+            "ticker": "AAPL",
+            "entry_datetime": datetime(2025, 4, 7, 0, 0),
+            "entry_action": "buy",
+            "entry_lots": Decimal("10"),
+            "entry_price": Decimal("181.46"),
+            "exit_datetime": datetime(2025, 4, 17, 0, 0),
+            "exit_action": "sell",
+            "exit_lots": Decimal("10"),
+            "exit_price": Decimal("180.55"),
+            "days_held": 10,
+            "profit_loss": Decimal("-0.91"),
+            "percent_ret": Decimal("-0.005015"),
+            "daily_ret": Decimal("-0.000503"),
+            "win": 0,
+        },
+        {
+            "ticker": "AAPL",
+            "entry_datetime": datetime(2025, 4, 11, 0, 0),
+            "entry_action": "buy",
+            "entry_lots": Decimal("10"),
+            "entry_price": Decimal("198.15"),
+            "exit_datetime": datetime(2025, 4, 17, 0, 0),
+            "exit_action": "sell",
+            "exit_lots": Decimal("10"),
+            "exit_price": Decimal("185.11"),
+            "days_held": 6,
+            "profit_loss": Decimal("-13.04"),
+            "percent_ret": Decimal("-0.065809"),
+            "daily_ret": Decimal("-0.011282"),
+            "win": 0,
+        },
+    ]
 
     assert computed_trades == expected_trades
     assert computed_list == expected_list
