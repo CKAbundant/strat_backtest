@@ -33,7 +33,10 @@ def test_update_exit_levels(sample_gen_trades):
 
         if info["entry_signal"] == "buy":
             fixed_exit.update_exit_levels(
-                info["entry_date"], info["entry_price"], info["stop"]
+                info["entry_date"],
+                info["entry_signal"],
+                info["entry_price"],
+                info["stop"],
             )
 
     print(

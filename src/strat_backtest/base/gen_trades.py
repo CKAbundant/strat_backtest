@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from pprint import pformat
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
@@ -35,6 +35,9 @@ if TYPE_CHECKING:
     from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit
     from strat_backtest.base.stock_trade import StockTrade
     from strat_backtest.utils import OpenTrades
+
+# Create generic type variable 'T'
+T = TypeVar("T")
 
 
 @dataclass
@@ -165,9 +168,7 @@ class GenTrades(ABC):
 
         # Create instance of 'FixedLoss' class if 'self.exit_struct' == 'FixedLoss'
         if self.exit_struct == "FixedExit":
-            self.inst_cache[self.exit_struct] = get_class_instance(
-                self.exit_struct, self.module_paths.get(self.exit_struct)
-            )
+            _ = self._get_inst_from_cache(self.exit_struct)
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -500,7 +501,9 @@ class GenTrades(ABC):
                 )
 
             fixed_exit = self.inst_cache.get(self.exit_struct)
-            fixed_exit.update_exit_levels(params["dt"], params["price"], record["stop"])
+            fixed_exit.update_exit_levels(
+                params["dt"], params["entry_action"], params["price"], record["stop"]
+            )
 
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
@@ -851,3 +854,31 @@ class GenTrades(ABC):
             raise ValueError(f"{not_available} required columns are missing!")
 
         return df.loc[:, self.req_cols]
+
+    def _get_inst_from_cache(
+        self, class_name: str, key: str | None = None, **params: dict[str, Any]
+    ) -> T:
+        """Get class instance from 'self.inst_cache'. Generate new class instance
+        if not available.
+
+        Args:
+            class_name (str):
+                Name of class to create an instance.
+            key (str):
+                If provided, key will be used instead on class name in 'inst_cache'.
+            **params (dict[str, Any]):
+                Arbitrary Keyword input arguments to initialize class instance.
+        """
+
+        # Use 'key' instead of 'class_name' as key if 'key' is provided
+        key = key or class_name
+
+        # Create instance of 'FixedLoss' class if 'self.exit_struct' == 'FixedLoss'
+        if key not in self.inst_cache:
+            self.inst_cache[key] = get_class_instance(
+                class_name, self.module_paths.get(class_name), **params
+            )
+
+        class_inst: T = self.inst_cache.get(class_name)
+
+        return class_inst

@@ -568,10 +568,14 @@ def test_iterate_df_fixedexit(trading_config, risk_config, sample_gen_trades):
     for col in df:
         print(f"{col:<15} : {set([type(record) for record in df[col]])}")
 
-    # # Generate test instance with 'FixedExit' strategy
-    # test_inst = gen_testgentrades_inst(
-    #     trading_config, risk_config, exit_struct="FixedExit"
-    # )
+    # Generate test instance with 'FixedExit' strategy
+    test_inst = gen_testgentrades_inst(
+        trading_config, risk_config, exit_struct="FixedExit"
+    )
+
+    print()
+    print(test_inst._get_inst_from_cache("LIFOExit"))
+    print(test_inst.inst_cache)
 
     # # Generate computed trades and signals
     # computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
