@@ -574,7 +574,13 @@ def test_iterate_df_fixedexit(trading_config, risk_config, sample_gen_trades):
     )
 
     print()
-    print(test_inst._get_inst_from_cache("LIFOExit"))
+    print(
+        test_inst._get_inst_from_cache(
+            "BreakoutEvaluator",
+            "test",
+            sig_type="exit_signal",
+        )
+    )
     print(test_inst.inst_cache)
 
     # # Generate computed trades and signals

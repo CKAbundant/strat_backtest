@@ -879,6 +879,6 @@ class GenTrades(ABC):
                 class_name, self.module_paths.get(class_name), **params
             )
 
-        class_inst: T = self.inst_cache.get(class_name)
+        class_inst: T = self.inst_cache.get(key)
 
         return class_inst
