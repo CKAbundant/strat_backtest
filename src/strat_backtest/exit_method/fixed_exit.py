@@ -58,7 +58,6 @@ class FixedExit(ExitStruct):
 
     def __init__(self, monitor_close: bool = False) -> None:
         self.monitor_close = monitor_close
-        self.pos_dict = {}
         self.exit_levels = {}
 
     def close_pos(
@@ -89,13 +88,18 @@ class FixedExit(ExitStruct):
         """
 
         if len(open_trades) == 0:
-            # No open trades to close
+            # Reset 'exit_levels' if no open trades
+            self.exit_levels = {}
+
             return open_trades, []
 
         completed_trades = []
-        self.pos_dict = {trade.entry_datetime: trade for trade in open_trades}
 
-        if (desired_trade := self.pos_dict.get(_entry_dt)) is None:
+        # Dictionary mapping entry datetime to StockTrade pyantic object
+        # for quick lookup
+        pos_dict = {trade.entry_datetime: trade for trade in open_trades}
+
+        if (desired_trade := pos_dict.get(_entry_dt)) is None:
             raise KeyError(f"No open positions having entry datetime of {_entry_dt}")
 
         # Update desired StockTrade object to complete the trade
@@ -106,6 +110,7 @@ class FixedExit(ExitStruct):
         if validate_completed_trades(updated_trade):
             # Remove desired StockTrade object since it is completed
             open_trades.remove(desired_trade)
+            self.exit_levels.pop(_entry_dt)
             completed_trades.append(updated_trade.model_dump())
 
         return open_trades, completed_trades

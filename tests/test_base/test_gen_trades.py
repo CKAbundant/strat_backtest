@@ -573,15 +573,7 @@ def test_iterate_df_fixedexit(trading_config, risk_config, sample_gen_trades):
         trading_config, risk_config, exit_struct="FixedExit"
     )
 
-    print()
-    print(
-        test_inst._get_inst_from_cache(
-            "BreakoutEvaluator",
-            "test",
-            sig_type="exit_signal",
-        )
-    )
-    print(test_inst.inst_cache)
+    print(f"\n{test_inst.inst_cache=}")
 
     # # Generate computed trades and signals
     # computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)

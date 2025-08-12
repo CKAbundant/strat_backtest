@@ -166,10 +166,6 @@ class GenTrades(ABC):
         self.flip = False
         self.init_sig_evaluator()
 
-        # Create instance of 'FixedLoss' class if 'self.exit_struct' == 'FixedLoss'
-        if self.exit_struct == "FixedExit":
-            _ = self._get_inst_from_cache(self.exit_struct)
-
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Generate DataFrame containing completed trades for given strategy.
@@ -328,7 +324,9 @@ class GenTrades(ABC):
             return completed_list
 
         if self.exit_struct == "FixedExit":
-            fixed_exit = self.inst_cache.get("FixedExit")
+            fixed_exit = self._get_inst_from_cache(
+                "FixedExit", monitor_close=self.monitor_close
+            )
             self.open_trades, completed_list = fixed_exit.check_all_stop(
                 self.open_trades, completed_list, record
             )
@@ -368,7 +366,9 @@ class GenTrades(ABC):
         # No flipping of position for 'FixedExit' cos 'exit_signal' is always 'wait' i.e.
         # Exit position based strictly on pre-determined target profit
         if self.exit_struct == "FixedExit":
-            fixed_exit = self.inst_cache.get("FixedExit")
+            fixed_exit = self._get_inst_from_cache(
+                "FixedExit", monitor_close=self.monitor_close
+            )
             self.open_trades, completed_list = fixed_exit.check_all_profit(
                 self.open_trades, completed_list, record
             )
@@ -377,13 +377,20 @@ class GenTrades(ABC):
         entry_signal = record["entry_signal"]
         exit_signal = record["exit_signal"]
 
-        ex_sig_eval = "OpenEvaluator" if self.flip else "sig_ex_eval"
+        # Get 'OpenEvaluator' signal evaluator if 'flip' is set else use default
+        # signal evaluator
+        if self.flip:
+            ex_sig_eval = self._get_inst_from_cache(
+                "OpenEvaluator", sig_type="exit_signal"
+            )
+        else:
+            ex_sig_eval = self.inst_cache["sig_ex_eval"]
 
         # Return 'completed_list' unamended if no open position or not exit
         # conditions met
         if (
             len(self.open_trades) == 0
-            or (params := self.inst_cache[ex_sig_eval].evaluate(record)) is None
+            or (params := ex_sig_eval.evaluate(record)) is None
         ):
             return completed_list
 
@@ -405,13 +412,6 @@ class GenTrades(ABC):
         # action can only be taken next trading day
         if exit_signal == entry_signal and exit_signal != "wait":
             self.flip = True
-
-            if "OpenEvaluator" not in self.inst_cache:
-                self.inst_cache["OpenEvaluator"] = get_class_instance(
-                    "OpenEvaluator",
-                    self.module_paths.get("OpenEvaluator"),
-                    sig_type="exit_signal",
-                )
 
         return completed_list
 
@@ -478,29 +478,19 @@ class GenTrades(ABC):
         if (params := self.inst_cache["sig_ent_eval"].evaluate(record)) is None:
             return None
 
-        if self.entry_struct not in self.inst_cache:
-            # Get initialized instance of concrete class implementation
-            self.inst_cache[self.entry_struct] = get_class_instance(
-                self.entry_struct,
-                self.module_paths.get(self.entry_struct),
-                num_lots=self.num_lots,
-            )
-
-        entry_instance = self.inst_cache.get(self.entry_struct)
-
         # Update 'self.open_trades' with new open position
+        entry_instance = self._get_inst_from_cache(
+            self.entry_struct, num_lots=self.num_lots
+        )
         self.open_trades = entry_instance.open_new_pos(
             self.open_trades, ticker, **params
         )
 
         # Update profit and stop level for open position based on entry date
         if self.exit_struct == "FixedExit":
-            if self.exit_struct not in self.inst_cache:
-                self.inst_cache[self.exit_struct] = get_class_instance(
-                    self.exit_struct, self.module_paths.get(self.exit_struct)
-                )
-
-            fixed_exit = self.inst_cache.get(self.exit_struct)
+            fixed_exit = self._get_inst_from_cache(
+                "FixedExit", monitor_close=self.monitor_close
+            )
             fixed_exit.update_exit_levels(
                 params["dt"], params["entry_action"], params["price"], record["stop"]
             )
@@ -513,15 +503,11 @@ class GenTrades(ABC):
     def cal_trailing_profit(self, record: Record) -> Decimal | None:
         """Compute trailing profit price to protect profit."""
 
-        if self.trail_method not in self.inst_cache:
-            self.inst_cache[self.trail_method] = get_class_instance(
-                self.trail_method,
-                self.module_paths.get(self.trail_method),
-                trigger_trail=self.trigger_trail,
-                step=self.step,
-            )
-
-        trail_profit_inst = self.inst_cache.get(self.trail_method)
+        trail_profit_inst = self._get_inst_from_cache(
+            self.trail_method,
+            trigger_trail=self.trigger_trail,
+            step=self.step,
+        )
 
         return trail_profit_inst.cal_trail_price(self.open_trades, record)
 
@@ -558,15 +544,8 @@ class GenTrades(ABC):
             # No completed trades if exit signal is same as entry action
             return []
 
-        # Get initialized instance of concrete class implementation
-        if self.exit_struct not in self.inst_cache:
-            self.inst_cache[self.exit_struct] = get_class_instance(
-                self.exit_struct, self.module_paths.get(self.exit_struct)
-            )
-
-        exit_instance = self.inst_cache.get(self.exit_struct)
-
         # Update open trades and generate completed trades
+        exit_instance = self._get_inst_from_cache(self.exit_struct)
         self.open_trades, completed_list = exit_instance.close_pos(
             self.open_trades, dt, exit_price
         )
@@ -597,13 +576,7 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        if "TakeAllExit" not in self.inst_cache:
-            # Get initialized instance of concrete class implementation
-            self.inst_cache["TakeAllExit"] = get_class_instance(
-                "TakeAllExit", self.module_paths.get("TakeAllExit")
-            )
-
-        take_all_exit = self.inst_cache.get("TakeAllExit")
+        take_all_exit = self._get_inst_from_cache("TakeAllExit")
 
         # Update open trades and generate completed trades
         self.open_trades, completed_list = take_all_exit.close_pos(
@@ -617,7 +590,7 @@ class GenTrades(ABC):
         if self.trail_method in self.inst_cache:
             self.inst_cache[self.trail_method].reset_price_levels()
 
-        # Reset 'records' attributes for 'sig_eval' since 'open_trades' is empty
+        # Reset 'records' attributes for 'sig_eval' if 'open_trades' is empty
         if "sig_ent_eval" in self.inst_cache:
             self.inst_cache["sig_ent_eval"].reset_records(self.open_trades)
         if "sig_ex_eval" in self.inst_cache:
@@ -632,14 +605,9 @@ class GenTrades(ABC):
     def cal_stop_price(self) -> Decimal:
         """Compute price to trigger stop loss."""
 
-        if self.stop_method not in self.inst_cache:
-            self.inst_cache[self.stop_method] = get_class_instance(
-                self.stop_method,
-                self.module_paths.get(self.stop_method),
-                percent_loss=self.percent_loss,
-            )
-
-        stop_loss_inst = self.inst_cache.get(self.stop_method)
+        stop_loss_inst = self._get_inst_from_cache(
+            self.stop_method, percent_loss=self.percent_loss
+        )
 
         return stop_loss_inst.cal_exit_price(self.open_trades)
 
@@ -834,11 +802,7 @@ class GenTrades(ABC):
             if self.sig_eval_method == "BreakoutEvaluator":
                 input_params.update({"trigger_percent": self.trigger_percent})
 
-            self.inst_cache[key] = get_class_instance(
-                self.sig_eval_method,
-                self.module_paths.get(self.sig_eval_method),
-                **input_params,
-            )
+            _ = self._get_inst_from_cache(self.sig_eval_method, key, **input_params)
 
     def _validate_req_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """Ensure all columns in 'self.req_cols' are present in DataFrame; and return
