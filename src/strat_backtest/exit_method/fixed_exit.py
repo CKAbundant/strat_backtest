@@ -113,6 +113,7 @@ class FixedExit(ExitStruct):
     def update_exit_levels(
         self,
         entry_dt: datetime | pd.Timestamp,
+        entry_action: PriceAction,
         entry_price: Decimal,
         stop_level: Decimal,
     ) -> None:
@@ -120,12 +121,17 @@ class FixedExit(ExitStruct):
 
         Args:
             entry_dt (datetime | pd.Timestamp): Datetime when position is opened.
+            entry_action (PriceAction): Either 'buy' or 'sell' to open new position.
             entry_price (Decimal): Entry price.
             stop_level (Decimal): User defined stop loss level.
 
         Returns:
             None.
         """
+
+        # Ensure stop level is lower than entry price for long; and
+        # higher than entry price for short
+        self._validate_stop(entry_action, entry_price, stop_level)
 
         # 1:1 risk profit
         profit_level = 2 * entry_price - stop_level
@@ -161,6 +167,9 @@ class FixedExit(ExitStruct):
         """
 
         if not open_trades:
+            # Reset 'exit_levels' is empty dictionary
+            self.exit_levels = {}
+
             return deque(), completed_list
 
         dt = record["date"]
@@ -240,6 +249,9 @@ class FixedExit(ExitStruct):
         """
 
         if not open_trades:
+            # Reset 'exit_levels' is empty dictionary
+            self.exit_levels = {}
+
             return deque(), completed_list
 
         dt = record["date"]
@@ -303,4 +315,22 @@ class FixedExit(ExitStruct):
             raise ValueError(
                 f"Target profit ({profit_level}) is above stop loss "
                 f"({stop_level}) for short position."
+            )
+
+    def _validate_stop(
+        self, entry_action: PriceAction, entry_price: Decimal, stop_level: Decimal
+    ) -> None:
+        """Ensure stop price is lower than entry price for long; and higher than
+        entry_price for short."""
+
+        if entry_action == "buy" and entry_price <= stop_level:
+            raise ValueError(
+                f"entry price ({entry_price}) <= stop_level ({stop_level})"
+                "for long position."
+            )
+
+        if entry_action == "sell" and entry_price >= stop_level:
+            raise ValueError(
+                f"entry price ({entry_price}) >= stop_level ({stop_level})"
+                "for short position."
             )

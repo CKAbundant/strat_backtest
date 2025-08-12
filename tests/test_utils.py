@@ -22,6 +22,7 @@ from strat_backtest.utils.pos_utils import (
     get_class_instance,
     get_std_field,
 )
+from strat_backtest.utils.utils import display_open_trades
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -216,7 +217,7 @@ def gen_exit_all_end_completed_list(
             before end of trading period.
         record (Record):
             OHLCV info at end of trading period.
-        price (str):
+        price_type (str):
             Either "open" or "close" price.
 
     Returns:
@@ -265,6 +266,9 @@ def cal_percentloss_stop_price(
     av_price = (
         sum(trade.entry_price * trade.entry_lots for trade in open_trades) / total_lots
     )
+
+    display_open_trades(open_trades)
+    print(f"{Decimal(str((181.46+172.42+198.15)/3))*(1-percent_loss)=}")
 
     stop_price = (
         av_price * (1 - percent_loss)
@@ -444,7 +448,8 @@ def cal_trailing_price(
     """Compute trailing price based on 'FirstTrail' method given test open trades.
 
     This function creates the expected trailing price that should result from
-    calling 'cal_trailing_profit' method with the given parameters. Used for assertion comparisons in pytests.
+    calling 'cal_trailing_profit' method for 'FirstTrail' trailing method.
+    Used for assertion comparisons in pytests.
 
     Args:
         open_trades (OpenTrades):

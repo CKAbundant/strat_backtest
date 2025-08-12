@@ -22,8 +22,9 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
-from strat_backtest.utils.pos_utils import get_class_instance, get_std_field
+from strat_backtest.utils.pos_utils import get_std_field
 from strat_backtest.utils.utils import display_open_trades
+from tests.test_fixedexit_utils import gen_test_df
 from tests.test_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
@@ -80,6 +81,8 @@ def test_exit_all_end(
 
     # Get latest record in sample DataFrame
     record = get_latest_record(sample_gen_trades)
+    print(f"\n\nrecord : \n\n{record}\n")
+    display_open_trades(open_trades)
 
     # Test 1: No open positions scenario
     test_inst = gen_testgentrades_inst(
@@ -99,7 +102,6 @@ def test_exit_all_end(
     )
 
     print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == deque()
@@ -120,6 +122,8 @@ def test_cal_stop_price(trading_config, risk_config, open_trades):
     # Calculate expected and computed stop price
     computed_price = test_inst.cal_stop_price()
     expected_price = cal_percentloss_stop_price(open_trades, risk_config.percent_loss)
+
+    print(f"{computed_price=}")
 
     assert computed_price == expected_price
 
@@ -161,15 +165,17 @@ def test_check_stop_loss_nearestloss(
 ):
     """Test 'check_stop_loss' for 'NearestLoss' scenario."""
 
+    percent_loss = 0.01
+
     # OHLCV of AAPL on 15 Apr 2025
-    record = get_date_record(sample_gen_trades, "2025-04-15")
+    record = get_date_record(sample_gen_trades, "2025-04-16")
 
     # Generate test instance with 'stop_method' == 'NearestLoss'
     params = {
         "trading_cfg": trading_config,
         "risk_cfg": risk_config,
         "stop_method": "NearestLoss",
-        "percent_loss": 0.05,
+        "percent_loss": percent_loss,
         "open_trades": open_trades.copy(),
     }
     test_inst = gen_testgentrades_inst(**params)
@@ -186,8 +192,10 @@ def test_check_stop_loss_nearestloss(
     )
     expected_stop_info_list = [trigger_info] if trigger_info else []
 
-    # print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    # print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    print(f"\n\nrecord : \n\n{pformat(record, sort_dicts=False)}\n")
+    display_open_trades(open_trades)
+    print(f"{198.15*(1-percent_loss)=}")
+    print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.stop_info_list == expected_stop_info_list
@@ -240,6 +248,10 @@ def test_take_profit_fifoexit(
     expected_open_trades, expected_list = gen_take_profit_completed_list(
         open_trades.copy(), dt, exit_price
     )
+
+    print(f"\n\nrecord : \n\n{pformat(record, sort_dicts=False)}\n")
+    display_open_trades(open_trades)
+    print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == expected_open_trades
@@ -324,12 +336,12 @@ def test_check_profit_fifoexit(
     # Generate computed 'completed_list'
     computed_list = test_inst.check_profit(completed_list.copy(), latest_record.copy())
 
-    print(f"\n\ncomputed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-    print(f"expected_list : \n\n{pformat(expected_list, sort_dicts=False)}\n")
+    print(f"\n\nlatest_records : \n\n{pformat(latest_record, sort_dicts=False)}\n")
+    display_open_trades(open_trades)
+    print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
     print(
         f"\n\ntest_inst.open_trades : \n\n{pformat(test_inst.open_trades, sort_dicts=False)}\n"
     )
-    print(f"expected_trades : \n\n{pformat(expected_trades, sort_dicts=False)}\n")
 
     assert computed_list == expected_list
     assert test_inst.open_trades == expected_trades
@@ -339,7 +351,7 @@ def test_check_profit_fifoexit(
 def test_cal_trailing_profit(
     trading_config, risk_config, open_trades, sample_gen_trades, step
 ):
-    """Test 'cal_trailing_profit' method for 'GenTrades' class."""
+    """Test 'cal_trailing_profit' method for 'FirstTrail' trailing method."""
 
     # Get latest record in sample DataFrame
     record = get_latest_record(sample_gen_trades)
@@ -522,7 +534,7 @@ def test_iterate_df(
 
     print(f"\n\n{sig_evaluator=}")
 
-    # Generate generic test instance
+    # Generate test instance with desired signal evaluator
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, sig_eval_method=sig_evaluator
     )
@@ -540,3 +552,29 @@ def test_iterate_df(
 
     pdt.assert_frame_equal(computed_trades, expected_trades)
     pdt.assert_frame_equal(computed_signals, sample_gen_trades)
+
+
+def test_iterate_df_fixedexit(trading_config, risk_config, sample_gen_trades):
+    """Test 'iterate_df' method in 'GenTrades' using 'FixedExit' strategy and
+    'OpenEvaluator' signal evaluator."""
+
+    risk = 5
+
+    # Generate test DataFrame
+    df = sample_gen_trades.copy()
+    df = gen_test_df(df, risk)
+    print(f"\n\n{df}\n")
+
+    for col in df:
+        print(f"{col:<15} : {set([type(record) for record in df[col]])}")
+
+    # # Generate test instance with 'FixedExit' strategy
+    # test_inst = gen_testgentrades_inst(
+    #     trading_config, risk_config, exit_struct="FixedExit"
+    # )
+
+    # # Generate computed trades and signals
+    # computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
+
+    # print(f"\n\ncomputed_trades : \n\n{pformat(computed_trades, sort_dicts=False)}\n")
+    # print(f"computed_signals : \n\n{pformat(computed_signals, sort_dicts=False)}\n")

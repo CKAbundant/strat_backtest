@@ -43,8 +43,13 @@ class SignalEvaluator(ABC):
 
         Returns:
             (dict[str, Any] | None):
-                If avaiable, dictionary containing fields required to create new
-                position or close existing position.
+                If available, dictionary containing following keys:
+                    dt (datetime):
+                        datetime when action triggered.
+                    entry_signal or exit_signal (PriceAction):
+                        Either "buy" or "sell".
+                    price (Decimal)
+                        Trigger price.
         """
 
         ...

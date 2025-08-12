@@ -13,14 +13,17 @@ def gen_test_df(data: pd.DataFrame, risk: float) -> pd.DataFrame:
     """Append 'entry_date', 'entry_price' and 'stop' column to OHLCV DataFrame.
 
     Args:
-        data (pd.DataFrame): DataFrame containing OHLCV data.
-        risk (float): Amount of allowable loss per stock.
+        data (pd.DataFrame):
+            DataFrame containing OHLCV data.
+        risk (float):
+            Allowable loss per stock referenced to open price.
 
     Returns:
         df (pd.DataFrame): DataFrame with appended 'stop' column.
     """
 
     df = data.copy()
+    risk = convert_to_decimal(risk)
 
     # Raise error if both 'buy' and 'sell' are found in 'entry_signal' column
     entry_action = get_std_entry_action(df)
@@ -35,7 +38,13 @@ def gen_test_df(data: pd.DataFrame, risk: float) -> pd.DataFrame:
     # Append 'stop' column; and shift 1 row down i.e. stop level is meant for next trading day
     df["stop"] = df["low"] - risk if entry_action == "buy" else df["high"] + risk
 
-    first_stop = df.at[0, "stop"]
+    # Set stop for first record by adding risk to entry price for long; substracting
+    # risk from entry price for short
+    first_stop = (
+        df.at[0, "entry_price"] - risk
+        if entry_action == "buy"
+        else df.at[0, "entry_price"] + risk
+    )
     df["stop"] = df["stop"].shift(periods=1, fill_value=first_stop)
 
     # Convert numeric values into Decimal

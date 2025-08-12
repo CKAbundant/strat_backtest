@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from pprint import pformat
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -235,7 +236,6 @@ class GenTrades(ABC):
             print(f"dt : {dt}")
             print(f"sig_ent_eval.records : {sig_ent_eval.records}")
             print(f"sig_ex_eval.records : {sig_ex_eval.records}")
-
             print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Close off all open positions at end of trading period
@@ -250,6 +250,9 @@ class GenTrades(ABC):
             completed_list = self.check_trailing_profit(completed_list, info)
             self.check_new_pos(ticker, info)
 
+            print(
+                f"self.inst_cache : \n\n{pformat(self.inst_cache, sort_dicts=False)}\n"
+            )
             print(f"net_pos after update : {get_net_pos(self.open_trades)}")
             print(f"len(self.open_trades) : {len(self.open_trades)}")
             display_open_trades(self.open_trades)
@@ -468,7 +471,6 @@ class GenTrades(ABC):
         """
 
         print("Checking new position...")
-        print(f"self.inst_cache : \n\n{self.inst_cache}\n")
 
         # Evaluate incoming record and return parameters to create new position
         # if condition met
@@ -498,9 +500,7 @@ class GenTrades(ABC):
                 )
 
             fixed_exit = self.inst_cache.get(self.exit_struct)
-            fixed_exit.update_exit_levels(
-                params["dt"], record["profit"], record["stop"]
-            )
+            fixed_exit.update_exit_levels(params["dt"], params["price"], record["stop"])
 
         if len(self.open_trades) == 0:
             raise ValueError("No open positions created!")
@@ -843,11 +843,11 @@ class GenTrades(ABC):
 
         # 'profit' and 'stop' columns are required if exit_struct is 'FixedExit'
         if self.exit_struct == "FixedExit":
-            self.req_cols.append(["profit", "stop"])
+            self.req_cols.extend(["stop"])
 
         not_available = [col for col in self.req_cols if col not in df.columns]
 
         if not_available:
-            raise KeyError(f"{not_available} are not found in DataFrame.")
+            raise ValueError(f"{not_available} required columns are missing!")
 
         return df.loc[:, self.req_cols]
