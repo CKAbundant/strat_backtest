@@ -110,10 +110,6 @@ def gen_testgentrades_inst(
 
         setattr(gen_trades, field, attribute)
 
-    if "sig_eval_method" in kwargs:
-        # Re-intialize 'sig_ent_eval' and 'sig_ex_eval' since 'sig_eval_method' has changed
-        gen_trades.init_sig_evaluator()
-
     return gen_trades
 
 

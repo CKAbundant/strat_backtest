@@ -110,7 +110,6 @@ class FixedExit(ExitStruct):
         if validate_completed_trades(updated_trade):
             # Remove desired StockTrade object since it is completed
             open_trades.remove(desired_trade)
-            self.exit_levels.pop(_entry_dt)
             completed_trades.append(updated_trade.model_dump())
 
         return open_trades, completed_trades

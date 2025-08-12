@@ -164,7 +164,6 @@ class GenTrades(ABC):
         self.trail_info_list = []
         self.inst_cache = {}
         self.flip = False
-        self.init_sig_evaluator()
 
     @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -217,7 +216,8 @@ class GenTrades(ABC):
         df = set_decimal_type(df)
         completed_list = []
 
-        # Intialize entry and exit signal evaluator if None
+        # Intialize entry and exit signal evaluator
+        self.init_sig_evaluator()
         sig_ent_eval = self.inst_cache["sig_ent_eval"]
         sig_ex_eval = self.inst_cache["sig_ex_eval"]
 
@@ -235,20 +235,21 @@ class GenTrades(ABC):
             print(f"sig_ex_eval.records : {sig_ex_eval.records}")
             print(f"net_pos : {get_net_pos(self.open_trades)}")
 
-            # Close off all open positions at end of trading period
-            # Skip creating new open positions after all open positions closed
-            if is_end:
-                completed_list = self.exit_all_end(completed_list, info)
-                continue
-
             # Check whether to cut loss, take profit and open new position sequentially
             completed_list = self.check_stop_loss(completed_list, info)
             completed_list = self.check_profit(completed_list, info)
             completed_list = self.check_trailing_profit(completed_list, info)
-            self.check_new_pos(ticker, info)
+
+            # Close off all open positions at end of trading period
+            # Skip creating new open positions after all open positions closed
+            if is_end:
+                completed_list = self.exit_all_end(completed_list, info)
+            else:
+                self.check_new_pos(ticker, info)
 
             print(
-                f"self.inst_cache : \n\n{pformat(self.inst_cache, sort_dicts=False)}\n"
+                "self.inst_cache['FixedExit'].exit_levels : "
+                f"\n\n{pformat(self.inst_cache['FixedExit'].exit_levels, sort_dicts=False)}\n"
             )
             print(f"net_pos after update : {get_net_pos(self.open_trades)}")
             print(f"len(self.open_trades) : {len(self.open_trades)}")
@@ -265,7 +266,7 @@ class GenTrades(ABC):
 
         # Convert 'completed_list' to DataFrame; append 'ticker'
         df_trades = pd.DataFrame(completed_list)
-        df_trades.to_parquet("sample_trades.parquet", index=False)
+        # df_trades.to_parquet("sample_trades.parquet", index=False)
 
         return df_trades, df_signals
 
@@ -492,7 +493,10 @@ class GenTrades(ABC):
                 "FixedExit", monitor_close=self.monitor_close
             )
             fixed_exit.update_exit_levels(
-                params["dt"], params["entry_action"], params["price"], record["stop"]
+                params["dt"],
+                params["entry_signal"],
+                params["entry_price"],
+                record["stop"],
             )
 
         if len(self.open_trades) == 0:

@@ -563,20 +563,24 @@ def test_iterate_df_fixedexit(trading_config, risk_config, sample_gen_trades):
     # Generate test DataFrame
     df = sample_gen_trades.copy()
     df = gen_test_df(df, risk)
-    print(f"\n\n{df}\n")
-
-    for col in df:
-        print(f"{col:<15} : {set([type(record) for record in df[col]])}")
+    df = df.drop(columns=["entry_date", "entry_price"])
 
     # Generate test instance with 'FixedExit' strategy
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, exit_struct="FixedExit"
     )
 
+    # Generate computed trades and signals
+    computed_trades, computed_signals = test_inst.iterate_df("AAPL", df)
+
     print(f"\n{test_inst.inst_cache=}")
+    print(f"{test_inst.exit_struct=}")
 
-    # # Generate computed trades and signals
-    # computed_trades, computed_signals = test_inst.iterate_df("AAPL", sample_gen_trades)
+    print(f"\n\ncomputed_trades : \n\n{pformat(computed_trades, sort_dicts=False)}\n")
+    print(f"computed_signals : \n\n{pformat(computed_signals, sort_dicts=False)}\n")
 
-    # print(f"\n\ncomputed_trades : \n\n{pformat(computed_trades, sort_dicts=False)}\n")
-    # print(f"computed_signals : \n\n{pformat(computed_signals, sort_dicts=False)}\n")
+    # Get expected_trades
+    expected_trades = pd.read_parquet(f"./tests/data/fixedexit_trades.parquet")
+
+    pdt.assert_frame_equal(computed_trades, expected_trades)
+    pdt.assert_frame_equal(computed_signals, df)
