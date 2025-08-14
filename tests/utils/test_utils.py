@@ -3,35 +3,31 @@
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
-from pprint import pformat
-from typing import Any, TypeVar
 
+import numpy as np
 import pandas as pd
 
-from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import (
-    ClosedPositionResult,
-    CompletedTrades,
-    OpenTrades,
-    PriceAction,
-    Record,
-)
-from strat_backtest.utils.pos_utils import (
-    convert_to_decimal,
-    get_class_instance,
-    get_std_field,
-)
+from strat_backtest.utils.constants import OpenTrades, Record
+from strat_backtest.utils.pos_utils import convert_to_decimal
 from strat_backtest.utils.utils import display_open_trades
 
-# Create generic type variable 'T'
-T = TypeVar("T")
+
+def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
+    """Ensure OHLCV are decimal type and date is datetime object."""
+
+    return {
+        k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else convert_to_decimal(v)
+        for k, v in record.items()
+    }
 
 
 def get_latest_record(df_sample: pd.DataFrame) -> Record:
     """Generate dictionary from last record in sample DataFrame."""
 
-    return df_sample.iloc[-1, :].to_dict()
+    record = df_sample.iloc[-1, :].to_dict()
+
+    return correct_datatype(record)
 
 
 def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
@@ -46,7 +42,9 @@ def get_date_record(df_sample: pd.DataFrame, dt: str | datetime) -> Record:
     if dt not in df_sample["date"].to_list():
         raise ValueError(f"'{dt}' is an invalid date!")
 
-    return df.loc[df["date"] == dt, :].to_dict(orient="records")[0]
+    record = df.loc[df["date"] == dt, :].to_dict(orient="records")[0]
+
+    return correct_datatype(record)
 
 
 def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
@@ -70,7 +68,7 @@ def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
     for col, value in kwargs.items():
         record[col] = value
 
-    return record
+    return correct_datatype(record)
 
 
 def update_open_pos(
