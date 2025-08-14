@@ -98,7 +98,11 @@ def create_new_pos(
 ) -> OpenTrades:
     """Update 'open_trades' with trade info from 'record'."""
 
-    dt = record["date"]
+    dt = (
+        record["date"]
+        if isinstance(record["date"], datetime)
+        else record["date"].to_pydatetime()
+    )
     entry_signal = record["entry_signal"]
     entry_price = record["open"]  # Assume create new position at open price
 

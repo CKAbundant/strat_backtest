@@ -125,6 +125,7 @@ def test_multi_half(open_trades, sample_gen_trades, is_empty):
     else:
         # Half of latest existing position
         half_lots = open_trades[-1].entry_lots / 2
+        print(type(half_lots))
 
         open_pos = open_trades.copy()
         expected_trades = create_new_pos(record, half_lots, open_trades.copy())
@@ -140,5 +141,11 @@ def test_multi_half(open_trades, sample_gen_trades, is_empty):
 
     display_open_trades(open_pos, "open_pos")
     display_open_trades(computed_trades, "computed_trades")
+    display_open_trades(expected_trades, "expected_trades")
 
-    assert computed_trades == expected_trades
+    for i, (a, e) in enumerate(zip(computed_trades, expected_trades)):
+        assert (
+            a == e
+        ), f"Difference found at index {i} : \nComputed : {a}\nExpected : {e}"
+
+    # assert computed_trades == expected_trades
