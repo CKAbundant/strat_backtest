@@ -7,12 +7,15 @@
 from strat_backtest.utils.constants import OpenTrades
 
 
-def display_open_trades(open_trades: OpenTrades) -> None:
+def display_open_trades(open_trades: OpenTrades, var_name: str | None = None) -> None:
     """Omit 'days_held', 'profit_loss', 'percent_ret', 'daily_ret'
     and 'win' fields in StockTrade."""
 
+    # Set name of variable as 'open_trades' if not provided
+    var_name = var_name or "open_trades"
+
     if len(open_trades) == 0:
-        print("open_trades : []\n")
+        print(f"{var_name} : []\n")
         return None
 
     msg_list = []
@@ -42,7 +45,7 @@ def display_open_trades(open_trades: OpenTrades) -> None:
 
     msg = "\n".join(msg_list)
 
-    print(f"open_trades : \n[\n{msg}\n]\n")
+    print(f"{var_name} : \n[\n{msg}\n]\n")
 
     return None
 

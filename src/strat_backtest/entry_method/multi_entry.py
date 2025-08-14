@@ -36,7 +36,7 @@ class MultiEntry(EntryStruct):
         dt: datetime | str,
         entry_signal: PriceAction,
         entry_price: float,
-    ):
+    ) -> OpenTrades:
         """Generate new 'StockTrade' object populating 'ticker', 'entry_date',
         'entry_lots' and 'entry_price'.
 
