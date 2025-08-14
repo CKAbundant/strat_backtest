@@ -719,6 +719,7 @@ class GenTrades(ABC):
 
         return module_info
 
+    # pylint: disable=too-many-locals
     def _update_trigger_status(
         self,
         completed_list: CompletedTrades,

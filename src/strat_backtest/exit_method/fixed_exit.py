@@ -148,6 +148,7 @@ class FixedExit(ExitStruct):
 
         self.exit_levels[entry_dt] = (profit_level, stop_level)
 
+    # pylint: disable=too-many-locals
     def check_all_stop(
         self,
         open_trades: OpenTrades,
