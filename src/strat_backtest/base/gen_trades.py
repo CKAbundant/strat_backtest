@@ -28,6 +28,7 @@ from strat_backtest.utils.pos_utils import (
     get_class_instance,
     get_net_pos,
     get_std_field,
+    parse_record,
 )
 from strat_backtest.utils.utils import display_open_trades
 
@@ -248,9 +249,10 @@ class GenTrades(ABC):
                 self.check_new_pos(ticker, info)
 
             if "FixedExit" in self.inst_cache:
+                exit_levels = self.inst_cache["FixedExit"].exit_levels
                 print(
                     "self.inst_cache['FixedExit'].exit_levels : "
-                    f"\n\n{pformat(self.inst_cache['FixedExit'].exit_levels, sort_dicts=False)}\n"
+                    f"\n\n{pformat(exit_levels, sort_dicts=False)}\n"
                 )
             print(f"net_pos after update : {get_net_pos(self.open_trades)}")
             print(f"len(self.open_trades) : {len(self.open_trades)}")
@@ -365,8 +367,8 @@ class GenTrades(ABC):
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        # No flipping of position for 'FixedExit' cos 'exit_signal' is always 'wait' i.e.
-        # Exit position based strictly on pre-determined target profit
+        # No flipping of position for 'FixedExit' cos 'exit_signal' is always 'wait'
+        # i.e. Exit position based strictly on pre-determined target profit.
         if self.exit_struct == "FixedExit":
             fixed_exit = self._get_inst_from_cache(
                 "FixedExit", monitor_close=self.monitor_close
@@ -410,8 +412,8 @@ class GenTrades(ABC):
             completed_list.extend(self.take_profit(**params))
 
         # Set 'self.flip' flag to true if exit and entry signal are same and not 'wait'
-        # Note that entry and exit signals are only available at end of trading day. Hence
-        # action can only be taken next trading day
+        # Note that entry and exit signals are only available at end of trading day.
+        # Hence action can only be taken next trading day.
         if exit_signal == entry_signal and exit_signal != "wait":
             self.flip = True
 
@@ -743,20 +745,16 @@ class GenTrades(ABC):
                 Dictionary containing datetime, trigger price and whether triggered.
         """
 
-        dt = record["date"]
-        open = convert_to_decimal(record["open"])
-        close = convert_to_decimal(record["close"])
-        low = convert_to_decimal(record["low"])
-        high = convert_to_decimal(record["high"])
+        dt, op, high, low, close = parse_record(record)
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(self.open_trades, "entry_action")
 
         check_open_cond = (
             entry_action == "buy"
-            and open <= trigger_price
+            and op <= trigger_price
             or entry_action == "sell"
-            and open >= trigger_price
+            and op >= trigger_price
         )
 
         # List of exit conditions

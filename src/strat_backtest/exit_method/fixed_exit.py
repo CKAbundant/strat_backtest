@@ -23,6 +23,7 @@ from strat_backtest.utils.constants import (
 from strat_backtest.utils.pos_utils import (
     convert_to_decimal,
     get_std_field,
+    parse_record,
     validate_completed_trades,
 )
 
@@ -176,11 +177,7 @@ class FixedExit(ExitStruct):
 
             return deque(), completed_list
 
-        dt = record["date"]
-        open = convert_to_decimal(record["open"])
-        close = convert_to_decimal(record["close"])
-        low = convert_to_decimal(record["low"])
-        high = convert_to_decimal(record["high"])
+        dt, op, high, low, close = parse_record(record)
         updated_levels = {}
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
@@ -193,9 +190,9 @@ class FixedExit(ExitStruct):
             # Check if stop loss triggered upon market opening
             check_open_cond = (
                 entry_action == "buy"
-                and open <= stop_level
+                and op <= stop_level
                 or entry_action == "sell"
-                and open >= stop_level
+                and op >= stop_level
             )
 
             # List of stop loss conditions
@@ -211,7 +208,7 @@ class FixedExit(ExitStruct):
             # Ensure position is exited first as long any stop loss conditions are met
             if check_open_cond:
                 open_trades, updated_list = self.close_pos(
-                    open_trades, dt, open, entry_dt
+                    open_trades, dt, op, entry_dt
                 )
                 completed_list.extend(updated_list)
 
@@ -259,7 +256,7 @@ class FixedExit(ExitStruct):
             return deque(), completed_list
 
         dt = record["date"]
-        open = convert_to_decimal(record["open"])
+        op = convert_to_decimal(record["open"])
         high = convert_to_decimal(record["high"])
         low = convert_to_decimal(record["low"])
         updated_levels = {}
@@ -274,12 +271,12 @@ class FixedExit(ExitStruct):
             # Check if profit conditions met upon market opening
             if (
                 entry_action == "buy"
-                and open >= profit_level
+                and op >= profit_level
                 or entry_action == "sell"
-                and open <= profit_level
+                and op <= profit_level
             ):
                 open_trades, updated_list = self.close_pos(
-                    open_trades, dt, open, entry_dt
+                    open_trades, dt, op, entry_dt
                 )
                 completed_list.extend(updated_list)
 
