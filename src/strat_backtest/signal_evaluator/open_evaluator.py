@@ -28,7 +28,8 @@ class OpenEvaluator(SignalEvaluator):
             return None
 
         # Get existing entry or exit signal, opening price and entry or exit price
-        existing_sig = self._get_existing_sig(self.sig_type)
+        # in 'records' attribute
+        existing_action = self._get_existing_action(self.sig_type)
         open_price = record.get("open")
         price = f"{self.sig_type.split('_')[0]}_price"
 
@@ -36,4 +37,4 @@ class OpenEvaluator(SignalEvaluator):
         # to latest record
         self.records = [record] if sig != "wait" else []
 
-        return {"dt": dt, self.sig_type: existing_sig, price: open_price}
+        return {"dt": dt, self.sig_type: existing_action, price: open_price}

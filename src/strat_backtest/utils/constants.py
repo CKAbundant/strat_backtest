@@ -46,11 +46,12 @@ class ExitMethod(StrEnum):
     HALF_FIFO = "HalfFIFOExit"
     HALF_LIFO = "HalfLIFOExit"
     TAKE_ALL = "TakeAllExit"
+    FIXED = "FixedExit"
 
 
 class SigEvalMethod(StrEnum):
-    BREAKOUT_ENTRY = "BreakoutEntry"
-    CLOSE_ENTRY = "CloseEntry"
+    BREAKOUT_EVALUATOR = "BreakoutEvaluator"
+    OPEN_EVALUATOR = "OpenEvaluator"
 
 
 class TrailMethod(StrEnum):

@@ -43,8 +43,13 @@ class SignalEvaluator(ABC):
 
         Returns:
             (dict[str, Any] | None):
-                If avaiable, dictionary containing fields required to create new
-                position or close existing position.
+                If available, dictionary containing following keys:
+                    dt (datetime):
+                        datetime when action triggered.
+                    entry_signal or exit_signal (PriceAction):
+                        Either "buy" or "sell".
+                    entry_price or exit_price (Decimal)
+                        Price to take action upon.
         """
 
         ...
@@ -64,7 +69,9 @@ class SignalEvaluator(ABC):
             raise ValueError(f"{sig} is not a valid price action.")
 
         # 'self.records' is empty list or entry signal == "wait"
-        if (existing_sig := self._get_existing_sig(sig_type)) is None or sig == "wait":
+        if (
+            existing_sig := self._get_existing_action(sig_type)
+        ) is None or sig == "wait":
             return None
 
         if sig != existing_sig:
@@ -75,9 +82,9 @@ class SignalEvaluator(ABC):
 
         return None
 
-    def _get_existing_sig(self, sig_type: str) -> PriceAction | None:
-        """Get existing entry or exit signal i.e. whether signal is 'buy' or 'sell'.
-        'wait' is not considered."""
+    def _get_existing_action(self, sig_type: str) -> PriceAction | None:
+        """Get existing entry or exit price action in 'records' attribute i.e. whether
+        signal is 'buy' or 'sell'. 'wait' is not considered."""
 
         # Return None if records is an empty list
         if not self.records:

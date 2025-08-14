@@ -9,6 +9,7 @@ at 'exit_method' sub-package.
 """
 
 from .fifo_exit import FIFOExit
+from .fixed_exit import FixedExit
 from .half_fifo_exit import HalfFIFOExit
 from .half_lifo_exit import HalfLIFOExit
 from .lifo_exit import LIFOExit
@@ -21,4 +22,5 @@ __all__ = [
     "HalfFIFOExit",
     "HalfLIFOExit",
     "TakeAllExit",
+    "FixedExit",
 ]

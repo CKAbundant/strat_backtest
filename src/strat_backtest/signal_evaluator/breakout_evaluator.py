@@ -63,16 +63,16 @@ class BreakoutEvaluator(SignalEvaluator):
 
         # Get existing entry or exit signal, high and low of last record in
         # 'self.records'
-        existing_sig = self._get_existing_sig(self.sig_type)
+        existing_action = self._get_existing_action(self.sig_type)
         prev_high = self.records[-1].get("high")
         prev_low = self.records[-1].get("low")
 
         # Compute price to take action
         price = f"{self.sig_type.split('_')[0]}_price"
-        action_price = self._cal_action_price(existing_sig, prev_high, prev_low, op)
+        action_price = self._cal_action_price(existing_action, prev_high, prev_low, op)
 
-        if (existing_sig == "buy" and high > prev_high) or (
-            existing_sig == "sell" and low < prev_low
+        if (existing_action == "buy" and high > prev_high) or (
+            existing_action == "sell" and low < prev_low
         ):
             # Reset 'records' to empty list if 'entry_signal' != "wait" else update to
             # latest record
@@ -80,7 +80,7 @@ class BreakoutEvaluator(SignalEvaluator):
 
             return {
                 "dt": dt,
-                self.sig_type: existing_sig,
+                self.sig_type: existing_action,
                 price: action_price,
             }
 

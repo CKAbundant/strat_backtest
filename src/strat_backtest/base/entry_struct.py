@@ -18,14 +18,14 @@ class EntryStruct(ABC):
 
     Args:
         num_lots (int):
-            Default number of lots to enter each time (Default: 1).
+            Default number of lots to enter each time (Default: 10).
 
     Attributes:
         num_lots (int):
-            Default number of lots to enter each time (Default: 1).
+            Default number of lots to enter each time (Default: 10).
     """
 
-    def __init__(self, num_lots: int) -> None:
+    def __init__(self, num_lots: int = 10) -> None:
         self.num_lots = num_lots
 
     @abstractmethod
