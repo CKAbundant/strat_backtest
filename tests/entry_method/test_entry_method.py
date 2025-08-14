@@ -79,11 +79,7 @@ def test_multi(open_trades, sample_gen_trades):
 
 
 @pytest.mark.parametrize("is_empty", [True, False])
-def test_single(
-    open_trades,
-    sample_gen_trades,
-    is_empty,
-):
+def test_single(open_trades, sample_gen_trades, is_empty):
     """Check if no new position created when there are existing open positions."""
 
     num_lots = 10
@@ -110,5 +106,39 @@ def test_single(
 
     display_open_trades(computed_trades, "computed_trades")
     display_open_trades(expected_trades, "expected_trades")
+
+    assert computed_trades == expected_trades
+
+
+@pytest.mark.parametrize("is_empty", [True, False])
+def test_multi_half(open_trades, sample_gen_trades, is_empty):
+    """Check if number of new positions created is half of latest existing position."""
+
+    num_lots = 10
+    record = get_latest_record(sample_gen_trades)
+    print(f"record : \n\n{pformat(record, sort_dicts=False)}\n")
+
+    if is_empty:
+        open_pos = deque()
+        expected_trades = create_new_pos(record, num_lots)
+
+    else:
+        # Half of latest existing position
+        half_lots = open_trades[-1].entry_lots / 2
+
+        open_pos = open_trades.copy()
+        expected_trades = create_new_pos(record, half_lots, open_trades.copy())
+
+    multi_half_entry = MultiHalfEntry(num_lots=num_lots)
+    computed_trades = multi_half_entry.open_new_pos(
+        open_pos.copy(),
+        "AAPL",
+        record["date"],
+        record["entry_signal"],
+        record["open"],
+    )
+
+    display_open_trades(open_pos, "open_pos")
+    display_open_trades(computed_trades, "computed_trades")
 
     assert computed_trades == expected_trades
