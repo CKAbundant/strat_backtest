@@ -11,8 +11,8 @@ import pytest
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.exit_method import FixedExit
 from strat_backtest.utils.utils import display_open_trades
-from tests.test_fixedexit_utils import gen_exit_levels, gen_test_df
-from tests.test_utils import get_latest_record
+from tests.utils.test_fixedexit_utils import gen_exit_levels, gen_test_df
+from tests.utils.test_utils import get_latest_record
 
 
 def test_update_exit_levels(sample_gen_trades):

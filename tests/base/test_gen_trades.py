@@ -24,22 +24,24 @@ import pytest
 
 from strat_backtest.utils.pos_utils import get_std_field
 from strat_backtest.utils.utils import display_open_trades
-from tests.test_fixedexit_utils import gen_test_df
-from tests.test_utils import (
+from tests.utils.test_fixedexit_utils import gen_test_df
+from tests.utils.test_gentrades_utils import (
     cal_percentloss_stop_price,
     cal_trailing_price,
-    create_new_pos,
     gen_check_profit_completed_list,
     gen_check_stop_loss_completed_list,
     gen_check_trailing_profit_completed_list,
     gen_exit_all_end_completed_list,
-    gen_record,
     gen_take_profit_completed_list,
     gen_takeallexit_completed_list,
     gen_testgentrades_inst,
+    init_flip,
+)
+from tests.utils.test_utils import (
+    create_new_pos,
+    gen_record,
     get_date_record,
     get_latest_record,
-    init_flip,
 )
 
 
