@@ -126,7 +126,7 @@ class EntryStruct(ABC):
         if ticker != latest_ticker:
             raise ValueError(
                 f"'{ticker}' is different from ticker used in "
-                f"'open_trades' ({latest_ticker})"
+                f"'open_trades' i.e. '{latest_ticker}'"
             )
 
         return ticker
@@ -154,8 +154,8 @@ class EntryStruct(ABC):
         latest_action = open_trades[-1].entry_action
         if entry_action != latest_action:
             raise ValueError(
-                f"'{entry_action}' is different from entry action used in"
-                f"'open_trades' ({latest_action})"
+                f"Entry action '{entry_action}' is different from entry action used "
+                f"in 'open_trades' i.e. '{latest_action}'"
             )
 
         return entry_action
@@ -193,8 +193,8 @@ class EntryStruct(ABC):
         latest_datetime = open_trades[-1].entry_datetime
         if entry_datetime < latest_datetime:
             raise ValueError(
-                f"Entry datetime '{entry_datetime}' is earlier than "
-                f"latest entry datetime '{latest_datetime}'."
+                f"Entry datetime '{entry_datetime.strftime("%Y-%m-%d")}' is earlier than "
+                f"latest entry datetime '{latest_datetime.strftime("%Y-%m-%d")}'"
             )
 
         return entry_datetime
