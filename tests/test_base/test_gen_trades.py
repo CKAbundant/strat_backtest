@@ -282,6 +282,7 @@ def test_check_profit_no_action(
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, open_trades=trades_input
     )
+    test_inst.init_sig_evaluator()
 
     # Generate computed 'completed_list'
     computed_list = test_inst.check_profit(completed_list.copy(), record.copy())
@@ -314,6 +315,7 @@ def test_check_profit_fifoexit(
         risk_config,
         open_trades=open_trades.copy(),
     )
+    test_inst.init_sig_evaluator()
 
     if entry_sig == exit_sig:
         # Flip position in entry and exit signals are the same
@@ -465,6 +467,7 @@ def test_open_new_pos_no_action(
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, sig_eval_method=sig_evaluator
     )
+    test_inst.init_sig_evaluator()
     test_inst.check_new_pos(record["ticker"], record.copy())
 
     assert not test_inst.open_trades
@@ -490,6 +493,7 @@ def test_open_new_pos_multientry(
     test_inst = gen_testgentrades_inst(
         trading_config, risk_config, open_trades=open_trades.copy()
     )
+    test_inst.init_sig_evaluator()
 
     # Update 'records' with 'prev_record' to ensure trade confirmation
     test_inst.inst_cache["sig_ent_eval"].records = [prev_record]

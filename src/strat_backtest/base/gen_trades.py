@@ -247,10 +247,11 @@ class GenTrades(ABC):
             else:
                 self.check_new_pos(ticker, info)
 
-            print(
-                "self.inst_cache['FixedExit'].exit_levels : "
-                f"\n\n{pformat(self.inst_cache['FixedExit'].exit_levels, sort_dicts=False)}\n"
-            )
+            if "FixedExit" in self.inst_cache:
+                print(
+                    "self.inst_cache['FixedExit'].exit_levels : "
+                    f"\n\n{pformat(self.inst_cache['FixedExit'].exit_levels, sort_dicts=False)}\n"
+                )
             print(f"net_pos after update : {get_net_pos(self.open_trades)}")
             print(f"len(self.open_trades) : {len(self.open_trades)}")
             display_open_trades(self.open_trades)
