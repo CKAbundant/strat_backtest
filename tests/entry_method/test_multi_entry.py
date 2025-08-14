@@ -23,9 +23,13 @@ def test_multientry(open_trades, sample_gen_trades, num_lots):
     print(f"record : \n\n{pformat(record, sort_dicts=False)}\n")
     display_open_trades(open_trades)
 
-    # multi_entry = MultiEntry(num_lots=num_lots)
-    # multi_entry.open_new_pos(
-    #     open_trades,
-    #     "AAPL",
-    #     record["date"],
-    # )
+    multi_entry = MultiEntry(num_lots=num_lots)
+    updated_trades = multi_entry.open_new_pos(
+        open_trades,
+        0,
+        record["date"],
+        record["entry_signal"],
+        record["open"],
+    )
+
+    display_open_trades(updated_trades, "updated_trades")
