@@ -193,8 +193,8 @@ class EntryStruct(ABC):
         latest_datetime = open_trades[-1].entry_datetime
         if entry_datetime < latest_datetime:
             raise ValueError(
-                f"Entry datetime '{entry_datetime.strftime('%Y-%m-%d')}' is earlier than "
-                f"latest entry datetime '{latest_datetime.strftime('%Y-%m-%d')}'"
+                f"Entry datetime '{entry_datetime.strftime('%Y-%m-%d')}' is earlier "
+                f"than latest entry datetime '{latest_datetime.strftime('%Y-%m-%d')}'"
             )
 
         return entry_datetime
