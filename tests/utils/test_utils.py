@@ -8,16 +8,7 @@ import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import OpenTrades, Record
-from strat_backtest.utils.utils import convert_to_decimal
-
-
-def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
-    """Ensure OHLCV are decimal type and date is datetime object."""
-
-    return {
-        k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else convert_to_decimal(v)
-        for k, v in record.items()
-    }
+from strat_backtest.utils.utils import convert_to_decimal, correct_datatype
 
 
 def get_latest_record(df_sample: pd.DataFrame) -> Record:

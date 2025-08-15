@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 from strat_backtest.utils.constants import ExitMethod
-from strat_backtest.utils.utils import convert_to_decimal
+from strat_backtest.utils.utils import correct_datatype
 
 
 def get_module_paths(main_pkg: str = "strat_backtest") -> dict[str, str]:
@@ -94,18 +94,13 @@ def gen_mapping(record: tuple[Any], req_cols: list[str]) -> dict[str, Any]:
     # Record include row index and required fields
     fields = ["idx", *req_cols]
 
-    # Ensure numeric type are set to Decimal and date type are set to datetime
-    updated_record = [
-        (
-            rec.to_pydatetime()
-            if isinstance(rec, pd.Timestamp)
-            else convert_to_decimal(rec)
-        )
-        for rec in record
-    ]
+    # Create dictionary by matching column names to respective fields
+    record = dict(zip(fields, record))
 
-    # Create dictionary based on
-    return dict(zip(fields, updated_record))
+    # Ensure numeric type are set to Decimal and date type are set to datetime
+    record = correct_datatype(record)
+
+    return record
 
 
 def set_naive_tz(data: pd.DataFrame) -> pd.DataFrame:

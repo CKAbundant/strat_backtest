@@ -70,7 +70,7 @@ class ExitStruct(ABC):
         self,
         trade: StockTrade,
         dt: datetime,
-        exit_price: float,
+        exit_price: float | Decimal,
         exit_lots: int | None = None,
     ) -> StockTrade:
         """Update existing StockTrade objects (still open).
@@ -89,7 +89,8 @@ class ExitStruct(ABC):
             (StockTrade): StockTrade object updated with exit info
         """
 
-        exit_lots = exit_lots or trade.entry_lots
+        # Validate exit lots are not more than entry lots
+        exit_lots = self._validate_exit_lots(trade, exit_lots)
 
         # Convert 'dt' to datetime type
         if isinstance(dt, pd.Timestamp):
@@ -103,13 +104,35 @@ class ExitStruct(ABC):
             updated_trade.exit_datetime = dt
             updated_trade.exit_action = exit_action
             updated_trade.exit_lots = exit_lots
-            updated_trade.exit_price = Decimal(str(exit_price))
+            updated_trade.exit_price = (
+                exit_price
+                if isinstance(exit_price, Decimal)
+                else Decimal(str(exit_price))
+            )
 
             return updated_trade
 
         except ValidationError as e:
             print(f"Validation Error : {e}")
             return trade
+
+    def _validate_exit_lots(
+        self, trade: StockTrade, exit_lots: Decimal | None
+    ) -> Decimal:
+        """Ensure exit lots are not more than entry lots."""
+
+        exit_lots = exit_lots or trade.entry_lots
+        entry_lots = trade.entry_lots
+
+        if exit_lots > entry_lots:
+            raise ValueError(
+                f"Exit lots ({exit_lots}) are more than entry lots ({entry_lots})"
+            )
+
+        if exit_lots < 0:
+            raise ValueError(f"Exit lots ({exit_lots}) cannot be negative")
+
+        return exit_lots
 
 
 class HalfExitStruct(ExitStruct, ABC):

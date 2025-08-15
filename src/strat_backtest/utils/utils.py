@@ -4,8 +4,11 @@
 - Format display via print
 """
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
+
+import pandas as pd
 
 from strat_backtest.utils.constants import OpenTrades, PriceAction, Record
 
@@ -113,6 +116,15 @@ def gen_cond_list(
     ]
 
     return open_cond, trigger_cond_list
+
+
+def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
+    """Ensure OHLCV are decimal type and date is datetime object."""
+
+    return {
+        k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else convert_to_decimal(v)
+        for k, v in record.items()
+    }
 
 
 # Public Interface
