@@ -1,9 +1,7 @@
 """Utility functions used for testing 'GenTrades'."""
 
-from collections import deque
 from datetime import datetime
 from decimal import Decimal
-from pprint import pformat
 from typing import Any, TypeVar
 
 import pandas as pd
@@ -16,12 +14,11 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import (
+from strat_backtest.utils.utils import (
     convert_to_decimal,
     get_class_instance,
     get_std_field,
 )
-from strat_backtest.utils.utils import display_open_trades
 from tests.utils.test_utils import update_open_pos
 
 # Create generic type variable 'T'

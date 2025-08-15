@@ -2,12 +2,11 @@
 
 import importlib
 from collections import Counter
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Type, TypeVar
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import CompletedTrades, OpenTrades, Record
+from strat_backtest.utils.constants import CompletedTrades, OpenTrades
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -103,32 +102,6 @@ def validate_completed_trades(stock_trade: StockTrade) -> bool:
     return is_no_null_field and is_lots_matched
 
 
-def convert_to_decimal(var: Any | None) -> Decimal | None:
-    """Convert 'var' to Decimal type if numeric type."""
-
-    if var is None:
-        return None
-
-    if not isinstance(var, (int, float, Decimal)):
-        return var
-
-    return Decimal(str(var))
-
-
-def parse_record(record: Record) -> tuple[datetime, Decimal, Decimal, Decimal, Decimal]:
-    """Return datetime object and OHLC in Decimal format."""
-
-    # Ensure date
-    dt = (
-        record["date"]
-        if isinstance(record["date"], datetime)
-        else record["date"].to_pydatetime()
-    )
-    ohlc = [convert_to_decimal(record[key]) for key in ["open", "high", "low", "close"]]
-
-    return (dt, *ohlc)
-
-
 # Public Interface
 __all__ = [
     "get_class_instance",
@@ -136,5 +109,4 @@ __all__ = [
     "get_std_field",
     "gen_completed_trade",
     "validate_completed_trades",
-    "convert_to_decimal",
 ]

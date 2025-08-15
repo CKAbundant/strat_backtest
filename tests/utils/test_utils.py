@@ -4,13 +4,11 @@ from collections import deque
 from datetime import datetime
 from decimal import Decimal
 
-import numpy as np
 import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import OpenTrades, Record
-from strat_backtest.utils.pos_utils import convert_to_decimal
-from strat_backtest.utils.utils import display_open_trades
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:

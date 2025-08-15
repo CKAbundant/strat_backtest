@@ -6,7 +6,7 @@ from decimal import Decimal
 import pandas as pd
 
 from strat_backtest.utils.constants import OpenTrades
-from tests.utils.test_utils import convert_to_decimal
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 def gen_test_df(data: pd.DataFrame, risk: float) -> pd.DataFrame:

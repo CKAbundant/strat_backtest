@@ -20,12 +20,8 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import (
-    convert_to_decimal,
-    get_std_field,
-    parse_record,
-    validate_completed_trades,
-)
+from strat_backtest.utils.pos_utils import get_std_field, validate_completed_trades
+from strat_backtest.utils.utils import convert_to_decimal, gen_cond_list
 
 if TYPE_CHECKING:
     from strat_backtest.base.stock_trade import StockTrade
@@ -178,8 +174,9 @@ class FixedExit(ExitStruct):
 
             return deque(), completed_list
 
-        dt, op, high, low, close = parse_record(record)
         updated_levels = {}
+        op = record.get("open")
+        dt = record.get("date")
 
         # Get standard 'entry_action' from 'self.open_trades'; and stop price
         entry_action = get_std_field(open_trades, "entry_action")
@@ -188,26 +185,14 @@ class FixedExit(ExitStruct):
             # Validate profit and stop level
             self._validate_level(entry_action, profit_level, stop_level)
 
-            # Check if stop loss triggered upon market opening
-            check_open_cond = (
-                entry_action == "buy"
-                and op <= stop_level
-                or entry_action == "sell"
-                and op >= stop_level
+            # Generate list of conditions for triggering action upon market
+            # opening and after market open.
+            open_cond, stop_cond_list = gen_cond_list(
+                record, entry_action, stop_level, self.monitor_close
             )
 
-            # List of stop loss conditions
-            stop_cond_list = [
-                self.monitor_close and entry_action == "buy" and close <= stop_level,
-                self.monitor_close and entry_action == "sell" and close >= stop_level,
-                not self.monitor_close and entry_action == "buy" and low <= stop_level,
-                not self.monitor_close
-                and entry_action == "sell"
-                and high >= stop_level,
-            ]
-
             # Ensure position is exited first as long any stop loss conditions are met
-            if check_open_cond:
+            if open_cond:
                 open_trades, updated_list = self.close_pos(
                     open_trades, dt, op, entry_dt
                 )

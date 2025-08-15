@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 
 from strat_backtest.utils.constants import OpenTrades
-from strat_backtest.utils.pos_utils import convert_to_decimal
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 class StopLoss(ABC):

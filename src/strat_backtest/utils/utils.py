@@ -4,7 +4,11 @@
 - Format display via print
 """
 
-from strat_backtest.utils.constants import OpenTrades
+from datetime import datetime
+from decimal import Decimal
+from typing import Any
+
+from strat_backtest.utils.constants import OpenTrades, PriceAction, Record
 
 
 def display_open_trades(open_trades: OpenTrades, var_name: str | None = None) -> None:
@@ -50,7 +54,69 @@ def display_open_trades(open_trades: OpenTrades, var_name: str | None = None) ->
     return None
 
 
+def convert_to_decimal(var: Any | None) -> Decimal | None:
+    """Convert 'var' to Decimal type if numeric type."""
+
+    if var is None:
+        return None
+
+    if not isinstance(var, (int, float, Decimal)):
+        return var
+
+    return Decimal(str(var))
+
+
+def gen_cond_list(
+    record: Record,
+    entry_action: PriceAction,
+    trigger_price: Decimal,
+    monitor_close: bool,
+) -> tuple[list[bool], list[bool]]:
+    """Generate 2 list of conditions to trigger action upon market opening;
+    and after market opening.
+
+    Args:
+        record (Record):
+            Dictionary containing OHLC info and entry/exit signal.
+        entry_action (PriceAction):
+            Standard entry action for existing open positions.
+        trigger_price (Decimal):
+            Price level to trigger action.
+        monitor_close (bool):
+            Whether to monitor close price ("close") or both high and low price.
+
+    Returns:
+        open_cond (list[bool]): Conditions to trigger upon market opening.
+        trigger_cond_list (list[bool]): List of conditions to trigger after market opening.
+    """
+
+    op = record.get("open")
+    high = record.get("high")
+    low = record.get("low")
+    close = record.get("close")
+
+    # Check if stop loss triggered upon market opening
+    open_cond = (
+        entry_action == "buy"
+        and op <= trigger_price
+        or entry_action == "sell"
+        and op >= trigger_price
+    )
+
+    # List of stop loss conditions
+    trigger_cond_list = [
+        monitor_close and entry_action == "buy" and close <= trigger_price,
+        monitor_close and entry_action == "sell" and close >= trigger_price,
+        not monitor_close and entry_action == "buy" and low <= trigger_price,
+        not monitor_close and entry_action == "sell" and high >= trigger_price,
+    ]
+
+    return open_cond, trigger_cond_list
+
+
 # Public Interface
 __all__ = [
     "display_open_trades",
+    "convert_to_decimal",
+    "gen_cond_list",
 ]

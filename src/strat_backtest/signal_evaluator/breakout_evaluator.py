@@ -10,7 +10,7 @@ from typing import Any
 
 from strat_backtest.base import SignalEvaluator
 from strat_backtest.utils.constants import PriceAction, Record, SigType
-from strat_backtest.utils.pos_utils import convert_to_decimal
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 class BreakoutEvaluator(SignalEvaluator):

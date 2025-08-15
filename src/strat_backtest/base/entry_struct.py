@@ -9,7 +9,8 @@ from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import OpenTrades, PriceAction
-from strat_backtest.utils.pos_utils import convert_to_decimal, get_std_field
+from strat_backtest.utils.pos_utils import get_std_field
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 class EntryStruct(ABC):
