@@ -71,7 +71,7 @@ def gen_cond_list(
     entry_action: PriceAction,
     trigger_price: Decimal,
     monitor_close: bool,
-) -> tuple[list[bool], list[bool]]:
+) -> tuple[bool, list[bool]]:
     """Generate 2 list of conditions to trigger action upon market opening;
     and after market opening.
 

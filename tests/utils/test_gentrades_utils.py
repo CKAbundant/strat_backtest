@@ -14,11 +14,8 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
 )
-from strat_backtest.utils.utils import (
-    convert_to_decimal,
-    get_class_instance,
-    get_std_field,
-)
+from strat_backtest.utils.pos_utils import get_class_instance, get_std_field
+from strat_backtest.utils.utils import convert_to_decimal
 from tests.utils.test_utils import update_open_pos
 
 # Create generic type variable 'T'
