@@ -4,7 +4,6 @@
 - Format display via print
 """
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -86,8 +85,10 @@ def gen_cond_list(
             Whether to monitor close price ("close") or both high and low price.
 
     Returns:
-        open_cond (list[bool]): Conditions to trigger upon market opening.
-        trigger_cond_list (list[bool]): List of conditions to trigger after market opening.
+        open_cond (list[bool]):
+            Conditions to trigger upon market opening.
+        trigger_cond_list (list[bool]):
+            List of conditions to trigger after market opening.
     """
 
     op = record.get("open")
