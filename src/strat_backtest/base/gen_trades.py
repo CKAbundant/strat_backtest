@@ -197,7 +197,7 @@ class GenTrades(ABC):
         # Filter required columns i.e. date, open, high, low, close, entry
         # and exit signal
         df = df_signals.copy()
-        df = validate_req_cols(df)
+        df = validate_req_cols(df, self.req_cols, self.exit_struct)
 
         # Convert numeric type to Decimal
         df = set_decimal_type(df)

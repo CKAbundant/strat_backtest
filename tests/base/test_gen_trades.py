@@ -22,6 +22,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
+from strat_backtest.utils.gentrades_utils import append_info
 from strat_backtest.utils.pos_utils import get_std_field
 from strat_backtest.utils.utils import display_open_trades
 from tests.utils.test_fixedexit_utils import gen_test_df
@@ -512,12 +513,10 @@ def test_open_new_pos_multientry(
 
 
 def test_append_info(trading_config, risk_config, sample_gen_trades, stop_info_list):
-    """Test 'append_info' method in 'GenTrades'."""
-
-    test_inst = gen_testgentrades_inst(trading_config, risk_config)
+    """Test 'append_info' function in 'gentrades_utils.py'."""
 
     # Generate computed DataFrame after appending
-    computed_df = test_inst.append_info(sample_gen_trades, stop_info_list)
+    computed_df = append_info(sample_gen_trades, stop_info_list)
 
     # Generate expected DataFrame after appending
     df_stop = pd.DataFrame(stop_info_list)
