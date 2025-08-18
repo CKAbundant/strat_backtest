@@ -1,13 +1,13 @@
-"""Generate test for concrete implementation of 'ExitStruct' except for 'FixedExit'."""
+"""Generate test for 'FIFOExit' method."""
 
-import math
+from collections import deque
 from pprint import pformat
 
 import pytest
 
-from strat_backtest.exit_method import FIFOExit, HalfFIFOExit
+from strat_backtest.exit_method import FIFOExit
 from strat_backtest.utils.utils import display_open_trades
-from tests.utils.test_utils import get_completed_lots, get_latest_record, get_open_lots
+from tests.utils.test_utils import get_latest_record, update_open_pos
 
 
 @pytest.mark.parametrize("exit_lots", [None, 1, 5, 10])
@@ -59,26 +59,42 @@ def test_validate_exit_lots(open_trades, sample_gen_trades, exit_lots, exc_msg):
     assert exc_msg == str(exc_info.value)
 
 
-def test_update_half_status(open_trades, sample_gen_trades):
-    """Test if '_update_half_status' reduce open positions by half recursively.'"""
+def test_fifoexit_no_action(sample_gen_trades):
+    """Test if 'close_pos' method of 'FIFOExit' return empty deque list if empty"""
+
+    record = get_latest_record(sample_gen_trades)
+
+    fifo_exit = FIFOExit()
+    computed_trades, computed_list = fifo_exit.close_pos(
+        deque(), record["date"], record["open"]
+    )
+
+    assert computed_trades == deque()
+    assert computed_list == []
+
+
+def test_fifoexit(open_trades, sample_gen_trades):
+    """Test if 'close_pos' method of 'FIFOExit' correctly closed first open position."""
 
     record = get_latest_record(sample_gen_trades)
 
     print(f"\n\nrecord : \n\n{pformat(record, sort_dicts=False)}\n")
     display_open_trades(open_trades)
 
-    half_fifo_exit = HalfFIFOExit()
-    i = 1
+    fifo_exit = FIFOExit()
+    computed_trades, computed_list = fifo_exit.close_pos(
+        open_trades.copy(), record["date"], record["open"]
+    )
 
-    while (open_lots := get_open_lots(open_trades)) > 0:
-        open_trades, computed_list = half_fifo_exit._update_half_status(
-            open_trades, record["date"], record["open"]
-        )
-        print(f"\n\nround : {i}")
-        display_open_trades(open_trades, "computed_trades")
-        print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
-        print(f"{math.floor(open_lots/2)=}")
+    expected_trades = open_trades.copy()
 
-        assert get_open_lots(open_trades) == math.floor(open_lots / 2)
-        assert get_completed_lots(computed_list) == math.ceil(open_lots / 2)
-        i += 1
+    # Pop first entry and update exit price and datetime
+    completed_trade = expected_trades.popleft()
+    completed_trade = update_open_pos(completed_trade, record["date"], record["open"])
+    expected_list = [completed_trade.model_dump()]
+
+    display_open_trades(computed_trades, "computed_trades")
+    print(f"computed_list : \n\n{pformat(computed_list, sort_dicts=False)}\n")
+
+    assert computed_trades == expected_trades
+    assert computed_list == expected_list

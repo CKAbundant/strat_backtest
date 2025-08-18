@@ -61,9 +61,20 @@ def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
 
 
 def update_open_pos(
-    trade: StockTrade, exit_dt: datetime | pd.Timestamp, exit_price: float
+    trade: StockTrade,
+    exit_dt: datetime | pd.Timestamp,
+    exit_price: float,
+    exit_lots: float | None = None,
 ) -> StockTrade:
     """Update open position with exit datetime and price."""
+
+    open_lots = trade.entry_lots - trade.exit_lots
+    exit_lots = exit_lots or open_lots
+
+    if exit_lots > open_lots:
+        raise ValueError(
+            f"Exit lots ({exit_lots}) should not be more than entry lots ({open_lots})"
+        )
 
     # Get 'exit_action' based on 'entry_action'
     exit_action = "sell" if trade.entry_action == "buy" else "buy"
@@ -74,7 +85,9 @@ def update_open_pos(
 
     trade.exit_datetime = exit_dt
     trade.exit_action = exit_action
-    trade.exit_lots = trade.entry_lots
+    trade.exit_lots = (
+        exit_lots + trade.exit_lots
+    )  # Increment trade.exit_lots by 'exit_lots'
     trade.exit_price = convert_to_decimal(exit_price)
 
     return trade
