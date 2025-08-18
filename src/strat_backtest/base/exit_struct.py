@@ -147,14 +147,17 @@ class HalfExitStruct(ExitStruct, ABC):
     """
 
     def _update_half_status(
-        self, open_trades: tuple[StockTrade], dt: datetime, exit_price: float
+        self,
+        open_trades: OpenTrades | list[StockTrade],
+        dt: datetime,
+        exit_price: float,
     ) -> ClosedPositionResult:
         """Update open positions and completed trades after closing half of
         existing positions.
 
         Args:
-            open_trades (tuple[StockTrade]):
-                Tuple of 'StockTrade' pydantic objects containing trade info.
+            open_trades (OpenTrades | list[StockTrade]):
+                list of 'StockTrade' pydantic objects containing trade info.
             dt (datetime):
                 Trade datetime object.
             exit_price (float):
@@ -169,6 +172,9 @@ class HalfExitStruct(ExitStruct, ABC):
 
         completed_trades = []
         new_open_trades = deque()
+
+        # Fixed ordering by converting to tuple
+        open_trades = tuple(open_trades)
 
         # Get net position and half of net position from 'open_trades'
         net_pos = get_net_pos(open_trades)

@@ -56,9 +56,8 @@ class HalfLIFOExit(HalfExitStruct):
             return open_trades, []
 
         # Reverse copy of 'open_trades'
-        open_trades_copy = open_trades.copy()
-        open_trades_list = list(open_trades_copy)
-        reversed_open_trades = tuple(open_trades_list[::-1])
+        open_trades_list = list(open_trades.copy())
+        reversed_open_trades = open_trades_list[::-1]
 
         new_open_trades, completed_trades = self._update_half_status(
             reversed_open_trades, dt, exit_price

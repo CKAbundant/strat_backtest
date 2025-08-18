@@ -7,7 +7,7 @@ from decimal import Decimal
 import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import OpenTrades, Record
+from strat_backtest.utils.constants import CompletedTrades, OpenTrades, Record
 from strat_backtest.utils.utils import convert_to_decimal, correct_datatype
 
 
@@ -106,3 +106,19 @@ def create_new_pos(
     open_trades.append(new_pos)
 
     return open_trades
+
+
+def get_open_lots(open_trades: OpenTrades) -> Decimal:
+    """Count number of open lots in 'open_trades'."""
+
+    return sum(trade.entry_lots - trade.exit_lots for trade in open_trades)
+
+
+def get_completed_lots(completed_list: CompletedTrades) -> Decimal:
+    """Count number of completed lots in 'completed_list'"""
+
+    # Check if entry lots == exit lots for each StockTrade item in 'completed_list'
+    if any(trade["entry_lots"] != trade["exit_lots"] for trade in completed_list):
+        raise ValueError("Number of entry lots not equal to exit lots")
+
+    return sum(trade["exit_lots"] for trade in completed_list)
