@@ -61,10 +61,6 @@ def open_trades():
         entry_action="buy",
         entry_lots=10,
         entry_price=181.46,
-        # exit_datetime=datetime(2025, 4, 8, tzinfo=None),
-        # exit_action="sell",
-        # exit_lots=6,
-        # exit_price="183",
     )
 
     second_trade = StockTrade(
@@ -79,7 +75,7 @@ def open_trades():
         ticker="AAPL",
         entry_datetime=datetime(2025, 4, 11, tzinfo=None),
         entry_action="buy",
-        entry_lots=3,
+        entry_lots=10,
         entry_price=198.15,
     )
 

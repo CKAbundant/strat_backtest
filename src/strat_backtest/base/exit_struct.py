@@ -14,11 +14,7 @@ from pydantic import ValidationError
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
-from strat_backtest.utils.pos_utils import (
-    gen_completed_trade,
-    get_net_pos,
-    validate_completed_trades,
-)
+from strat_backtest.utils.pos_utils import gen_completed_trade, get_net_pos
 from strat_backtest.utils.utils import convert_to_decimal
 
 if TYPE_CHECKING:

@@ -99,7 +99,10 @@ def gen_open_trade(
     elif open_lots > required_lots:
         # Partial close trade by 'required_lots'
         expected_trade = update_open_pos(
-            trade.model_copy(), dt, exit_price, exit_lots=required_lots
+            trade.model_copy(),
+            dt,
+            exit_price,
+            exit_lots=required_lots + trade.exit_lots,
         )
 
     return expected_trade
@@ -216,32 +219,38 @@ def update_open_trades(
 
     percent_change = 0.02
 
+    # Update entry lots based on 'entry_lots_list'
+    for trade, entry_lots in zip(open_trades, entry_lots_list):
+        trade.entry_lots = entry_lots
+
     # Get 1 day later from date of first record for FIFO or date of
     # last record for LIFO
-    if is_fifo:
+    if is_fifo and is_partial:
         next_day = open_trades[0].entry_datetime + timedelta(days=1)
         exit_price = round(
             open_trades[0].entry_price * Decimal(str(1 + percent_change)), 2
         )
+        exit_lots = random.choice(list(range(1, entry_lots_list[0])))
 
-    else:
-        next_day = open_trades[-1].entry_datetime + timedelta(days=1)
-        exit_price = round(
-            open_trades[-1].entry_price * Decimal(str(1 + percent_change)), 2
-        )
-
-    # Update partial lots closed if 'is_partial' is True
-    if is_partial:
-        first_entry_lots = open_trades[0].entry_lots
         open_trades[0] = update_open_pos(
             open_trades[0],
             exit_dt=next_day,
             exit_price=exit_price,
-            exit_lots=random.choice(list(range(1, entry_lots_list[0]))),
+            exit_lots=exit_lots,
         )
 
-    # Update entry lots based on 'entry_lots_list'
-    for trade, entry_lots in zip(open_trades, entry_lots_list):
-        trade.entry_lots = entry_lots
+    elif not is_fifo and is_partial:
+        next_day = open_trades[-1].entry_datetime + timedelta(days=1)
+        exit_price = round(
+            open_trades[-1].entry_price * Decimal(str(1 + percent_change)), 2
+        )
+        exit_lots = random.choice(list(range(1, entry_lots_list[-1])))
+
+        open_trades[-1] = update_open_pos(
+            open_trades[-1],
+            exit_dt=next_day,
+            exit_price=exit_price,
+            exit_lots=exit_lots,
+        )
 
     return open_trades
