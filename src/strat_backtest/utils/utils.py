@@ -4,6 +4,7 @@
 - Format display via print
 """
 
+from collections import deque
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -28,7 +29,7 @@ def display_open_trades(open_trades: OpenTrades, var_name: str | None = None) ->
     for trade in open_trades:
         entry_date = trade.entry_datetime.strftime("%Y-%m-%d")
         exit_date = (
-            f"\"{trade.exit_datetime.strftime('%Y-%m-%d')}\""
+            f"'{trade.exit_datetime.strftime('%Y-%m-%d')}'"
             if trade.exit_datetime
             else "None"
         )
@@ -127,9 +128,19 @@ def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
     }
 
 
+def reverse_deque_list(deque_list: deque[list[Any]]) -> deque[list[Any]]:
+    """Reverse sequence in deque list."""
+
+    reverse_list = list(deque_list)[::-1]
+
+    return deque(reverse_list)
+
+
 # Public Interface
 __all__ = [
     "display_open_trades",
     "convert_to_decimal",
     "gen_cond_list",
+    "correct_datatype",
+    "reverse_deque_list",
 ]

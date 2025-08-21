@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from strat_backtest.base import HalfExitStruct
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
+from strat_backtest.utils.utils import reverse_deque_list
 
 if TYPE_CHECKING:
     from strat_backtest.utils.constants import CompletedTrades
@@ -56,11 +57,10 @@ class HalfLIFOExit(HalfExitStruct):
             return open_trades, []
 
         # Reverse copy of 'open_trades'
-        open_trades_list = list(open_trades.copy())
-        reversed_open_trades = open_trades_list[::-1]
+        reversed_open_trades = reverse_deque_list(open_trades)
 
         new_open_trades, completed_trades = self._update_half_status(
             reversed_open_trades, dt, exit_price
         )
 
-        return new_open_trades, completed_trades
+        return reverse_deque_list(new_open_trades), completed_trades

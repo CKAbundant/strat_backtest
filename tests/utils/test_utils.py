@@ -68,13 +68,8 @@ def update_open_pos(
 ) -> StockTrade:
     """Update open position with exit datetime and price."""
 
-    open_lots = trade.entry_lots - trade.exit_lots
-    exit_lots = exit_lots or open_lots
-
-    if exit_lots > open_lots:
-        raise ValueError(
-            f"Exit lots ({exit_lots}) should not be more than entry lots ({open_lots})"
-        )
+    entry_lots = trade.entry_lots
+    exit_lots = exit_lots or entry_lots
 
     # Get 'exit_action' based on 'entry_action'
     exit_action = "sell" if trade.entry_action == "buy" else "buy"
@@ -83,14 +78,14 @@ def update_open_pos(
     if isinstance(exit_dt, pd.Timestamp):
         exit_dt = exit_dt.to_pydatetime()
 
-    trade.exit_datetime = exit_dt
-    trade.exit_action = exit_action
-    trade.exit_lots = (
-        exit_lots + trade.exit_lots
-    )  # Increment trade.exit_lots by 'exit_lots'
-    trade.exit_price = convert_to_decimal(exit_price)
+    updated_trade = trade.model_copy()
 
-    return trade
+    updated_trade.exit_datetime = exit_dt
+    updated_trade.exit_action = exit_action
+    updated_trade.exit_lots = exit_lots
+    updated_trade.exit_price = convert_to_decimal(exit_price)
+
+    return updated_trade
 
 
 def create_new_pos(
