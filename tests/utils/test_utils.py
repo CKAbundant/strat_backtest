@@ -69,7 +69,11 @@ def update_open_pos(
     """Update open position with exit datetime and price."""
 
     entry_lots = trade.entry_lots
-    exit_lots = exit_lots or entry_lots
+    exit_lots = exit_lots if exit_lots == 0 or exit_lots is not None else entry_lots
+
+    if exit_lots == 0:
+        # No updates to 'trade'
+        return trade
 
     # Get 'exit_action' based on 'entry_action'
     exit_action = "sell" if trade.entry_action == "buy" else "buy"

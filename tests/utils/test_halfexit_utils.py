@@ -3,11 +3,8 @@
 import math
 import random
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
-from pprint import pformat
-
-import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import (
@@ -21,7 +18,7 @@ from tests.utils.test_utils import get_open_lots, update_open_pos
 
 def gen_completed_trade(
     trade: StockTrade, record: Record, open_lots: Decimal, required_lots: Decimal
-) -> dict[str, str | Decimal | datetime]:
+) -> CompletedTrades:
     """Generate the completed trades by reducing existing positions by half.
 
     Args:
