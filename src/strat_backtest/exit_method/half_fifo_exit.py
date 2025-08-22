@@ -11,6 +11,7 @@ from strat_backtest.base import HalfExitStruct
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
 
 if TYPE_CHECKING:
+    from strat_backtest.base.stock_trade import StockTrade
     from strat_backtest.utils.constants import CompletedTrades
 
 
@@ -55,11 +56,8 @@ class HalfFIFOExit(HalfExitStruct):
             # No open trades to close
             return open_trades, []
 
-        # Convert copy of 'open_trades' to tuple to fix ordering
-        open_trades_copy = tuple(open_trades.copy())
-
         new_open_trades, completed_trades = self._update_half_status(
-            open_trades_copy, dt, exit_price
+            open_trades.copy(), dt, exit_price
         )
 
         return new_open_trades, completed_trades

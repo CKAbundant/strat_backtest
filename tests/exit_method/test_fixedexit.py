@@ -1,4 +1,4 @@
-"""Generate test for concrete implementation of 'ExitStruct'."""
+"""Generate test for 'FixedExit'."""
 
 from collections import deque
 from datetime import datetime

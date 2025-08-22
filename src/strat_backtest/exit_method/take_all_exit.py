@@ -40,7 +40,8 @@ class TakeAllExit(ExitStruct):
             exit_price (float):
                 Exit price of stock ticker.
             _entry_dt (datetime | None):
-                If provided, datetime when position is opened.
+                If provided, datetime when position is opened (Unused but required to
+                be consistent with abstract class).
 
         Returns:
             open_trades (OpenTrades):

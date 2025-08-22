@@ -191,13 +191,14 @@ class FixedExit(ExitStruct):
                 record, entry_action, stop_level, self.monitor_close
             )
 
-            # Ensure position is exited first as long any stop loss conditions are met
+            # Check if trigger conditions met upon market opening
             if open_cond:
                 open_trades, updated_list = self.close_pos(
                     open_trades, dt, op, entry_dt
                 )
                 completed_list.extend(updated_list)
 
+            # Check if trigger conditions met after market open
             elif any(stop_cond_list):
                 open_trades, updated_list = self.close_pos(
                     open_trades, dt, stop_level, entry_dt

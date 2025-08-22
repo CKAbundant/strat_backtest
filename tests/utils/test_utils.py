@@ -7,17 +7,8 @@ from decimal import Decimal
 import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import OpenTrades, Record
-from strat_backtest.utils.utils import convert_to_decimal
-
-
-def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
-    """Ensure OHLCV are decimal type and date is datetime object."""
-
-    return {
-        k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else convert_to_decimal(v)
-        for k, v in record.items()
-    }
+from strat_backtest.utils.constants import CompletedTrades, OpenTrades, Record
+from strat_backtest.utils.utils import convert_to_decimal, correct_datatype
 
 
 def get_latest_record(df_sample: pd.DataFrame) -> Record:
@@ -70,9 +61,19 @@ def gen_record(df_sample: pd.DataFrame, **kwargs) -> Record:
 
 
 def update_open_pos(
-    trade: StockTrade, exit_dt: datetime | pd.Timestamp, exit_price: float
+    trade: StockTrade,
+    exit_dt: datetime | pd.Timestamp,
+    exit_price: float,
+    exit_lots: float | None = None,
 ) -> StockTrade:
     """Update open position with exit datetime and price."""
+
+    entry_lots = trade.entry_lots
+    exit_lots = exit_lots if exit_lots == 0 or exit_lots is not None else entry_lots
+
+    if exit_lots == 0:
+        # No updates to 'trade'
+        return trade
 
     # Get 'exit_action' based on 'entry_action'
     exit_action = "sell" if trade.entry_action == "buy" else "buy"
@@ -81,12 +82,14 @@ def update_open_pos(
     if isinstance(exit_dt, pd.Timestamp):
         exit_dt = exit_dt.to_pydatetime()
 
-    trade.exit_datetime = exit_dt
-    trade.exit_action = exit_action
-    trade.exit_lots = trade.entry_lots
-    trade.exit_price = convert_to_decimal(exit_price)
+    updated_trade = trade.model_copy()
 
-    return trade
+    updated_trade.exit_datetime = exit_dt
+    updated_trade.exit_action = exit_action
+    updated_trade.exit_lots = exit_lots
+    updated_trade.exit_price = convert_to_decimal(exit_price)
+
+    return updated_trade
 
 
 def create_new_pos(
@@ -115,3 +118,19 @@ def create_new_pos(
     open_trades.append(new_pos)
 
     return open_trades
+
+
+def get_open_lots(open_trades: OpenTrades) -> Decimal:
+    """Count number of open lots in 'open_trades'."""
+
+    return sum(trade.entry_lots - trade.exit_lots for trade in open_trades)
+
+
+def get_completed_lots(completed_list: CompletedTrades) -> Decimal:
+    """Count number of completed lots in 'completed_list'"""
+
+    # Check if entry lots == exit lots for each StockTrade item in 'completed_list'
+    if any(trade["entry_lots"] != trade["exit_lots"] for trade in completed_list):
+        raise ValueError("Number of entry lots not equal to exit lots")
+
+    return sum(trade["exit_lots"] for trade in completed_list)
