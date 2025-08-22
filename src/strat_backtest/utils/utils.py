@@ -52,7 +52,7 @@ def display_open_trades(open_trades: OpenTrades, var_name: str | None = None) ->
 
     msg = "\n".join(msg_list)
 
-    print(f"{var_name} : \n[\n{msg}\n]\n")
+    print(f"\n\n{var_name} : \n[\n{msg}\n]\n")
 
     return None
 
