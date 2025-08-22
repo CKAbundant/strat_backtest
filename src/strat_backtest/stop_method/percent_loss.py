@@ -32,6 +32,9 @@ class PercentLoss(StopLoss):
             (Decimal): Exit price for all multiple open positions.
         """
 
+        if len(open_trades) == 0:
+            raise ValueError("'open_trades' cannot be empty.")
+
         entry_action = get_std_field(open_trades, "entry_action")
 
         # Current investment = investment value of current open positions
