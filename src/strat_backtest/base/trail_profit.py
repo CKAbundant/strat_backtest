@@ -74,7 +74,7 @@ class TrailProfit(ABC):
             raise ValueError("'self.ref_price' is null value.")
 
         if not isinstance(self.ref_price, (int, float, Decimal)):
-            raise TypeError(f"'self.ref_price' is not a valid numeric type.")
+            raise TypeError("'self.ref_price' is not a valid numeric type.")
 
         # Ensure ref_price  is Decimal Type
         ref_price = convert_to_decimal(self.ref_price)
