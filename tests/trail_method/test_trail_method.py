@@ -4,11 +4,13 @@
 """
 
 from decimal import Decimal
+from pprint import pformat
 
 import pytest
 
 from strat_backtest.trail_method import FirstTrail
-from strat_backtest.utils.utils import convert_to_decimal
+from strat_backtest.utils.utils import convert_to_decimal, display_open_trades
+from tests.utils.test_utils import get_latest_record
 
 
 @pytest.mark.parametrize(
@@ -92,6 +94,16 @@ def test_cal_trailing_profit_error(ref_price, trigger_trail_level, exc_msg):
         ("buy", 2, None, 142),
         ("buy", 4, None, 140),
         ("buy", 9, None, 136),
+        ("buy", None, 140, 143.3),
+        ("buy", None, 143.3, 143.3),
+        ("buy", None, 143.33, 143.33),
+        ("sell", None, None, 88.8),
+        ("sell", 2, None, 90),
+        ("sell", 4, None, 92),
+        ("sell", 9, None, 91),
+        ("sell", None, 90, 88.8),
+        ("sell", None, 88.8, 88.8),
+        ("sell", None, 88.5, 88.5),
     ],
 )
 def test_cal_trailing_profit(
@@ -101,7 +113,7 @@ def test_cal_trailing_profit(
 
     ref_price = Decimal("100")
     trigger_trail = Decimal("0.1")
-    record = {"high": Decimal("153.3"), "low": Decimal("80")}
+    record = {"high": Decimal("153.3"), "low": Decimal("78.8")}
 
     # Initialize instance of 'FirstTrail' and set attributes
     first_trail = FirstTrail(trigger_trail, step)
@@ -114,7 +126,31 @@ def test_cal_trailing_profit(
     )
 
     trailing_profit = first_trail._cal_trailing_profit(record, entry_action)
-
     print(f"\n\n{trailing_profit=}\n")
+
+    assert trailing_profit == convert_to_decimal(expected_trailing_profit)
+
+
+@pytest.mark.parametrize(
+    "trigger_trail, step, expected_trailing_profit",
+    [
+        (0.01, None, 196.76),
+        (0.05, None, 189.5),
+        (0.1, None, None),
+        (0.01, 2, 195.46),
+        (0.01, 3, 196.46),
+        (0.1, 5, None),
+    ],
+)
+def test_cal_trail_price_firsttrail(
+    open_trades, sample_gen_trades, trigger_trail, step, expected_trailing_profit
+):
+    """Test if 'cal_trail_price' method for 'FirstTrail' class compute trailing profit correctly."""
+
+    record = get_latest_record(sample_gen_trades)
+
+    first_trail = FirstTrail(trigger_trail, step)
+    trailing_profit = first_trail.cal_trail_price(open_trades, record)
+    print(f"{trailing_profit=}\n")
 
     assert trailing_profit == convert_to_decimal(expected_trailing_profit)

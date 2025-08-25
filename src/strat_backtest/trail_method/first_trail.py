@@ -56,10 +56,5 @@ class FirstTrail(TrailProfit):
             # Compute trigger trail price level based on updated reference price
             self.trigger_trail_level = self._cal_trigger_trail_level(entry_action)
 
-            # Compute price increment level to shift trailing profit
-            self.step_level = (
-                self.ref_price * self.step if self.step is not None else None
-            )
-
         # Compute trailing profit
         return self._cal_trailing_profit(record, entry_action)

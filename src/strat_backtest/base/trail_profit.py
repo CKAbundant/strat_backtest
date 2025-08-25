@@ -129,7 +129,7 @@ class TrailProfit(ABC):
 
             if self.trailing_profit is None or computed_trailing > self.trailing_profit:
                 # Update trailing profit level if higher than previous level
-                self.trailing_profit = computed_trailing
+                self.trailing_profit = round(computed_trailing, 2)
 
         # Update trailing profit if current low must be lower than
         # trigger_trail_level for short positions
@@ -142,7 +142,7 @@ class TrailProfit(ABC):
 
             if self.trailing_profit is None or computed_trailing < self.trailing_profit:
                 # Update trailing profit level if lower than previous level
-                self.trailing_profit = computed_trailing
+                self.trailing_profit = round(computed_trailing, 2)
 
         return self.trailing_profit
 
@@ -153,4 +153,3 @@ class TrailProfit(ABC):
         self.trailing_profit = None
         self.ref_price = None
         self.trigger_trail_level = None
-        self.step = None
