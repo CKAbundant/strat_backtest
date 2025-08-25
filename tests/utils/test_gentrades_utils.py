@@ -356,9 +356,8 @@ def cal_trailing_price(
             OHLCV info including entry and exit signal
         trigger_trail (Decimal):
             Percentage profit required to trigger trailing profit (Default: 0.05).
-        step (Decimal):
-            If provided, percent profit increment to trail profit. If None,
-            increment set to current high - trigger_trail_level.
+        step (float):
+            If provided, amount of fixed increment step to trail profit.
 
     Returns:
         (Decimal | None): If available, trailing price based on 'FirstTrail' method.
@@ -385,14 +384,16 @@ def cal_trailing_price(
         else first_price * (1 - trigger_trail)
     )
 
-    step_level = first_price * step if step else None
-
     # Check if current price has traded above the 'trigger_level' threshold
     excess = high - trigger_level if entry_action == "buy" else trigger_level - low
 
     if excess > 0:
-        excess = (excess // step_level) * step_level if step else excess
-        return first_price + excess if entry_action == "buy" else first_price - excess
+        excess = (excess // step) * step if step else excess
+        trailing_profit = (
+            first_price + excess if entry_action == "buy" else first_price - excess
+        )
+
+        return round(trailing_profit, 2)
 
     # print(f"{excess=}")
     # print(f"first_price + excess : {first_price + excess}\n")

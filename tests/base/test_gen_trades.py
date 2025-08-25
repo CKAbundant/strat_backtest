@@ -352,7 +352,7 @@ def test_check_profit_fifoexit(
     assert test_inst.open_trades == expected_trades
 
 
-@pytest.mark.parametrize("step", [None, 0.01])
+@pytest.mark.parametrize("step", [None, 1])
 def test_cal_trailing_profit(
     trading_config, risk_config, open_trades, sample_gen_trades, step
 ):
