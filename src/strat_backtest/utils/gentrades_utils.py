@@ -8,7 +8,8 @@ from typing import Any
 import pandas as pd
 
 from strat_backtest.utils.constants import ExitMethod
-from strat_backtest.utils.utils import correct_datatype
+from strat_backtest.utils.dataframe_utils import set_as_index, set_naive_tz
+from strat_backtest.utils.pos_utils import correct_datatype
 
 
 def get_module_paths(main_pkg: str = "strat_backtest") -> dict[str, str]:
@@ -74,11 +75,17 @@ def append_info(
     # Convert 'info_list' to DataFrame
     df_info = pd.DataFrame(info_list)
 
-    # Ensure both 'date' column in 'df' and 'df_info' are time zone naive
-    df_signals = set_naive_tz(df_signals)
-    df_info = set_naive_tz(df_info)
+    df_list = []
 
-    # Perform join via index
+    # Set all date-related columns to naive time zone
+    # Set 'date' as index to faciliate join
+    for data in [df_signals, df_info]:
+        data = set_naive_tz(data, reset_time=True)
+        data = set_as_index(data, "date")
+        df_list.append(data)
+
+    # Join DataFrame via 'date' index
+    df_signals, df_info = df_list
     df = df_signals.join(df_info)
 
     # Convert 'date' index to column
@@ -101,50 +108,6 @@ def gen_mapping(record: tuple[Any], req_cols: list[str]) -> dict[str, Any]:
     record = correct_datatype(record)
 
     return record
-
-
-def set_naive_tz(data: pd.DataFrame) -> pd.DataFrame:
-    """Set the date type column to be time zone naive and as index to
-    faciliate join."""
-
-    # Check for columns contain date type records
-    date_cols = get_date_cols(data)
-
-    if not date_cols:
-        raise ValueError("No columns contain date objects found.")
-
-    if len(date_cols) > 1:
-        raise ValueError(
-            f"DataFrame contains more than 1 date type column i.e. {date_cols}"
-        )
-
-    # 'date_col' should contain only 1 item i.e. only 1 date type column
-    col = date_cols[0]
-
-    # Set date type column to timezone naive
-    df = data.copy()
-    df[col] = pd.to_datetime(df[col])
-    df[col] = df[col].map(lambda dt: dt.replace(hour=0, minute=0, tzinfo=None))
-    df = df.set_index(col)
-
-    return df
-
-
-def get_date_cols(df: pd.DataFrame) -> list[str]:
-    """Get list of columns that are of date type i.e.
-    datetime object or Pandas timestamp object."""
-
-    date_cols = []
-
-    for col in df.columns:
-        # Get list of unique data types for each column
-        datatype_set = {type(rec) for rec in df[col]}
-
-        # Check if record in columns are either datetime or pd.Timestamp object
-        if datatype_set & {pd.Timestamp, datetime}:
-            date_cols.append(col)
-
-    return date_cols
 
 
 def validate_req_cols(
