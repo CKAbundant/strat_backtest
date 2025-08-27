@@ -21,8 +21,8 @@ def test_fn():
     print(f"{date_cols=}")
 
     print(f"\n\n{df}\n")
-    print(f"{df.at[0, "a"]=}")
-    print(f"{df.at[0, "b"]=}\n")
+    print(f"{df.at[0, 'a']=}")
+    print(f"{df.at[0, 'b']=}\n")
 
     # user_dayfirst = True
     # print(f"\n\n{user_dayfirst=}\n")
