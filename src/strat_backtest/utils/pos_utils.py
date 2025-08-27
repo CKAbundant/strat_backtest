@@ -1,12 +1,21 @@
 """Helper functions used directly in position management."""
 
 import importlib
-from collections import Counter
+from collections import Counter, deque
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Type, TypeVar
 
+import pandas as pd
+
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import CompletedTrades, OpenTrades
+from strat_backtest.utils.constants import (
+    CompletedTrades,
+    OpenTrades,
+    PriceAction,
+    Record,
+)
+from strat_backtest.utils.utils import convert_to_decimal
 
 # Create generic type variable 'T'
 T = TypeVar("T")
@@ -100,6 +109,73 @@ def validate_completed_trades(stock_trade: StockTrade) -> bool:
     is_lots_matched = stock_trade.entry_lots == stock_trade.exit_lots
 
     return is_no_null_field and is_lots_matched
+
+
+def gen_cond_list(
+    record: Record,
+    entry_action: PriceAction,
+    trigger_price: Decimal,
+    monitor_close: bool,
+) -> tuple[bool, list[bool]]:
+    """Generate 2 list of conditions to trigger action upon market opening;
+    and after market opening.
+
+    Args:
+        record (Record):
+            Dictionary containing OHLC info and entry/exit signal.
+        entry_action (PriceAction):
+            Standard entry action for existing open positions.
+        trigger_price (Decimal):
+            Price level to trigger action.
+        monitor_close (bool):
+            Whether to monitor close price ("close") or both high and low price.
+
+    Returns:
+        open_cond (list[bool]):
+            Conditions to trigger upon market opening.
+        trigger_cond_list (list[bool]):
+            List of conditions to trigger after market opening.
+    """
+
+    op = record.get("open")
+    high = record.get("high")
+    low = record.get("low")
+    close = record.get("close")
+
+    # Check if stop loss triggered upon market opening
+    open_cond = (
+        entry_action == "buy"
+        and op <= trigger_price
+        or entry_action == "sell"
+        and op >= trigger_price
+    )
+
+    # List of stop loss conditions
+    trigger_cond_list = [
+        monitor_close and entry_action == "buy" and close <= trigger_price,
+        monitor_close and entry_action == "sell" and close >= trigger_price,
+        not monitor_close and entry_action == "buy" and low <= trigger_price,
+        not monitor_close and entry_action == "sell" and high >= trigger_price,
+    ]
+
+    return open_cond, trigger_cond_list
+
+
+def correct_datatype(record: Record) -> dict[str, datetime | str | Decimal]:
+    """Ensure OHLCV are decimal type and date is datetime object."""
+
+    return {
+        k: v.to_pydatetime() if isinstance(v, pd.Timestamp) else convert_to_decimal(v)
+        for k, v in record.items()
+    }
+
+
+def reverse_deque_list(deque_list: deque[list[Any]]) -> deque[list[Any]]:
+    """Reverse sequence in deque list."""
+
+    reverse_list = list(deque_list)[::-1]
+
+    return deque(reverse_list)
 
 
 # Public Interface

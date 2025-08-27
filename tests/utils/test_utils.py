@@ -8,7 +8,8 @@ import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
 from strat_backtest.utils.constants import CompletedTrades, OpenTrades, Record
-from strat_backtest.utils.utils import convert_to_decimal, correct_datatype
+from strat_backtest.utils.pos_utils import correct_datatype
+from strat_backtest.utils.utils import convert_to_decimal
 
 
 def get_latest_record(df_sample: pd.DataFrame) -> Record:

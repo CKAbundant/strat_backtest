@@ -24,15 +24,12 @@ from strat_backtest.utils.gentrades_utils import (
     validate_req_cols,
 )
 from strat_backtest.utils.pos_utils import (
+    gen_cond_list,
     get_class_instance,
     get_net_pos,
     get_std_field,
 )
-from strat_backtest.utils.utils import (
-    convert_to_decimal,
-    display_open_trades,
-    gen_cond_list,
-)
+from strat_backtest.utils.utils import convert_to_decimal, display_open_trades
 
 if TYPE_CHECKING:
     from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit

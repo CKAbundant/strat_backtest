@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from strat_backtest.base import HalfExitStruct
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
-from strat_backtest.utils.utils import reverse_deque_list
+from strat_backtest.utils.pos_utils import reverse_deque_list
 
 if TYPE_CHECKING:
     from strat_backtest.utils.constants import CompletedTrades

@@ -20,8 +20,12 @@ from strat_backtest.utils.constants import (
     PriceAction,
     Record,
 )
-from strat_backtest.utils.pos_utils import get_std_field, validate_completed_trades
-from strat_backtest.utils.utils import convert_to_decimal, gen_cond_list
+from strat_backtest.utils.pos_utils import (
+    gen_cond_list,
+    get_std_field,
+    validate_completed_trades,
+)
+from strat_backtest.utils.utils import convert_to_decimal
 
 if TYPE_CHECKING:
     from strat_backtest.base.stock_trade import StockTrade

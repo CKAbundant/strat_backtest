@@ -1,10 +1,15 @@
 """Helper functions to load and save files in required format."""
 
-from decimal import Decimal
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
+
+from strat_backtest.utils.dataframe_utils import (
+    convert_tz_aware,
+    remove_unnamed_cols,
+    set_decimal_type,
+    set_naive_tz,
+)
 
 
 def create_folder(data_dir: str | Path) -> None:
@@ -16,28 +21,26 @@ def create_folder(data_dir: str | Path) -> None:
         data_dir.mkdir(parents=True, exist_ok=True)
 
 
-def save_csv(df: pd.DataFrame, file_path: str, save_index: bool = False) -> None:
+def save_csv(
+    df: pd.DataFrame, file_path: str | Path, save_index: bool = False, dec_pl: int = 6
+) -> None:
     """Convert numeric columns to Decimal type before saving DataFrame
     as csv file."""
 
-    # Get numeric columns
-    num_cols = df.select_dtypes(include=np.number).columns.to_list()
-
     # Convert numbers to Decimal type
-    for col in num_cols:
-        df[col] = df[col].map(lambda num: Decimal(str(num)))
+    df = set_decimal_type(df, dec_pl)
 
     # Save DataFrame as 'trade_results.csv'
     df.to_csv(file_path, index=save_index)
 
 
 def load_csv(
-    file_path: str,
+    file_path: str | Path,
     header: list[int] | None = "infer",
     index_col: list[int] | None = None,
     tz: str | None = None,
 ) -> pd.DataFrame:
-    """Load DataFrame and convert numeric columns to Decimal type.
+    """Load DataFrame from csv file and convert numeric columns to Decimal type.
 
     Args:
         file_path (str):
@@ -57,10 +60,15 @@ def load_csv(
     # Load DataFrame from 'trade_results.csv'
     df = pd.read_csv(file_path, header=header, index_col=index_col)
 
-    # Ensure all numbers are set to Decimal type and all dates are set
-    # to datetime.date type
+    # Ensure all numbers are set to Decimal type
     df = set_decimal_type(df)
-    df = set_date_type(df, tz)
+
+    if tz:
+        # Set timezone aware
+        df = convert_tz_aware(df, tz)
+    else:
+        # Set timezone naive
+        df = set_naive_tz(df)
 
     if isinstance(header, list):
         # Remove 'Unnamed' from multi-level columns
@@ -69,91 +77,25 @@ def load_csv(
     return df
 
 
-def set_decimal_type(data: pd.DataFrame, to_round: bool = False) -> pd.DataFrame:
-    """Ensure all numeric types in DataFrame are Decimal type.
+def load_parquet(file_path: str | Path, tz: str | None = None) -> pd.DataFrame:
+    """Load DataFrame from parquet file and convert numeric columns to Decimal type."""
 
-    Args:
-        DataFrame (pd.DataFrame):
-            Both normal and multi-level columns DataFrame.
-        to_round (bool):
-            Whether to round float to 6 decimal places before converting to
-            Decimal (Default: False).
+    # Load DataFrame from 'trade_results.csv'
+    df = pd.read_parquet(file_path)
 
-    Returns:
-        df (pd.DataFrame): DataFrame containing numbers of Decimal type only.
-    """
+    # Reset index if index name is not None
+    if df.index.name is not None:
+        df = df.reset_index()
 
-    df = data.copy()
+    # Ensure all numbers are set to Decimal type
+    df = set_decimal_type(df)
 
-    for col in df.columns:
-        # Column is float type and does not contain any missing values
-        if df[col].dtypes == float and not df[col].isna().any():
-            df[col] = df[col].map(
-                lambda num: (
-                    Decimal(str(round(num, 6))) if to_round else Decimal(str(num))
-                )
-            )
-
-        # Column is float type and contain missing values
-        elif df[col].dtypes == float and df[col].isna().any():
-            df[col] = [Decimal(str(num)) if np.isnan(num) else num for num in df[col]]
-
-    return df
-
-
-def set_date_type(data: pd.DataFrame, tz: str | None = None) -> pd.DataFrame:
-    """Ensure all datetime objects in DataFrame are set to datetime.date type.
-
-    Args:
-        data (pd.DataFrame): DataFrame containing date related columns.
-        tz (str | None): If provided, timezone for datetime e.g. "America/New_York".
-
-    Returns:
-        (pd.DataFrame): DataFrame with date related columns set to datetime type.
-    """
-
-    df = data.copy()
-
-    # Check if 'date' is found in column for nomral and multi-level DataFrame
-    date_cols = [
-        col
-        for col in df.columns
-        if (isinstance(col, str) and "date" in col.lower())
-        or (isinstance(col, tuple) and "date" in col[0].lower())
-    ]
-
-    # Convert date to datetime type
-    for col in date_cols:
-        if tz:
-            df[col] = pd.to_datetime(df[col], utc=True)
-            df[col] = df[col].dt.tz_convert(tz)
-        else:
-            df[col] = pd.to_datetime(df[col])
-
-    return df
-
-
-def remove_unnamed_cols(data: pd.DataFrame) -> pd.DataFrame:
-    """Set column label containing 'Unnamed:' to empty string for multi-level
-    columns DataFrame."""
-
-    df = data.copy()
-    formatted_cols = []
-
-    if any(isinstance(col, str) for col in df.columns):
-        # No amendments made since columns are not multi-level
-        return df
-
-    for col_tuple in df.columns:
-        col_levels = []
-        for col in col_tuple:
-            if "unnamed:" in col.lower():
-                col_levels.append("")
-            else:
-                col_levels.append(col)
-        formatted_cols.append(col_levels)
-
-    df.columns = pd.MultiIndex.from_tuples(formatted_cols)
+    if tz:
+        # Set timezone aware
+        df = convert_tz_aware(df, tz)
+    else:
+        # Set timezone naive
+        df = set_naive_tz(df)
 
     return df
 
@@ -163,5 +105,5 @@ __all__ = [
     "create_folder",
     "load_csv",
     "save_csv",
-    "set_decimal_type",
+    "load_parquet",
 ]
