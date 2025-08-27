@@ -86,26 +86,23 @@ def validate_dayfirst(var: str, user_dayfirst: bool) -> bool:
         # Convert items in list to integers
         num_list = [int(item) for item in num_list]
 
-        if (
-            num_list[0] <= 0
-            or num_list[0] > 31
-            or num_list[1] <= 0
-            or num_list[1] > 31
-            or (num_list[0] > 12 and num_list[1] > 12)
+        if any(num <= 0 or num > 31 for num in num_list[:1]) or (
+            num_list[0] > 12 and num_list[1] > 12
         ):
-            # Incorrect date representation. Hence return user specified dayfirst
+            # Ensure first 2 numbers are not negative or more than 31
             return user_dayfirst
 
         if num_list[0] > 12:
             # first number is more than 12. Hence cannot represent month
             return True
-        elif num_list[1] > 12:
+
+        if num_list[1] > 12:
             # Second number is more than 12. Hence cannot represent month
             return False
 
         return user_dayfirst
 
-    except Exception:
+    except TypeError:
         # Contains letters hence cannot be converted to numbers
         return user_dayfirst
 
