@@ -50,19 +50,20 @@ def convert_to_datetime(var: Any, dayfirst: bool = False) -> datetime | Any:
         (datetime | Any): variable of datetime type or original data type.
     """
 
+    if isinstance(var, (int, float, Decimal)):
+        # No conversion to datetime if numeric type
+        return var
+
     if isinstance(var, str):
         dayfirst = validate_dayfirst(var, dayfirst)
 
-    if not isinstance(var, (int, float, Decimal)):
-        dt_var = pd.to_datetime(var, errors="coerce", dayfirst=dayfirst)
+    dt_var = pd.to_datetime(var, errors="coerce", dayfirst=dayfirst)
 
-        if pd.isnull(dt_var):
-            # variable is set to 'NaT' data type
-            return var
+    if pd.isnull(dt_var):
+        # variable is set to 'NaT' data type
+        return var
 
-        return dt_var.to_pydatetime()
-
-    return var
+    return dt_var.to_pydatetime()
 
 
 def validate_dayfirst(var: str, user_dayfirst: bool) -> bool:
