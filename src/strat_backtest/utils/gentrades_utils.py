@@ -85,7 +85,7 @@ def append_info(
         df_list.append(data)
 
     # Join DataFrame via 'date' index
-    df_signals, df_info, *rest = df_list
+    df_signals, df_info, *_ = df_list
     df = df_signals.join(df_info)
 
     # Convert 'date' index to column
