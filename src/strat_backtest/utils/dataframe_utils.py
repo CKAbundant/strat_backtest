@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from strat_backtest.utils.time_utils import convert_tz
+from strat_backtest.utils.time_utils import convert_to_datetime, convert_tz
 from strat_backtest.utils.utils import convert_to_decimal
 
 
@@ -27,6 +27,18 @@ def get_date_cols(df: pd.DataFrame) -> list[str]:
             date_cols.append(col)
 
     return date_cols
+
+
+def set_datetime(data: pd.DataFrame) -> pd.DataFrame:
+    """Ensure date-related columns including properly formatted date strings
+    are converted to datetime objects"""
+
+    df = data.copy()
+
+    for col in df.columns:
+        df[col] = df[col].map(convert_to_datetime)
+
+    return df
 
 
 def set_decimal_type(data: pd.DataFrame, dec_pl: int = 6) -> pd.DataFrame:
@@ -55,6 +67,9 @@ def set_naive_tz(data: pd.DataFrame, reset_time: bool = False) -> pd.DataFrame:
 
     df = data.copy()
 
+    # Ensure date-related columns are converted to datetime objects
+    df = set_datetime(df)
+
     # Check for columns contain date type records
     date_cols = get_date_cols(df)
 
@@ -77,6 +92,9 @@ def convert_tz_aware(data: pd.DataFrame, tz: str) -> pd.DataFrame:
     """Convert date-related columns to be time zone aware."""
 
     df = data.copy()
+
+    # Ensure date-related columns are converted to datetime objects
+    df = set_datetime(df)
 
     # Check for columns contain date type records
     date_cols = get_date_cols(df)
@@ -150,4 +168,5 @@ __all__ = [
     "convert_tz_aware",
     "set_as_index",
     "display_dtypes",
+    "set_datetime",
 ]
