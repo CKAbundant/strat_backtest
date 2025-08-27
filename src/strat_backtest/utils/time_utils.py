@@ -77,9 +77,6 @@ def validate_dayfirst(var: str, user_dayfirst: bool) -> bool:
     # Split string by '/' or '-'
     num_list = re.split(r"[/-]", var)
 
-    print(f"\n{var=}")
-    print(f"{num_list=}")
-
     if len(num_list) != 3:
         return user_dayfirst
 
