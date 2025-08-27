@@ -22,13 +22,15 @@ def convert_tz(dt: datetime, tz: str) -> datetime:
         return dt
 
     except ZoneInfoNotFoundError as e:
-        raise ZoneInfoNotFoundError(f"'{tz}' is not a valid timezone string : {e}")
+        raise ZoneInfoNotFoundError(
+            f"'{tz}' is not a valid timezone string : {e}"
+        ) from e
 
     except IsADirectoryError as e:
-        raise IsADirectoryError(f"'{tz}' is a directory : {e}")
+        raise IsADirectoryError(f"'{tz}' is a directory : {e}") from e
 
     except ValueError as e:
-        raise ValueError(f"'{tz}' is incomplete relative path : {e}")
+        raise ValueError(f"'{tz}' is incomplete relative path : {e}") from e
 
 
 def list_valid_tz(keyword: str | None = None) -> None:
@@ -44,6 +46,7 @@ def list_valid_tz(keyword: str | None = None) -> None:
     """
 
     avail_tz = zoneinfo.available_timezones()
+    required_tz = []
 
     if keyword:
         required_tz = [tz for tz in avail_tz if keyword in tz]
