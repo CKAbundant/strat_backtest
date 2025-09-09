@@ -4,7 +4,6 @@ description:
 - MUST BE USED for Python code quality including SOLID principles, PEP standards, best practices.
 - Searches for latest guidelines before recommendations.
 tools: WebSearch, WebFetch, Read, Glob, Grep
-model: sonnet
 ---
 
 # Python Code Quality Expert

@@ -56,3 +56,7 @@ Python development project focused on production-ready code with comprehensive t
 - Focus on human-readable code over complex abstractions
 - Address technical debt, not just "working" solutions
 - Search for latest best practices before implementing changes
+
+## Analysis Preferences
+- When analyzing project structure, exclude __pycache__, .git, .venv directories
+- Focus on source code and meaningful project files

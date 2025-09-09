@@ -63,7 +63,7 @@ class TradingStrategy:
         """
 
         # Append entry and exit signal
-        df_pa = self.entry_signal.gen_entry_signalnal(df_ohlcv)
+        df_pa = self.entry_signal.gen_entry_signal(df_ohlcv)
         df_pa = self.exit_sig.gen_exit_signal(df_pa)
 
         # Generate trades
