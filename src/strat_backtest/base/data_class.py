@@ -25,7 +25,7 @@ class TradingConfig:
 class RiskConfig:
     """Risk management and stop loss configuration."""
 
-    sig_eval_method: SigEvalMethod = "CloseEntry"
+    sig_eval_method: SigEvalMethod = "OpenEvaluator"
     trigger_percent: float | None = None
     percent_loss: float = 0.05
     stop_method: StopMethod = "no_stop"
