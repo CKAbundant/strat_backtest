@@ -10,14 +10,19 @@ Python development project focused on production-ready code with comprehensive t
 - **Linting**: pylint
 - **Version Control**: Git with conventional commits
 
-## Commands
-- `uv add <package>`: Add new dependency
-- `uv sync`: Install/update dependencies
-- `uv run pytest`: Run all tests
-- `uv run pytest --cov=src`: Run tests with coverage
-- `uv run pytest <path/to/test_file>`: Run specific test file
-- `uv run pylint src/`: Lint code for quality issues
-- `uv run python <file>`: Run Python scripts
+## Development Environment
+
+This project uses UV for dependency management. **ALWAYS use these commands:**
+
+- `uv add <package>` - Add new dependency
+- `uv sync` - Install/update dependencies  
+- `uv run python <file>` - Run Python scripts (never use `python3`)
+- `uv run pytest` - Run all tests
+- `uv run pytest --cov=src` - Run tests with coverage
+- `uv run pytest <path/to/test_file>` - Run specific test file
+- `uv run pylint src/` - Lint code for quality issues
+
+**Never use system Python commands like `python3`, `python`, or `pytest` directly.**
 
 ## Environment Setup
 - Use UV exclusively - never use pip or virtualenv commands
