@@ -45,5 +45,6 @@ max-line-length = 88  # Match Black's default
 dev = [
     "pylint>=3.3.7",
     "pytest>=8.3.5",
+    "pytest-cov>=7.0.0",
     "black",
 ]
