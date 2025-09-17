@@ -89,7 +89,7 @@ def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFra
     return self.iterate_df(ticker, df_signals)
 ```
 
-### **2. Update Import Statement**
+### **2. Remove ABC Import Statement**
 
 **File:** `src/strat_backtest/base/gen_trades.py`
 
@@ -100,7 +100,7 @@ from abc import ABC, abstractmethod
 
 **After:**
 ```python
-from abc import ABC
+# Remove entire ABC import - no longer needed for concrete class
 ```
 
 ### **3. Update Class Declaration**
