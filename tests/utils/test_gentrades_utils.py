@@ -22,42 +22,34 @@ from tests.utils.test_utils import update_open_pos
 T = TypeVar("T")
 
 
-class GenTradesTest(GenTrades):
-    """Concrete implemenation for testing 'GenTrades' abstract class"""
-
-    def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-        return pd.DataFrame(), pd.DataFrame()
-
-
 def gen_testgentrades_inst(
     trading_cfg: TradingConfig, risk_cfg: RiskConfig, **kwargs: Any
-) -> GenTradesTest:
-    """Generate instance of 'GenTradesTest' class.
+) -> GenTrades:
+    """Generate instance of 'GenTrades' class.
 
     Args:
         trading_cfg (TradingConfig):
-            Instance of 'TradingConfig' StrEnum class.
+            Instance of 'TradingConfig' dataclass.
         risk_cfg (RiskConfig):
-            Instance of 'RiskConfig' StrEnum class.
+            Instance of 'RiskConfig' dataclass.
         **kwargs (Any):
             Additional keyword arguments to set as attributes on the
             created instance. Only existing attributes will be modified.
 
     Returns:
-        (GenTradesTest):
-            Instance of 'GenTradesTest' class with specified configuration and
+        GenTrades:
+            Instance of 'GenTrades' class with specified configuration and
             any additional attributes set via kwargs.
     """
 
-    # Create instance of 'GenTradesTest' with provided trading and risk config
-    gen_trades = GenTradesTest(trading_cfg, risk_cfg)
+    # Create instance of 'GenTrades' directly (was GenTradesTest)
+    gen_trades = GenTrades(trading_cfg, risk_cfg)
 
-    # Set attributes for valid keyword arguments
-    for field, attribute in kwargs.items():
-        if field not in vars(gen_trades):
-            raise AttributeError(f"'{field}' is not a valid attribute for 'GenTrades'.")
-
-        setattr(gen_trades, field, attribute)
+    # Set additional attributes if provided
+    for attr_name, attr_value in kwargs.items():
+        if not hasattr(gen_trades, attr_name):
+            raise AttributeError(f"'{attr_name}' is not a valid attribute for 'GenTrades'.")
+        setattr(gen_trades, attr_name, attr_value)
 
     return gen_trades
 
