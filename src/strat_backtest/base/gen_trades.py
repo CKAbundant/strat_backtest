@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class GenTrades(ABC):
+class GenTrades:
     """Abstract class to generate completed trades for given strategy.
 
     Usage:
