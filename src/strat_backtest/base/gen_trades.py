@@ -1,6 +1,5 @@
 """Abstract classes for generating completed trades."""
 
-from abc import ABC, abstractmethod
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
