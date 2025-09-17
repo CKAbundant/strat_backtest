@@ -149,22 +149,38 @@ class GenTrades(ABC):
         self.inst_cache = {}
         self.flip = False
 
-    @abstractmethod
     def gen_trades(self, df_signals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Generate DataFrame containing completed trades for given strategy.
 
         Args:
             df_signals (pd.DataFrame):
                 DataFrame containing entry and exit signals for specific ticker.
+                Must include a 'ticker' column.
 
         Returns:
             df_trades (pd.DataFrame):
                 DataFrame containing completed trades.
             df_signals (pd.DataFrame):
                 DataFrame containing updated exit signals price-related stops.
-        """
 
-        ...
+        Raises:
+            ValueError: If 'ticker' column is missing or contains multiple tickers.
+        """
+        # Validate ticker column exists
+        if "ticker" not in df_signals.columns:
+            raise ValueError("DataFrame must contain a 'ticker' column")
+
+        # Extract unique ticker(s) and validate single ticker
+        unique_tickers = df_signals["ticker"].unique()
+        if len(unique_tickers) != 1:
+            raise ValueError(
+                f"DataFrame must contain exactly one ticker. Found: {unique_tickers}"
+            )
+
+        ticker = str(unique_tickers[0])
+
+        # Delegate to existing iterate_df method
+        return self.iterate_df(ticker, df_signals)
 
     def iterate_df(
         self, ticker: str, df_signals: pd.DataFrame
