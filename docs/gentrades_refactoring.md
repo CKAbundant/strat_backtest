@@ -159,9 +159,10 @@ def gen_testgentrades_inst(
     
     # Set additional attributes if provided
     for attr_name, attr_value in kwargs.items():
-        if hasattr(gen_trades, attr_name):
-            setattr(gen_trades, attr_name, attr_value)
-    
+        if not hasattr(gen_trades, attr_name):
+            raise AttributeError(f"'{attr_name}' is not a valid attribute for 'GenTrades'.")
+        setattr(gen_trades, attr_name, attr_value)
+
     return gen_trades
 ```
 
