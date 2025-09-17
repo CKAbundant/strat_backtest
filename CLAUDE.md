@@ -36,7 +36,7 @@ This project uses UV for dependency management. **ALWAYS use these commands:**
 
 ## Code Style Standards
 - Use Python 3.10+ union syntax: `str | None` not `Optional[str]`
-- Avoid nested if statements - use early returns for validation
+- Use early return pattern for validation - check invalid conditions first then continue with main logic
 - Follow PEP 8 formatting standards
 - Include type hints for functions and returns
 
