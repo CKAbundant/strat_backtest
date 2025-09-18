@@ -9,9 +9,10 @@ import pytest
 from strat_backtest.exit_method import HalfFIFOExit
 from strat_backtest.utils.utils import display_open_trades
 from tests.utils.test_halfexit_utils import (
-    gen_half_fifo_closedpositionresult, update_open_trades)
-from tests.utils.test_utils import (get_completed_lots, get_latest_record,
-                                    get_open_lots)
+    gen_half_fifo_closedpositionresult,
+    update_open_trades,
+)
+from tests.utils.test_utils import get_completed_lots, get_latest_record, get_open_lots
 
 
 def test_update_half_status(open_trades, sample_gen_trades):

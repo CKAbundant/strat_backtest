@@ -9,8 +9,12 @@ from typing import Any, Type, TypeVar
 import pandas as pd
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import (CompletedTrades, OpenTrades,
-                                            PriceAction, Record)
+from strat_backtest.utils.constants import (
+    CompletedTrades,
+    OpenTrades,
+    PriceAction,
+    Record,
+)
 from strat_backtest.utils.utils import convert_to_decimal
 
 # Create generic type variable 'T'

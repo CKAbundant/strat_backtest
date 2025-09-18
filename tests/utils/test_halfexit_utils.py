@@ -7,9 +7,12 @@ from datetime import timedelta
 from decimal import Decimal
 
 from strat_backtest.base.stock_trade import StockTrade
-from strat_backtest.utils.constants import (ClosedPositionResult,
-                                            CompletedTrades, OpenTrades,
-                                            Record)
+from strat_backtest.utils.constants import (
+    ClosedPositionResult,
+    CompletedTrades,
+    OpenTrades,
+    Record,
+)
 from tests.utils.test_utils import get_open_lots, update_open_pos
 
 

@@ -7,9 +7,13 @@ from typing import Any, TypeVar
 import pandas as pd
 
 from strat_backtest.base.gen_trades import GenTrades, RiskConfig, TradingConfig
-from strat_backtest.utils.constants import (ClosedPositionResult,
-                                            CompletedTrades, OpenTrades,
-                                            PriceAction, Record)
+from strat_backtest.utils.constants import (
+    ClosedPositionResult,
+    CompletedTrades,
+    OpenTrades,
+    PriceAction,
+    Record,
+)
 from strat_backtest.utils.pos_utils import get_class_instance, get_std_field
 from strat_backtest.utils.utils import convert_to_decimal
 from tests.utils.test_utils import update_open_pos

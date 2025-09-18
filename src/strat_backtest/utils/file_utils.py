@@ -4,10 +4,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from strat_backtest.utils.dataframe_utils import (convert_tz_aware,
-                                                  remove_unnamed_cols,
-                                                  set_decimal_type,
-                                                  set_naive_tz)
+from strat_backtest.utils.dataframe_utils import (
+    convert_tz_aware,
+    remove_unnamed_cols,
+    set_decimal_type,
+    set_naive_tz,
+)
 
 
 def create_folder(data_dir: str | Path) -> None:

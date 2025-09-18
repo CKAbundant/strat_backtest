@@ -9,9 +9,10 @@ import pytest
 from strat_backtest.exit_method import HalfLIFOExit
 from strat_backtest.utils.utils import display_open_trades
 from tests.utils.test_halfexit_utils import (
-    gen_half_lifo_closedpositionresult, update_open_trades)
-from tests.utils.test_utils import (get_completed_lots, get_latest_record,
-                                    get_open_lots)
+    gen_half_lifo_closedpositionresult,
+    update_open_trades,
+)
+from tests.utils.test_utils import get_completed_lots, get_latest_record, get_open_lots
 
 
 def test_half_lifoexit_no_action(sample_gen_trades):

@@ -5,6 +5,7 @@ from .entry_struct import EntryStruct
 from .exit_struct import ExitStruct, HalfExitStruct
 from .gen_trades import GenTrades
 from .signal_evaluator import SignalEvaluator
+
 # Pydantic object to record completed trade
 from .stop_loss import StopLoss
 from .trade_signal import EntrySignal, ExitSignal
