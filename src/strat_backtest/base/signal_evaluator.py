@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Any
 
-from strat_backtest.utils.constants import OpenTrades, PriceAction, Record, SigType
+from strat_backtest.utils.constants import (OpenTrades, PriceAction, Record,
+                                            SigType)
 
 
 class SignalEvaluator(ABC):

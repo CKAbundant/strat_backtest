@@ -9,38 +9,23 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import pandas as pd
 
 from strat_backtest.base.data_class import RiskConfig, TradingConfig
-from strat_backtest.utils.constants import (
-    CompletedTrades,
-    ExitType,
-    PriceAction,
-    Record,
-)
+from strat_backtest.utils.constants import (CompletedTrades, ExitType,
+                                            PriceAction, Record)
 from strat_backtest.utils.file_utils import set_decimal_type
-from strat_backtest.utils.gentrades_utils import (
-    append_info,
-    gen_mapping,
-    get_module_paths,
-    validate_req_cols,
-)
-from strat_backtest.utils.pos_utils import (
-    gen_cond_list,
-    get_class_instance,
-    get_net_pos,
-    get_std_field,
-)
+from strat_backtest.utils.gentrades_utils import (append_info, gen_mapping,
+                                                  get_module_paths,
+                                                  validate_req_cols)
+from strat_backtest.utils.pos_utils import (gen_cond_list, get_class_instance,
+                                            get_net_pos, get_std_field)
 from strat_backtest.utils.utils import convert_to_decimal, display_open_trades
 
 if TYPE_CHECKING:
     from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit
     from strat_backtest.base.stock_trade import StockTrade
     from strat_backtest.utils import OpenTrades
-    from strat_backtest.utils.constants import (
-        EntryMethod,
-        ExitMethod,
-        SigEvalMethod,
-        StopMethod,
-        TrailMethod,
-    )
+    from strat_backtest.utils.constants import (EntryMethod, ExitMethod,
+                                                SigEvalMethod, StopMethod,
+                                                TrailMethod)
 
 # Create generic type variable 'T'
 T = TypeVar("T")

@@ -9,10 +9,8 @@ from typing import TYPE_CHECKING
 
 from strat_backtest.base import ExitStruct
 from strat_backtest.utils.constants import ClosedPositionResult, OpenTrades
-from strat_backtest.utils.pos_utils import (
-    gen_completed_trade,
-    validate_completed_trades,
-)
+from strat_backtest.utils.pos_utils import (gen_completed_trade,
+                                            validate_completed_trades)
 
 if TYPE_CHECKING:
     from strat_backtest.base.stock_trade import StockTrade

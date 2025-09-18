@@ -2,13 +2,9 @@
 
 from dataclasses import dataclass
 
-from strat_backtest.utils.constants import (
-    EntryMethod,
-    ExitMethod,
-    SigEvalMethod,
-    StopMethod,
-    TrailMethod,
-)
+from strat_backtest.utils.constants import (EntryMethod, ExitMethod,
+                                            SigEvalMethod, StopMethod,
+                                            TrailMethod)
 
 
 @dataclass

@@ -2,7 +2,8 @@ from decimal import Decimal
 
 import pandas as pd
 
-from strat_backtest.utils import convert_to_datetime, get_date_cols, set_datetime
+from strat_backtest.utils import (convert_to_datetime, get_date_cols,
+                                  set_datetime)
 from strat_backtest.utils.time_utils import validate_dayfirst
 
 
