@@ -247,12 +247,12 @@ def test_signal_pipeline_flow(sample_ohlcv, sample_gen_trades):
     # Step 1: Add entry signals
     df_after_entry = simple_entry_signal.gen_entry_signal(sample_ohlcv)
     assert 'entry_signal' in df_after_entry.columns
-    assert df_after_entry['entry_signal'].equals(sample_gen_trades['entry_signal'])
+    pd.testing.assert_series_equal(df_after_entry['entry_signal'], sample_gen_trades['entry_signal'])
 
     # Step 2: Add exit signals
     df_after_exit = simple_exit_signal.gen_exit_signal(df_after_entry)
     assert 'exit_signal' in df_after_exit.columns
-    assert df_after_exit['exit_signal'].equals(sample_gen_trades['exit_signal'])
+    pd.testing.assert_series_equal(df_after_exit['exit_signal'], sample_gen_trades['exit_signal'])
 
 
 def test_different_entry_types(sample_ohlcv, sample_gen_trades, trading_config, risk_config):
@@ -280,7 +280,7 @@ def test_entry_signal_missing_column_error(sample_ohlcv, trading_config, risk_co
 
     strategy = TradingStrategy(broken_entry, simple_exit, gen_trades)
 
-    with pytest.raises(ValueError, match="'entry_signal' column not found!"):
+    with pytest.raises(ValueError, match="'entry_signal' column not found"):
         strategy(sample_ohlcv)
 
 
@@ -293,7 +293,7 @@ def test_exit_signal_missing_column_error(sample_ohlcv, sample_gen_trades, tradi
 
     strategy = TradingStrategy(working_entry, broken_exit, gen_trades)
 
-    with pytest.raises(ValueError, match="'exit_signal' column not found!"):
+    with pytest.raises(ValueError, match="'exit_signal' column not found"):
         strategy(sample_ohlcv)
 
 
