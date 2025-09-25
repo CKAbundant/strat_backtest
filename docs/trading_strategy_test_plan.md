@@ -209,6 +209,9 @@ class BrokenExitSignal(ExitSignal):
 def test_trading_strategy_coordination(sample_ohlcv, sample_gen_trades, trading_config, risk_config):
     """Test basic TradingStrategy coordination without mocking."""
 
+    # Load expected results
+    expected_df_trades = pd.read_parquet("tests/data/open_eval_trades.parquet")
+
     # Create signal instances locally
     simple_entry_signal = SimpleTestEntrySignal(sample_gen_trades, "long")
     simple_exit_signal = SimpleTestExitSignal(sample_gen_trades, "long")
@@ -225,6 +228,9 @@ def test_trading_strategy_coordination(sample_ohlcv, sample_gen_trades, trading_
     # Verify return types
     assert isinstance(df_trades, pd.DataFrame)
     assert isinstance(df_signals, pd.DataFrame)
+
+    # Compare actual trades with expected trades
+    pd.testing.assert_frame_equal(df_trades, expected_df_trades, check_dtype=True)
 
     # Verify signal columns exist
     assert 'entry_signal' in df_signals.columns
@@ -263,33 +269,6 @@ def test_different_entry_types(sample_ohlcv, sample_gen_trades, trading_config, 
 
     assert isinstance(df_trades, pd.DataFrame)
     assert isinstance(df_signals, pd.DataFrame)
-
-
-def test_strategy_return_format(sample_ohlcv, sample_gen_trades, trading_config, risk_config):
-    """Test that TradingStrategy returns properly formatted DataFrames."""
-
-    simple_entry_signal = SimpleTestEntrySignal(sample_gen_trades, "long")
-    simple_exit_signal = SimpleTestExitSignal(sample_gen_trades, "long")
-    gen_trades = GenTrades(trading_config, risk_config)
-
-    strategy = TradingStrategy(simple_entry_signal, simple_exit_signal, gen_trades)
-    df_trades, df_signals = strategy(sample_ohlcv)
-
-    # Verify df_trades has expected trade columns (based on StockTrade model)
-    expected_trade_cols = ['ticker', 'entry_datetime', 'entry_action', 'entry_lots',
-                          'entry_price', 'exit_datetime', 'exit_action', 'exit_lots',
-                          'exit_price']
-
-    # Check that some expected columns exist (df_trades might be empty if no trades completed)
-    if not df_trades.empty:
-        for col in ['ticker', 'entry_datetime', 'entry_action']:
-            assert col in df_trades.columns
-
-    # Verify df_signals has original OHLCV + signal columns
-    expected_signal_cols = ['date', 'ticker', 'open', 'high', 'low', 'close',
-                           'volume', 'entry_signal', 'exit_signal']
-    for col in expected_signal_cols:
-        assert col in df_signals.columns
 
 
 def test_entry_signal_missing_column_error(sample_ohlcv, trading_config, risk_config):

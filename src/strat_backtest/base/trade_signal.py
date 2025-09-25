@@ -55,8 +55,17 @@ class EntrySignal(TradeSignal, ABC):
 
     def _validate_entry_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
+        if df is None:
+            raise ValueError("No DataFrame passed as input")
+
+        if not isinstance(df, pd.DataFrame):
+            raise ValueError("Input is not a DataFrame!")
+
+        if df.empty:
+            raise ValueError("Empty DataFrame is passed")
+
         if "entry_signal" not in df.columns:
-            raise ValueError("'entry_signal' column not found!")
+            raise ValueError("'entry_signal' column not found")
 
         if self.entry_type == "long" and (df["entry_signal"] == "sell").any():
             raise ValueError("Long only strategy cannot generate sell entry signals")
@@ -84,6 +93,15 @@ class ExitSignal(TradeSignal, ABC):
 
     def _validate_exit_signal(self, df: pd.DataFrame) -> None:
         """Ensure that entry action is aligned with 'entry_type'."""
+        if df is None:
+            raise ValueError("No DataFrame passed as input")
+
+        if not isinstance(df, pd.DataFrame):
+            raise ValueError("Input is not a DataFrame!")
+
+        if df.empty:
+            raise ValueError("Empty DataFrame is passed")
+
         if "exit_signal" not in df.columns:
             raise ValueError("'exit_signal' column not found!")
 
