@@ -1,6 +1,7 @@
 """Tests for TradingStrategy coordination and signal pipeline."""
 
 import random
+import re
 
 import pandas as pd
 import pytest
@@ -55,15 +56,18 @@ class BrokenEntrySignal(EntrySignal):
     def gen_entry_signal(self, df: pd.DataFrame) -> pd.DataFrame:
         match self.failure_mode:
             case "missing_column":
-                return df.copy()
+                result_df = df.copy()
             case "invalid_signal_values":
-                return self._corrupt_with_invalid_signals(df)
+                result_df = self._corrupt_with_invalid_signals(df)
             case "wrong_entry_type":
-                return self._corrupt_with_wrong_entry_type(df)
+                result_df = self._corrupt_with_wrong_entry_type(df)
             case "corrupted_data":
-                return self._corrupt_with_none_values(df)
+                result_df = self._corrupt_with_none_values(df)
             case _:
-                return self._generate_working_signals(df)
+                result_df = self._generate_working_signals(df)
+
+        self._validate_entry_signal(result_df)
+        return result_df
 
     def _corrupt_with_invalid_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         """Insert a single invalid signal at random index."""
@@ -124,15 +128,18 @@ class BrokenExitSignal(ExitSignal):
     def gen_exit_signal(self, df: pd.DataFrame) -> pd.DataFrame:
         match self.failure_mode:
             case "missing_column":
-                return df.copy()
+                result_df = df.copy()
             case "wrong_exit_type":
-                return self._corrupt_with_wrong_exit_type(df)
+                result_df = self._corrupt_with_wrong_exit_type(df)
             case "runtime_error":
                 raise RuntimeError("Database connection lost during signal calculation")
             case "mixed_corruption":
-                return self._corrupt_with_mixed_values(df)
+                result_df = self._corrupt_with_mixed_values(df)
             case _:
-                return self._generate_working_signals(df)
+                result_df = self._generate_working_signals(df)
+
+        self._validate_exit_signal(result_df)
+        return result_df
 
     def _corrupt_with_wrong_exit_type(self, df: pd.DataFrame) -> pd.DataFrame:
         """Insert wrong exit signal type at random index."""
@@ -361,13 +368,16 @@ def test_multiple_tickers_error(
     df_multi_ticker = sample_ohlcv.copy()
     df_multi_ticker.loc[5:, "ticker"] = "MSFT"  # Change half to different ticker
 
+    unique_tickers = df_multi_ticker["ticker"].unique()
+    expected_msg = f"DataFrame must contain exactly one ticker. Found: {unique_tickers}"
+
     working_entry = SimpleTestEntrySignal(sample_gen_trades, "long")
     working_exit = SimpleTestExitSignal(sample_gen_trades, "long")
     gen_trades = GenTrades(trading_config, risk_config)
 
     strategy = TradingStrategy(working_entry, working_exit, gen_trades)
 
-    with pytest.raises(ValueError, match="DataFrame contains multiple tickers"):
+    with pytest.raises(ValueError, match=re.escape(expected_msg)):
         strategy(df_multi_ticker)
 
 
