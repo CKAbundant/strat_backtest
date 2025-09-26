@@ -10,9 +10,17 @@ A Python library for backtesting trading strategies, including deep learning mod
 - Performance metrics and visualization
 - Modern Python development with UV package management
 
+## Library Architecture
+
+The framework follows a clean composition pattern:
+- **EntrySignal & ExitSignal**: Generate buy/sell/wait signals from OHLCV data
+- **GenTrades**: Orchestrates position management with configurable entry/exit methods
+- **TradingStrategy**: Main coordinator that processes signals into completed trades
+- **Risk Management**: Built-in stop-loss and trailing profit mechanisms
+
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Linux/Unix environment (Ubuntu/Debian recommended)
 - Administrative privileges for system dependencies
 
@@ -67,9 +75,61 @@ uv sync
 
 This ensures the Python TA-Lib wrapper matches your system TA-Lib installation version.
 
-## Quick Start
+## Main Components
 
-After installation, activate the environment and run your backtests:
+Import the core classes directly from the package:
+
+```python
+from strat_backtest import TradingStrategy, EntrySignal, ExitSignal, GenTrades, TradingConfig, RiskConfig
+```
+
+## Quick Start Example
+
+Here's a simple RSI-based strategy implementation:
+
+```python
+import pandas as pd
+from strat_backtest import TradingStrategy, EntrySignal, ExitSignal, GenTrades, TradingConfig, RiskConfig
+
+# Custom entry signal using RSI
+class RSIEntrySignal(EntrySignal):
+    def gen_entry_signal(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Calculate RSI and generate buy signals when RSI < 30
+        # Add 'entry_signal' column with either 'buy' or 'wait' for long strategy
+        return df
+
+# Simple exit after N days
+class TimeExitSignal(ExitSignal):
+    def gen_exit_signal(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Add 'exit_signal' column with either 'sell' or 'wait' based on holding period for long strategy
+        return df
+
+# Configure strategy
+trading_cfg = TradingConfig(
+    entry_struct="SingleEntry",
+    exit_struct="FIFOExit",
+    num_lots=100
+)
+
+risk_cfg = RiskConfig(
+    sig_eval_method="OpenEvaluator",
+    percent_loss=0.05,
+    stop_method="PercentLoss"
+)
+
+# Create and run strategy (Only long strategy)
+strategy = TradingStrategy(
+    entry_signal=RSIEntrySignal("long"),
+    exit_sig=TimeExitSignal("long"),
+    trades=GenTrades(trading_cfg, risk_cfg)
+)
+
+# Process OHLCV data
+df_trades, df_signals = strategy(ohlcv_data)
+print(f"Generated {len(df_trades)} trades")
+```
+
+Run your strategy:
 
 ```bash
 # Activate the UV environment

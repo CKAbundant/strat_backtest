@@ -24,16 +24,16 @@ class TradingStrategy:
         exit_sig (ExitSignal):
             Class instance of concrete implementation of 'ExitSignal'
             abstract class.
-        trades (GetTrades):
-            Class instance of concrete implementation of 'GetTrades' abstract class.
+        trades (GenTrades):
+            Class instance of concrete implementation of 'GenTrades' abstract class.
 
     Attributes:
         entry_signal (EntrySignal):
             Class instance of concrete implementation of 'EntrySignal' abstract class.
         exit_sig (ExitSignal):
             Class instance of concrete implementation of 'ExitSignal' abstract class.
-        trades (GetTrades):
-            Instance of concrete implementation of 'GetTrades' abstract class.
+        trades (GenTrades):
+            Instance of concrete implementation of 'GenTrades' abstract class.
     """
 
     def __init__(

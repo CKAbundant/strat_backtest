@@ -1,6 +1,8 @@
 """Import abstract classes to be accessible at 'base' sub-package."""
 
 # Abstract classes to generate strategy and perform backtesting
+# Configuration dataclasses
+from .data_class import RiskConfig, TradingConfig
 from .entry_struct import EntryStruct
 from .exit_struct import ExitStruct, HalfExitStruct
 from .gen_trades import GenTrades
@@ -22,4 +24,6 @@ __all__ = [
     "EntrySignal",
     "ExitSignal",
     "SignalEvaluator",
+    "RiskConfig",
+    "TradingConfig",
 ]
