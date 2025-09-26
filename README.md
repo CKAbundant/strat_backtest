@@ -95,13 +95,13 @@ from strat_backtest import TradingStrategy, EntrySignal, ExitSignal, GenTrades, 
 class RSIEntrySignal(EntrySignal):
     def gen_entry_signal(self, df: pd.DataFrame) -> pd.DataFrame:
         # Calculate RSI and generate buy signals when RSI < 30
-        # Add 'entry_signal' column with 1 (buy), -1 (sell), 0 (wait)
+        # Add 'entry_signal' column with either 'buy' or 'wait' for long strategy
         return df
 
 # Simple exit after N days
 class TimeExitSignal(ExitSignal):
     def gen_exit_signal(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Add 'exit_signal' column based on holding period
+        # Add 'exit_signal' column with either 'sell' or 'wait' based on holding period for long strategy
         return df
 
 # Configure strategy
@@ -117,7 +117,7 @@ risk_cfg = RiskConfig(
     stop_method="PercentLoss"
 )
 
-# Create and run strategy
+# Create and run strategy (Only long strategy)
 strategy = TradingStrategy(
     entry_signal=RSIEntrySignal("long"),
     exit_sig=TimeExitSignal("long"),
