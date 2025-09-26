@@ -294,6 +294,12 @@ def short_fail():
 
 
 @pytest.fixture
+def sample_ohlcv(sample_gen_trades):
+    """Extract clean OHLCV data from sample_gen_trades, removing signal columns."""
+    return sample_gen_trades.drop(columns=["entry_signal", "exit_signal"])
+
+
+@pytest.fixture
 def no_entry():
     """Next day record for with no entry signal."""
 
