@@ -67,6 +67,12 @@ class EntrySignal(TradeSignal, ABC):
         if "entry_signal" not in df.columns:
             raise ValueError("'entry_signal' column not found")
 
+        # Check for invalid signal values
+        if not df["entry_signal"].isin(["buy", "sell", "wait"]).all():
+            raise ValueError(
+                "Invalid signal detected. Must be 'buy', 'sell', or 'wait'"
+            )
+
         if self.entry_type == "long" and (df["entry_signal"] == "sell").any():
             raise ValueError("Long only strategy cannot generate sell entry signals")
 
@@ -104,6 +110,12 @@ class ExitSignal(TradeSignal, ABC):
 
         if "exit_signal" not in df.columns:
             raise ValueError("'exit_signal' column not found!")
+
+        # Check for invalid signal values
+        if not df["exit_signal"].isin(["buy", "sell", "wait"]).all():
+            raise ValueError(
+                "Invalid signal detected. Must be 'buy', 'sell', or 'wait'"
+            )
 
         if self.entry_type == "long" and (df["exit_signal"] == "buy").any():
             raise ValueError("Long only strategy cannot generate buy exit signals.")

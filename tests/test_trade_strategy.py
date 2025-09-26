@@ -435,13 +435,7 @@ def test_mixed_signal_corruption_handling(
 
     strategy = TradingStrategy(working_entry, broken_exit, gen_trades)
 
-    # Should handle some level of corruption, but exact behavior depends on implementation
-    # This test verifies the system doesn't crash with mixed corruption
-    try:
-        df_trades, df_signals = strategy(sample_ohlcv)
-        # If successful, verify that signals DataFrame exists and has expected structure
-        assert isinstance(df_signals, pd.DataFrame)
-        assert "exit_signal" in df_signals.columns
-    except (ValueError, TypeError) as e:
-        # Corruption errors are acceptable - system should fail gracefully
-        assert "signal" in str(e).lower() or "validation" in str(e).lower()
+    with pytest.raises(
+        ValueError, match="Invalid signal detected. Must be 'buy', 'sell', or 'wait'"
+    ):
+        strategy(sample_ohlcv)
