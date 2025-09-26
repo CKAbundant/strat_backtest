@@ -403,14 +403,9 @@ def test_malformed_ohlcv_data_error(sample_gen_trades, trading_config, risk_conf
     """Test error handling with malformed OHLCV data (missing required columns)."""
 
     # Create DataFrame missing required OHLCV columns
-    incomplete_df = pd.DataFrame(
-        {
-            "date": pd.date_range("2023-01-01", periods=5),
-            "ticker": ["AAPL"] * 5,
-            "open": [100, 101, 102, 103, 104],
-            # Missing high, low, close, volume columns
-        }
-    )
+    incomplete_df = sample_gen_trades.drop(
+        columns=["high", "low", "close", "volume", "entry_signal", "exit_signal"]
+    ).copy()
 
     working_entry = SimpleTestEntrySignal(sample_gen_trades, "long")
     working_exit = SimpleTestExitSignal(sample_gen_trades, "long")
