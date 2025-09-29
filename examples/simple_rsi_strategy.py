@@ -18,7 +18,6 @@ from strat_backtest import (
 )
 
 
-# TODO: Implement RSI-based EntrySignal class
 class RSIEntrySignal(EntrySignal):
     """Generate entry signals based on RSI indicators."""
 
@@ -31,11 +30,20 @@ class RSIEntrySignal(EntrySignal):
         Returns:
             DataFrame with added 'entry_signal' column
         """
-        # TODO: Implement RSI entry logic
-        pass
+        # Calculate RSI(14) using TA-Lib
+        df_copy = df.copy()
+        close_prices = df_copy["close"].astype(float).values
+        df_copy["RSI_14"] = talib.RSI(close_prices, timeperiod=14)
+
+        # Generate entry signals: buy when RSI < 30, otherwise wait
+        df_copy["entry_signal"] = np.where(df_copy["RSI_14"] < 30, "buy", "wait")
+
+        # Validate entry signals before returning
+        self._validate_entry_signal(df_copy)
+
+        return df_copy
 
 
-# TODO: Implement RSI-based ExitSignal class
 class RSIExitSignal(ExitSignal):
     """Generate exit signals based on RSI indicators."""
 
@@ -48,52 +56,54 @@ class RSIExitSignal(ExitSignal):
         Returns:
             DataFrame with added 'exit_signal' column
         """
-        # TODO: Implement RSI exit logic
-        pass
+        # Read RSI values from existing RSI_14 column
+        df_copy = df.copy()
+
+        # Generate exit signals: sell when RSI > 70, otherwise wait
+        df_copy["exit_signal"] = np.where(df_copy["RSI_14"] > 70, "sell", "wait")
+
+        # Validate exit signals before returning
+        self._validate_exit_signal(df_copy)
+
+        return df_copy
 
 
 def main():
     """Run the RSI trading strategy example."""
 
-    # TODO: Load sample data
-    # df_ohlcv = pd.read_parquet('examples/data/sample_ohlcv.parquet')
+    # Load sample data
+    df_ohlcv = pd.read_parquet("examples/data/sample_ohlcv.parquet")
 
-    # TODO: Configure trading parameters
-    # trading_cfg = TradingConfig(
-    #     entry_struct="SingleEntry",
-    #     exit_struct="FIFOExit",
-    #     num_lots=100,
-    #     monitor_close=True
-    # )
+    # Config trading parameters. monitor_close defaults to True.
+    trading_cfg = TradingConfig(
+        entry_struct="SingleEntry",
+        exit_struct="FIFOExit",
+        num_lots=100,
+    )
 
-    # TODO: Configure risk management
-    # risk_cfg = RiskConfig(
-    #     sig_eval_method="OpenEvaluator",
-    #     percent_loss=0.05,
-    #     stop_method="PercentLoss"
-    # )
+    # Configure risk management using all default values:
+    # sig_eval_method="OpenEvaluator", trigger_percent=None, percent_loss=0.05,
+    # stop_method="no_stop", trail_method="no_trail", trigger_trail=0.2, step=None
+    risk_cfg = RiskConfig()
 
-    # TODO: Initialize strategy components
-    # entry_signal = RSIEntrySignal("long")
-    # exit_signal = RSIExitSignal("long")
-    # trades = GenTrades(trading_cfg, risk_cfg)
+    # Initialize strategy components
+    entry_signal = RSIEntrySignal("long")
+    exit_signal = RSIExitSignal("long")
+    trades = GenTrades(trading_cfg, risk_cfg)
 
-    # TODO: Create complete strategy
-    # strategy = TradingStrategy(
-    #     entry_signal=entry_signal,
-    #     exit_sig=exit_signal,
-    #     trades=trades
-    # )
+    # Create complete strategy
+    strategy = TradingStrategy(
+        entry_signal=entry_signal, exit_sig=exit_signal, trades=trades
+    )
 
-    # TODO: Execute backtest
-    # df_trades, df_signals = strategy(df_ohlcv)
+    # Execute backtest
+    df_trades, df_signals = strategy(df_ohlcv)
 
-    # TODO: Display results
-    # print("Completed Trades:")
-    # print(df_trades)
-
-    print("RSI Strategy Example - Implementation Placeholder")
-    print("TODO: Complete the RSI signal implementations above")
+    # Display results
+    print("Completed Trades:")
+    print(df_trades)
+    print("\nSignals Summary:")
+    print(df_signals[["RSI_14", "entry_signal", "exit_signal"]].tail())
 
 
 if __name__ == "__main__":
