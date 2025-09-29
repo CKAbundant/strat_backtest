@@ -228,11 +228,11 @@ class GenTrades:
             idx = info["idx"]
             dt = info["date"]
 
-            print(f"\n\nidx : {idx}")
-            print(f"dt : {dt}")
-            print(f"sig_ent_eval.records : {sig_ent_eval.records}")
-            print(f"sig_ex_eval.records : {sig_ex_eval.records}")
-            print(f"net_pos : {get_net_pos(self.open_trades)}")
+            # print(f"\n\nidx : {idx}")
+            # print(f"dt : {dt}")
+            # print(f"sig_ent_eval.records : {sig_ent_eval.records}")
+            # print(f"sig_ex_eval.records : {sig_ex_eval.records}")
+            # print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Check whether to cut loss, take profit and open new position sequentially
             completed_list = self.check_stop_loss(completed_list, info)
@@ -248,13 +248,13 @@ class GenTrades:
 
             if "FixedExit" in self.inst_cache:
                 exit_levels = self.inst_cache["FixedExit"].exit_levels
-                print(
-                    "self.inst_cache['FixedExit'].exit_levels : "
-                    f"\n\n{pformat(exit_levels, sort_dicts=False)}\n"
-                )
-            print(f"net_pos after update : {get_net_pos(self.open_trades)}")
-            print(f"len(self.open_trades) : {len(self.open_trades)}")
-            display_open_trades(self.open_trades)
+                # print(
+                #     "self.inst_cache['FixedExit'].exit_levels : "
+                #     f"\n\n{pformat(exit_levels, sort_dicts=False)}\n"
+                # )
+            # print(f"net_pos after update : {get_net_pos(self.open_trades)}")
+            # print(f"len(self.open_trades) : {len(self.open_trades)}")
+            # display_open_trades(self.open_trades)
 
             # print(
             #     "\n\nself.stop_info_list : "
@@ -319,7 +319,7 @@ class GenTrades:
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        print("Checking stop loss...")
+        # print("Checking stop loss...")
 
         # Return 'completed_list' unamended if no net position or no stop loss set
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
@@ -435,7 +435,7 @@ class GenTrades:
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        print("Checking trailing profit...")
+        # print("Checking trailing profit...")
 
         # Return 'completed_list' unamended if no net position or
         # no trailing method set
@@ -473,7 +473,7 @@ class GenTrades:
             None.
         """
 
-        print("Checking new position...")
+        # print("Checking new position...")
 
         # Evaluate incoming record and return parameters to create new position
         # if condition met
