@@ -29,6 +29,59 @@ The framework supports:
 - Risk management with stop-loss and trailing profit mechanisms
 - Configurable signal evaluation methods
 
+## Configuration Options
+
+The framework provides multiple concrete implementations for each component. Configure them in your `TradingConfig` and `RiskConfig`:
+
+### Entry Methods
+- **`"SingleEntry"`**: Only one position at a time. Use for simple strategies that avoid overlapping trades.
+- **`"MultiEntry"`**: Multiple overlapping positions allowed. Use when you want to scale into positions.
+- **`"MultiHalfEntry"`**: Partial position management. Use for gradual position building.
+
+```python
+trading_cfg = TradingConfig(entry_struct="MultiEntry", ...)
+```
+
+### Exit Methods
+- **`"FIFOExit"`**: First-in-first-out closing. Use for tax optimization or simple position management.
+- **`"LIFOExit"`**: Last-in-first-out closing. Use when recent positions should close first.
+- **`"TakeAllExit"`**: Close all positions simultaneously. Use for quick market exit strategies.
+- **`"FixedExit"`**: Predetermined exit levels. Use when you have specific price targets.
+
+```python
+trading_cfg = TradingConfig(exit_struct="TakeAllExit", ...)
+```
+
+### Signal Evaluators
+- **`"OpenEvaluator"`**: Execute trades at market open next day. Use for standard daily strategies.
+- **`"BreakoutEvaluator"`**: Wait for price confirmation over multiple days. Use for momentum strategies requiring validation.
+
+```python
+risk_cfg = RiskConfig(sig_eval_method="BreakoutEvaluator", ...)
+```
+
+### Stop Methods (Portfolio Risk Protection)
+All open positions close when stop condition is met. You define the portfolio loss percentage (e.g., 5%):
+
+- **`"LatestLoss"`**: Uses most recent position to set stop level. Protects against trend reversals.
+- **`"NearestLoss"`**: Uses position closest to current price. Provides tightest risk control.
+- **`"PercentLoss"`**: Calculates stop to limit total portfolio loss to exact percentage. Ensures absolute loss control.
+- **`"no_stop"`**: No automatic stops. Rely purely on your exit signal logic.
+
+```python
+risk_cfg = RiskConfig(stop_method="PercentLoss", percent_loss=0.05, ...)
+```
+
+### Trail Methods (Profit Protection)
+Locks in portfolio gains while allowing continued upside participation:
+
+- **`"FirstTrail"`**: Trails stops upward using first position as reference. Protects accumulated gains across all positions.
+- **`"no_trail"`**: No trailing stops. Exit timing controlled entirely by your exit signals.
+
+```python
+risk_cfg = RiskConfig(trail_method="FirstTrail", trigger_trail=0.2, ...)
+```
+
 ## Examples
 
 ### Simple RSI Strategy
