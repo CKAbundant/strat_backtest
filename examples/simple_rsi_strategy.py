@@ -100,10 +100,8 @@ def main():
     df_trades, df_signals = strategy(df_ohlcv)
 
     # Display results
-    print("Completed Trades:")
-    print(df_trades)
-    print("\nSignals Summary:")
-    print(df_signals[["RSI_14", "entry_signal", "exit_signal"]].tail())
+    print(f"Completed Trades:\n{df_trades}")
+    print(f"\nSignals:\n{df_signals}")
 
 
 if __name__ == "__main__":
