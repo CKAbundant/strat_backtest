@@ -36,14 +36,19 @@ This project uses UV for dependency management. **ALWAYS use these commands:**
 
 ## Code Style Standards
 - Use Python 3.10+ union syntax: `str | None` not `Optional[str]`
+- Use `from __future__ import annotations` at the top of all Python files
+- Use `TYPE_CHECKING` for type-only imports to avoid circular dependencies
 - Use early return pattern for validation - check invalid conditions first then continue with main logic
 - Follow PEP 8 formatting standards
 - Include type hints for functions and returns
+- Prefer list comprehensions over multiple for loops when possible
+- Limit to single for loop per function; extract helper functions for complex iterations
 
-## Class Documentation Standards
-- Document `__init__` parameters in class docstring (not in `__init__` method)
-- Include both Args (initialization parameters) and Attributes (resulting class state)
-- Structure: brief purpose, Args section, Attributes section
+## Documentation Standards
+- **Module level**: Docstring at file start describing what the module implements
+- **Class level**: Brief purpose, Args section (init parameters), Attributes section (class state)
+- **Function level**: Brief purpose, Args section, Returns section
+- Document `__init__` parameters in class docstring, not in `__init__` method itself
 - Focus on clear parameter descriptions over examples
 
 ## Code Generation Requirements
