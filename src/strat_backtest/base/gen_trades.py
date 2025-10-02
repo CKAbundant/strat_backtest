@@ -3,7 +3,6 @@
 from collections import deque
 from datetime import datetime
 from decimal import Decimal
-from pprint import pformat
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
@@ -25,10 +24,9 @@ from strat_backtest.utils.gentrades_utils import (
 from strat_backtest.utils.pos_utils import (
     gen_cond_list,
     get_class_instance,
-    get_net_pos,
     get_std_field,
 )
-from strat_backtest.utils.utils import convert_to_decimal, display_open_trades
+from strat_backtest.utils.utils import convert_to_decimal
 
 if TYPE_CHECKING:
     from strat_backtest.base import SignalEvaluator, StopLoss, TrailProfit
@@ -217,22 +215,11 @@ class GenTrades:
 
         # Intialize entry and exit signal evaluator
         self.init_sig_evaluator()
-        sig_ent_eval = self.inst_cache["sig_ent_eval"]
-        sig_ex_eval = self.inst_cache["sig_ex_eval"]
 
         for record in df.itertuples(index=True, name=None):
             # Create mapping for attribute to its values and check if end of DataFrame
             info = gen_mapping(record, self.req_cols)
             is_end = info["idx"] >= len(df) - 1
-
-            idx = info["idx"]
-            dt = info["date"]
-
-            print(f"\n\nidx : {idx}")
-            print(f"dt : {dt}")
-            print(f"sig_ent_eval.records : {sig_ent_eval.records}")
-            print(f"sig_ex_eval.records : {sig_ex_eval.records}")
-            print(f"net_pos : {get_net_pos(self.open_trades)}")
 
             # Check whether to cut loss, take profit and open new position sequentially
             completed_list = self.check_stop_loss(completed_list, info)
@@ -245,21 +232,6 @@ class GenTrades:
                 completed_list = self.exit_all_end(completed_list, info)
             else:
                 self.check_new_pos(ticker, info)
-
-            if "FixedExit" in self.inst_cache:
-                exit_levels = self.inst_cache["FixedExit"].exit_levels
-                print(
-                    "self.inst_cache['FixedExit'].exit_levels : "
-                    f"\n\n{pformat(exit_levels, sort_dicts=False)}\n"
-                )
-            print(f"net_pos after update : {get_net_pos(self.open_trades)}")
-            print(f"len(self.open_trades) : {len(self.open_trades)}")
-            display_open_trades(self.open_trades)
-
-            # print(
-            #     "\n\nself.stop_info_list : "
-            #     f"\n\n{pformat(self.stop_info_list, sort_dicts=False)}\n"
-            # )
 
         # Append stop loss price and trailing price if available
         df_signals = append_info(df_signals, self.stop_info_list)
@@ -319,7 +291,7 @@ class GenTrades:
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        print("Checking stop loss...")
+        # print("Checking stop loss...")
 
         # Return 'completed_list' unamended if no net position or no stop loss set
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
@@ -435,7 +407,7 @@ class GenTrades:
                 List of dictionary containing required fields to generate DataFrame.
         """
 
-        print("Checking trailing profit...")
+        # print("Checking trailing profit...")
 
         # Return 'completed_list' unamended if no net position or
         # no trailing method set
@@ -473,7 +445,7 @@ class GenTrades:
             None.
         """
 
-        print("Checking new position...")
+        # print("Checking new position...")
 
         # Evaluate incoming record and return parameters to create new position
         # if condition met
