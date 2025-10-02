@@ -6,10 +6,13 @@ at 'exit_method' sub-package.
 3. HalfFIFOExit -> Reduce open positions by half via first-in-first out.
 4. HalfLIFOExit -> Reduce open positions by half via last-in-first out.
 5. TakeAllExit -> Close all open positions.
+6. FixedExit -> Close specific position based on entry date.
+7. FixedTimeExit -> Close positions after fixed time period.
 """
 
 from .fifo_exit import FIFOExit
 from .fixed_exit import FixedExit
+from .fixed_time_exit import FixedTimeExit
 from .half_fifo_exit import HalfFIFOExit
 from .half_lifo_exit import HalfLIFOExit
 from .lifo_exit import LIFOExit
@@ -23,4 +26,5 @@ __all__ = [
     "HalfLIFOExit",
     "TakeAllExit",
     "FixedExit",
+    "FixedTimeExit",
 ]

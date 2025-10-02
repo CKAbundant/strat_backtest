@@ -37,6 +37,7 @@ The `TradingStrategy` class acts as the main coordinator:
 - **HalfFIFOExit/HalfLIFOExit**: Partial position closing
 - **TakeAllExit**: Close all positions
 - **FixedExit**: Predetermined exit levels
+- **FixedTimeExit**: Time-based position closing after configurable period
 
 ### Signal Evaluators (`src/strat_backtest/signal_evaluator/`):
 - **OpenEvaluator**: Execute at market open next day

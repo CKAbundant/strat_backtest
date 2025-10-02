@@ -34,6 +34,7 @@ def risk_config():
         trail_method="no_trail",
         trigger_trail=0.05,
         step=None,
+        time_period=None,
     )
 
 

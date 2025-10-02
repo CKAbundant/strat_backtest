@@ -51,7 +51,9 @@ class GenTrades:
         >>> trading_cfg = TradingConfig(
                 entry_struct, exit_struct, num_lots, monitor_close
             )
-        >>> risk_cfg = RiskConfig(percent_loss, stop_method, trigger_trail, step)
+        >>> risk_cfg = RiskConfig(
+                percent_loss, stop_method, trigger_trail, step, time_period
+            )
         >>> trades = GenTrades(trading_cfg, risk_cfg)
         >>> df_trades, df_signals = trades.gen_trades(df_signals)
 
@@ -61,7 +63,7 @@ class GenTrades:
             'exit_struct', 'num_lots' and 'monitor_close' attributes.
         risk_cfg (RiskConfig):
             Instance of 'RiskConfig' dataclass containing 'percent_loss',
-            'stop_method', 'trigger_trail' and 'step' attributes.
+            'stop_method', 'trigger_trail', 'step' and 'time_period' attributes.
 
     Attributes:
         entry_struct (EntryMethod):
@@ -90,6 +92,10 @@ class GenTrades:
         step (Decimal):
             If provided, percent profit increment to trail profit. If None,
             increment set to current high - trigger_trail_level.
+        time_period (int | None):
+            If provided, number of trading days to hold position before automatic
+            exit via time-based mechanism. Works independently of exit_struct method.
+            If None, no time-based exit applied.
         module_paths(dict[str, str]):
             Dictionary mapping name of concrete class to its module path.
         req_cols (list[str]):
@@ -126,6 +132,7 @@ class GenTrades:
         self.trail_method = risk_cfg.trail_method
         self.trigger_trail = convert_to_decimal(risk_cfg.trigger_trail)
         self.step = convert_to_decimal(risk_cfg.step)
+        self.time_period = risk_cfg.time_period
 
         # Get dictionary mapping
         self.module_paths = get_module_paths()
@@ -296,6 +303,17 @@ class GenTrades:
         # Return 'completed_list' unamended if no net position or no stop loss set
         if len(self.open_trades) == 0 or self.stop_method == "no_stop":
             return completed_list
+
+        # Check time-based exits first (independent of exit_struct)
+        if self.time_period is not None:
+            fixed_time_exit = self._get_inst_from_cache(
+                "FixedTimeExit", time_period=self.time_period
+            )
+            self.open_trades, completed_list = fixed_time_exit.close_pos(
+                self.open_trades, record["date"], record["close"]
+            )
+            # Continue to other exit checks even after time-based exits
+            # (in case some positions remain open)
 
         if self.exit_struct == "FixedExit":
             fixed_exit = self._get_inst_from_cache(
