@@ -32,3 +32,4 @@ class RiskConfig:
     trail_method: TrailMethod = "no_trail"
     trigger_trail: float = 0.2
     step: float | None = None
+    time_period: int | None = None

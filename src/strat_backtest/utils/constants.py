@@ -47,6 +47,7 @@ class ExitMethod(StrEnum):
     HALF_LIFO = "HalfLIFOExit"
     TAKE_ALL = "TakeAllExit"
     FIXED = "FixedExit"
+    FIXED_TIME = "FixedTimeExit"
 
 
 class SigEvalMethod(StrEnum):
